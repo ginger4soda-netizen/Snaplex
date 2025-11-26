@@ -1,0 +1,8 @@
+{
+  "name": "Snaplex-V9-issue",
+  "description": "A Vision Prompt Engineer & Senior Art Director & Filmmaker, and promt management assistant with a soft pop aesthetic. Analyze images, reverse the prompt, and deconstructs them into structured prompt elements (Subject, Environment, Composition, Lighting, shot type, aesthetics style, etc.), and allows the user to chat with an AI tutor.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
