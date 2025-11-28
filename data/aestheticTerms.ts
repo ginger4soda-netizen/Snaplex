@@ -1,25 +1,28 @@
-// src/data/aestheticTerms.ts
+import React from 'react';
 
 export type TermTheme = 'coral' | 'sunny' | 'blue';
 
 export interface TermContent {
-  term: string; // 术语名称
-  desc: string; // 详细解释
+  term: string;
+  def: string;
+  app: string;
 }
 
 export interface AestheticTerm {
   id: string;
-  theme: TermTheme; // 决定 UI 主色调
-  visualStyle: React.CSSProperties; // ✨ 新增：CSS 视觉皮肤 (背景图/渐变)
+  category: string; // ✅ 新增：分类字段 (如 Style, Lighting)
+  theme: TermTheme;
+  visualStyle: React.CSSProperties;
   languages: {
     [key: string]: TermContent;
   };
 }
 
 export const AESTHETIC_TERMS: AestheticTerm[] = [
-  // --- 🔴 Memphis (Bold, Geometric) ---
+  // --- 🔴 Memphis ---
   {
     id: "memphis",
+    category: "Style", // ✅ 分类
     theme: "coral",
     visualStyle: {
       backgroundColor: "#fff1f2",
@@ -28,18 +31,22 @@ export const AESTHETIC_TERMS: AestheticTerm[] = [
       backgroundPosition: "0 0, 10px 10px"
     },
     languages: {
-      English: { term: "Memphis", desc: "Characterized by bold, vibrant colors, irregular combinations of geometric shapes, and Pop Art elements." },
-      Chinese: { term: "孟菲斯风格", desc: "以大胆鲜艳的色彩、不规则的几何图形组合和波普艺术元素为特征，充满活力与叛逆感。" },
-      Spanish: { term: "Memphis", desc: "Caracterizado por colores vibrantes, formas geométricas y elementos del Pop Art." },
-      Japanese: { term: "メンフィス", desc: "大胆で鮮やかな色、幾何学模様、ポップアートの要素が特徴です。" },
-      French: { term: "Memphis", desc: "Caractérisé par des couleurs vives, des formes géométriques et des éléments Pop Art." },
-      German: { term: "Memphis", desc: "Gekennzeichnet durch kräftige Farben, geometrische Formen und Pop-Art-Elemente." },
-      Korean: { term: "멤피스", desc: "대담하고 생생한 색상, 기하학적 형태, 팝아트 요소가 특징입니다." }
+      English: { 
+        term: "Memphis Style", 
+        def: "Characterized by bold, vibrant colors, clashing patterns, and irregular geometric shapes. It rejects minimalism.",
+        app: "Used in 80s graphic design, furniture, modern packaging, and playful UI interfaces."
+      },
+      Chinese: { 
+        term: "孟菲斯风格", 
+        def: "以大胆鲜艳的色彩、冲突的图案和不规则几何形状为特征。它反对极简主义，强调装饰性。",
+        app: "常见于80年代平面设计、家具设计、现代潮牌包装及活泼的UI界面。"
+      }
     }
   },
-  // --- 🔴 Bauhaus (Minimal, Primary Colors) ---
+  // --- 🔴 Bauhaus ---
   {
     id: "bauhaus",
+    category: "Style",
     theme: "coral",
     visualStyle: {
       backgroundColor: "#f5f5f4",
@@ -49,53 +56,65 @@ export const AESTHETIC_TERMS: AestheticTerm[] = [
       backgroundPosition: "center"
     },
     languages: {
-      English: { term: "Bauhaus", desc: "Form follows function. Minimalist, geometric, and balanced design using primary colors." },
-      Chinese: { term: "包豪斯", desc: "形式追随功能。强调极简、几何感与平衡，常使用红黄蓝三原色的现代主义设计美学。" },
-      Spanish: { term: "Bauhaus", desc: "La forma sigue a la función. Diseño minimalista, geométrico y equilibrado." },
-      Japanese: { term: "バウハウス", desc: "形態は機能に従う。ミニマリストで幾何学的、バランスの取れたデザイン。" },
-      French: { term: "Bauhaus", desc: "La forme suit la fonction. Design minimaliste, géométrique et équilibré." },
-      German: { term: "Bauhaus", desc: "Form folgt Funktion. Minimalistisches, geometrisches und ausgewogenes Design." },
-      Korean: { term: "바우하우스", desc: "형태는 기능을 따릅니다. 미니멀하고 기하학적이며 균형 잡힌 디자인." }
+      English: { 
+        term: "Bauhaus", 
+        def: "Form follows function. Features clean lines, primary colors (red/blue/yellow), and geometric balance.",
+        app: "Foundational in modern architecture, web layout grids, and minimalist typography."
+      },
+      Chinese: { 
+        term: "包豪斯", 
+        def: "形式追随功能。特征是简洁的线条、三原色（红黄蓝）的使用以及几何平衡感。",
+        app: "现代建筑、网页栅格布局和极简排版设计的基石。"
+      }
     }
   },
-  // --- 🔴 Surrealism (Dreamy) ---
+  // --- 🔴 Surrealism ---
   {
     id: "surrealism",
+    category: "Style",
     theme: "coral",
     visualStyle: {
       background: "linear-gradient(135deg, #EECDA3 0%, #EF629F 100%)"
     },
     languages: {
-      English: { term: "Surrealism", desc: "Dream-like visuals, illogical scenes, and juxtaposition of unrelated objects." },
-      Chinese: { term: "超现实主义", desc: "如梦境般的视觉效果，非逻辑的场景，以及不相关物体的奇异并置。" },
-      Spanish: { term: "Surrealismo", desc: "Visuales oníricos, escenas ilógicas y yuxtaposición de objetos no relacionados." },
-      Japanese: { term: "シュルレアリスム", desc: "夢のような視覚効果、非論理的な場面、無関係な物体の並置。" },
-      French: { term: "Surréalisme", desc: "Visuels oniriques, scènes illogiques et juxtaposition d'objets sans rapport." },
-      German: { term: "Surrealismus", desc: "Traumhafte Bilder, unlogische Szenen und Gegenüberstellung unzusammenhängender Objekte." },
-      Korean: { term: "초현실주의", desc: "꿈같은 시각 효과, 비논리적인 장면, 관련 없는 사물의 병치." }
+      English: { 
+        term: "Surrealism", 
+        def: "Dream-like visuals blending reality with bizarre, illogical elements. Juxtaposition of unrelated objects.",
+        app: "High fashion photography, conceptual advertising, and creative music videos."
+      },
+      Chinese: { 
+        term: "超现实主义", 
+        def: "如梦境般的视觉效果，将现实与怪诞、非逻辑元素融合。常使用不相关物体的并置。",
+        app: "常见于高级时尚摄影、概念广告和创意MV中。"
+      }
     }
   },
 
-  // --- 🟡 Chiaroscuro (High Contrast) ---
+  // --- 🟡 Chiaroscuro ---
   {
     id: "chiaroscuro",
+    category: "Lighting", // ✅ 分类
     theme: "sunny",
     visualStyle: {
       background: "radial-gradient(circle at center, #FFD166 10%, #1c1917 60%)"
     },
     languages: {
-      English: { term: "Chiaroscuro", desc: "Strong contrast between light and dark to create volume and drama." },
-      Chinese: { term: "明暗对照法", desc: "通过强烈的光影对比来创造体积感和戏剧性的视觉效果。" },
-      Spanish: { term: "Claroscuro", desc: "Fuerte contraste entre luz y oscuridad para crear volumen y drama." },
-      Japanese: { term: "キアロスクーロ", desc: "光と闇の強いコントラストを用いて、立体感とドラマを生み出します。" },
-      French: { term: "Clair-obscur", desc: "Fort contraste entre clair et obscur pour créer du volume et du drame." },
-      German: { term: "Chiaroscuro", desc: "Starker Kontrast zwischen Hell und Dunkel zur Erzeugung von Volumen und Dramatik." },
-      Korean: { term: "키아로스쿠로", desc: "빛과 어둠의 강한 대비를 통해 볼륨감과 드라마를 연출합니다." }
+      English: { 
+        term: "Chiaroscuro", 
+        def: "Strong contrast between light and dark to create volume, depth, and dramatic tension.",
+        app: "Portrait photography, moody cinema lighting (Film Noir), and dramatic rendering."
+      },
+      Chinese: { 
+        term: "明暗对照法", 
+        def: "通过强烈的光影对比来创造体积感、深度和戏剧张力。",
+        app: "用于人像摄影、情绪化电影布光（如黑色电影）和戏剧性渲染。"
+      }
     }
   },
-  // --- 🟡 Rule of Thirds (Grid) ---
+  // --- 🟡 Rule of Thirds ---
   {
     id: "rule_of_thirds",
+    category: "Composition", // ✅ 分类
     theme: "sunny",
     visualStyle: {
       backgroundColor: "#fff",
@@ -104,18 +123,22 @@ export const AESTHETIC_TERMS: AestheticTerm[] = [
       backgroundPosition: "center center"
     },
     languages: {
-      English: { term: "Rule of Thirds", desc: "Placing the subject on grid lines or intersections for balanced composition." },
-      Chinese: { term: "三分法构图", desc: "将主体放置在网格线或交点上，创造平衡且自然的构图。" },
-      Spanish: { term: "Regla de Tercios", desc: "Colocar el sujeto en líneas de cuadrícula o intersecciones para equilibrar." },
-      Japanese: { term: "三分割法", desc: "被写体をグリッド線または交点に配置し、バランスの取れた構図を作ります。" },
-      French: { term: "Règle des Tiers", desc: "Placer le sujet sur les lignes de grille pour une composition équilibrée." },
-      German: { term: "Drittel-Regel", desc: "Platzierung des Motivs auf Rasterlinien für eine ausgewogene Komposition." },
-      Korean: { term: "삼분할 법칙", desc: "피사체를 격자선이나 교차점에 배치하여 균형 잡힌 구도를 만듭니다." }
+      English: { 
+        term: "Rule of Thirds", 
+        def: "Dividing the frame into a 3x3 grid. Placing subjects on lines or intersections creates balance.",
+        app: "The golden rule for landscape photography, cinematography framing, and UI layout."
+      },
+      Chinese: { 
+        term: "三分法构图", 
+        def: "将画面分割为3x3网格。将主体放置在网格线或交点上，以创造视觉平衡。",
+        app: "风景摄影、电影运镜和UI布局设计的黄金法则。"
+      }
     }
   },
-  // --- 🟡 Bokeh (Blur) ---
+  // --- 🟡 Bokeh ---
   {
     id: "bokeh",
+    category: "Lighting", // ✅ 分类
     theme: "sunny",
     visualStyle: {
       background: "radial-gradient(circle at 30% 30%, rgba(255,209,102,0.8) 0%, transparent 20%), radial-gradient(circle at 70% 70%, rgba(255,209,102,0.6) 0%, transparent 30%)",
@@ -123,72 +146,86 @@ export const AESTHETIC_TERMS: AestheticTerm[] = [
       filter: "blur(4px)"
     },
     languages: {
-      English: { term: "Bokeh", desc: "The aesthetic quality of the blur produced in the out-of-focus parts of an image." },
-      Chinese: { term: "焦外散景", desc: "影像中焦外模糊部分产生的独特美学质量，常呈现柔和的光斑。" },
-      Spanish: { term: "Bokeh", desc: "La calidad estética del desenfoque producido en las partes fuera de foco." },
-      Japanese: { term: "ボケ味", desc: "画像の焦点が合っていない部分に生じるぼけの美的品質。" },
-      French: { term: "Bokeh", desc: "La qualité esthétique du flou produit dans les parties hors foyer d'une image." },
-      German: { term: "Bokeh", desc: "Die ästhetische Qualität der Unschärfe in den unscharfen Bereichen eines Bildes." },
-      Korean: { term: "보케", desc: "이미지의 초점이 맞지 않는 부분에서 생성되는 흐림의 미적 품질." }
+      English: { 
+        term: "Bokeh", 
+        def: "The aesthetic quality of the blur in out-of-focus areas, often rendering lights as soft circles.",
+        app: "Portrait mode, product photography to isolate subjects, and macro shots."
+      },
+      Chinese: { 
+        term: "焦外散景", 
+        def: "影像中焦外模糊部分的美学质量，通常将点光源渲染为柔和的光斑。",
+        app: "常用于人像模式、产品摄影（突出主体）和微距摄影。"
+      }
     }
   },
 
-  // --- 🔵 Cyberpunk (Neon) ---
+  // --- 🔵 Cyberpunk ---
   {
     id: "cyberpunk",
+    category: "Style",
     theme: "blue",
     visualStyle: {
       background: "linear-gradient(135deg, #0f0c29, #302b63, #24243e)",
       boxShadow: "inset 0 0 20px #0ff"
     },
     languages: {
-      English: { term: "Cyberpunk", desc: "High-tech low-life. Neon lights, rain, cybernetics, and dystopian cities." },
-      Chinese: { term: "赛博朋克", desc: "高科技，低生活。充满霓虹灯、雨水、机械义肢和反乌托邦城市的氛围。" },
-      Spanish: { term: "Cyberpunk", desc: "Alta tecnología, baja calidad de vida. Luces de neón, lluvia y distopía." },
-      Japanese: { term: "サイバーパンク", desc: "ハイテク・ローライフ。ネオン、雨、サイバネティクス、ディストピア都市。" },
-      French: { term: "Cyberpunk", desc: "High-tech, low-life. Néons, pluie, cybernétique et villes dystopiques." },
-      German: { term: "Cyberpunk", desc: "High-Tech Low-Life. Neonlichter, Regen, Kybernetik und dystopische Städte." },
-      Korean: { term: "사이버펑크", desc: "하이테크 로우라이프. 네온 사인, 비, 사이버네틱스, 디스토피아 도시." }
+      English: { 
+        term: "Cyberpunk", 
+        def: "High-tech, low-life. Features neon lights (purple/cyan), rain, circuitry, and dystopian urban vibes.",
+        app: "Sci-fi game design, futuristic concept art, and tech-focused branding."
+      },
+      Chinese: { 
+        term: "赛博朋克", 
+        def: "高科技，低生活。特征包括霓虹灯（紫/青色）、雨水、电路板纹理和反乌托邦城市氛围。",
+        app: "科幻游戏设计、未来主义概念艺术和科技品牌视觉。"
+      }
     }
   },
-  // --- 🔵 Film Noir (Black & White) ---
+  // --- 🔵 Film Noir ---
   {
     id: "film_noir",
+    category: "Style",
     theme: "blue",
     visualStyle: {
       background: "repeating-linear-gradient(45deg, #1c1917, #1c1917 10px, #44403c 10px, #44403c 20px)"
     },
     languages: {
-      English: { term: "Film Noir", desc: "Stylized crime dramas. High contrast lighting, shadows, silhouettes, and cynicism." },
-      Chinese: { term: "黑色电影", desc: "风格化的犯罪题材。高反差光影、阴影、剪影以及愤世嫉俗的基调。" },
-      Spanish: { term: "Cine Negro", desc: "Dramas criminales estilizados. Iluminación de alto contraste, sombras y cinismo." },
-      Japanese: { term: "フィルム・ノワール", desc: "様式化された犯罪ドラマ。高コントラストの照明、影、シルエット。" },
-      French: { term: "Film Noir", desc: "Drames policiers stylisés. Éclairage à fort contraste, ombres et cynisme." },
-      German: { term: "Film Noir", desc: "Stilisierte Kriminaldramen. Kontrastreiche Beleuchtung, Schatten und Zynismus." },
-      Korean: { term: "필름 누아르", desc: "양식화된 범죄 드라마. 높은 대비의 조명, 그림자, 실루엣, 냉소주의." }
+      English: { 
+        term: "Film Noir", 
+        def: "Stylized crime drama aesthetic. High contrast black & white, venetian blind shadows, and silhouettes.",
+        app: "Mystery storytelling, retro posters, and atmospheric black & white photography."
+      },
+      Chinese: { 
+        term: "黑色电影", 
+        def: "风格化的犯罪题材美学。高反差黑白画面、百叶窗阴影和剪影效果。",
+        app: "悬疑叙事、复古海报设计和氛围感黑白摄影。"
+      }
     }
   },
-  // --- 🔵 Vaporwave (Pastel Neon) ---
+  // --- 🔵 Vaporwave ---
   {
     id: "vaporwave",
+    category: "Style",
     theme: "blue",
     visualStyle: {
       background: "linear-gradient(to bottom, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)"
     },
     languages: {
-      English: { term: "Vaporwave", desc: "80s/90s nostalgia, pastel neon, glitches, anime aesthetics, and surreal consumerism." },
-      Chinese: { term: "蒸气波", desc: "80/90年代怀旧，粉彩霓虹，故障艺术，动漫美学与超现实消费主义。" },
-      Spanish: { term: "Vaporwave", desc: "Nostalgia 80s/90s, neón pastel, glitches, estética anime y consumismo surrealista." },
-      Japanese: { term: "ヴェイパーウェイヴ", desc: "80/90年代ノスタルジー、パステルネオン、グリッチ、アニメ美学。" },
-      French: { term: "Vaporwave", desc: "Nostalgie 80s/90s, néon pastel, glitches, esthétique anime et surréalisme." },
-      German: { term: "Vaporwave", desc: "80er/90er Nostalgie, Pastell-Neon, Glitches und surrealer Konsumismus." },
-      Korean: { term: "베이퍼웨이브", desc: "80/90년대 향수, 파스텔 네온, 글리치, 애니메이션 미학." }
+      English: { 
+        term: "Vaporwave", 
+        def: "80s/90s nostalgia mixed with surrealism. Pastel neon, glitches, Greek statues, and old computer UI.",
+        app: "Retro-futuristic art, music album covers, and internet subculture visuals."
+      },
+      Chinese: { 
+        term: "蒸气波", 
+        def: "80/90年代怀旧与超现实主义的混合。粉彩霓虹、故障效果、希腊雕像和旧电脑界面。",
+        app: "复古未来主义艺术、音乐专辑封面和网络亚文化视觉。"
+      }
     }
   }
 ];
 
-// 辅助函数：根据系统语言获取随机术语
-export const getRandomTerm = (systemLanguage: string = 'English'): { term: TermContent, theme: TermTheme, id: string, visualStyle: React.CSSProperties } => {
+export const getRandomTerm = (systemLanguage: string = 'English'): { term: TermContent, theme: TermTheme, id: string, category: string, visualStyle: React.CSSProperties } => {
   const randomItem = AESTHETIC_TERMS[Math.floor(Math.random() * AESTHETIC_TERMS.length)];
   const langKey = systemLanguage.split(' ')[0];
   const content = randomItem.languages[langKey] || randomItem.languages['English'];
@@ -197,6 +234,7 @@ export const getRandomTerm = (systemLanguage: string = 'English'): { term: TermC
     term: content,
     theme: randomItem.theme,
     id: randomItem.id,
-    visualStyle: randomItem.visualStyle // ✅ 现在返回视觉样式了
+    category: randomItem.category, // ✅ 返回分类
+    visualStyle: randomItem.visualStyle
   };
 };

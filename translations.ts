@@ -1,13 +1,6 @@
-// --- translations.ts (最终定稿版 - 7国语言同步) ---
+// --- translations.ts (修复版：先定义词典，再定义函数) ---
 
-// 1. 智能匹配助手
-export const getTranslation = (langString: string | undefined) => {
-  if (!langString) return translations.English;
-  const key = langString.split(' ')[0]; // 例如 "Chinese (中文)" -> "Chinese"
-  return (translations as any)[key] || translations.English;
-};
-
-// 2. 完整词典
+// 1. 完整词典 (7 国语言)
 export const translations = {
   English: {
     // 通用按钮
@@ -47,7 +40,6 @@ export const translations = {
     lblFrontLang: "Card Front Language",
     lblBackLang: "Card Back Language",
     lblStylePref: "Style Preferences",
-    // 风格选项
     styleStandard: "Standard",
     styleArtistic: "Artistic",
     styleCinematic: "Cinematic",
@@ -68,9 +60,9 @@ export const translations = {
     lblSubject: "SUBJECT",
     lblEnvironment: "ENVIRONMENT",
     lblComposition: "COMPOSITION",
-    lblLighting: "LIGHTING/COLOR",
-    lblMood: "MOOD/VIBE",
-    lblStyle: "AESTHETIC STYLE",
+    lblLighting: "LIGHTING",
+    lblMood: "MOOD",
+    lblStyle: "STYLE",
     lblDescription: "DESCRIPTION",
 
     // 聊天 (ChatBot)
@@ -80,7 +72,9 @@ export const translations = {
 
     // 等待页 (Loader)
     loaderTitle: "Visual Decoding...",
-    loaderSubtitle: "Learn styles while waiting.",
+    loaderSubtitle: "Learn visual terms while waiting.",
+    loaderDone: "Decoding Complete",
+    btnView: "View Result",
   },
   
   Chinese: {
@@ -89,7 +83,7 @@ export const translations = {
     btnCamera: "拍照",
     btnUpload: "上传",
     homeTitle: "拍 · 学",
-    homeSubtitle: "拍照解码视觉，学习创作灵感。",
+    homeSubtitle: "拍照解码视觉，学习创作灵感",
     errCamera: "无法访问相机，请允许权限或使用批量上传。",
     libraryTitle: "我的图库",
     searchPlaceholder: "搜索 (如：红色、特写)...",
@@ -137,14 +131,15 @@ export const translations = {
     lblDescription: "描述",
     chatGreeting: "对这张图你还有什么想了解的？",
     chatPlaceholder: "输入你的问题...",
-    chatThinking: "AI思考中...",
+    chatThinking: "AI 思考中...",
     loaderTitle: "视觉解码中...",
-    loaderSubtitle: "学一些风格词汇吧",
+    loaderSubtitle: "等待时学点词条吧",
+    loaderDone: "解码完成",
+    btnView: "查看结果",
   },
 
   Spanish: {
-    btnBack: "Volver", btnSave: "Guardar", 
-    btnCamera: "Tomar Foto", btnUpload: "Subir",
+    btnBack: "Volver", btnSave: "Guardar", btnCamera: "Tomar Foto", btnUpload: "Subir",
     homeTitle: "Captura y Aprende", homeSubtitle: "Captura para decodificar. Aprende a crear.",
     errCamera: "No se puede acceder a la cámara. Permita permisos o use Subir.",
     libraryTitle: "Tu Biblioteca", searchPlaceholder: "Buscar (ej. rojo, primer plano)...", btnFind: "Buscar",
@@ -162,12 +157,12 @@ export const translations = {
     lblSubject: "SUJETO", lblEnvironment: "ENTORNO", lblComposition: "COMPOSICIÓN",
     lblLighting: "ILUMINACIÓN/COLOR", lblMood: "ESTADO DE ÁNIMO/VIBRA", lblStyle: "ESTILO ESTÉTICO", lblDescription: "DESCRIPCIÓN",
     chatGreeting: "¿Qué más quieres saber sobre esta imagen?", chatPlaceholder: "Pregunta algo...", chatThinking: "IA pensando...",
-    loaderTitle: "Decodificación Visual...", loaderSubtitle: "Aprende estilos mientras esperas."
+    loaderTitle: "Decodificación Visual...", loaderSubtitle: "Aprende estilos mientras esperas.",
+    loaderDone: "Decodificación Completa", btnView: "Ver Resultado",
   },
 
   Japanese: {
-    btnBack: "戻る", btnSave: "保存", 
-    btnCamera: "写真を撮る", btnUpload: "アップロード",
+    btnBack: "戻る", btnSave: "保存", btnCamera: "写真を撮る", btnUpload: "アップロード",
     homeTitle: "スナップ＆ラーン", homeSubtitle: "撮影して解読。創造を学ぶ。",
     errCamera: "カメラにアクセスできません。許可するか、アップロードを使用してください。",
     libraryTitle: "ライブラリ", searchPlaceholder: "検索 (例: 赤、クローズアップ)...", btnFind: "検索",
@@ -185,12 +180,12 @@ export const translations = {
     lblSubject: "主題", lblEnvironment: "環境", lblComposition: "構図",
     lblLighting: "照明/色彩", lblMood: "ムード/雰囲気", lblStyle: "美的スタイル", lblDescription: "説明",
     chatGreeting: "この画像について他に知りたいことは？", chatPlaceholder: "質問を入力...", chatThinking: "AI思考中...",
-    loaderTitle: "視覚的解読中...", loaderSubtitle: "待機中にスタイルを学ぶ"
+    loaderTitle: "視覚的解読中...", loaderSubtitle: "待機中にスタイルを学ぶ",
+    loaderDone: "解読完了", btnView: "結果を見る",
   },
 
   French: {
-    btnBack: "Retour", btnSave: "Enregistrer", 
-    btnCamera: "Prendre une Photo", btnUpload: "Upload",
+    btnBack: "Retour", btnSave: "Enregistrer", btnCamera: "Prendre une Photo", btnUpload: "Upload",
     homeTitle: "Capturer & Apprendre", homeSubtitle: "Capturer pour décoder. Apprendre à créer.",
     errCamera: "Impossible d'accéder à la caméra. Autorisez l'accès ou utilisez l'Upload.",
     libraryTitle: "Votre Bibliothèque", searchPlaceholder: "Rechercher (ex: rouge, gros plan)...", btnFind: "Trouver",
@@ -208,12 +203,12 @@ export const translations = {
     lblSubject: "SUJET", lblEnvironment: "ENVIRONNEMENT", lblComposition: "COMPOSITION",
     lblLighting: "ÉCLAIRAGE/COULEUR", lblMood: "AMBIANCE/VIBE", lblStyle: "STYLE ESTHÉTIQUE", lblDescription: "DESCRIPTION",
     chatGreeting: "Que voulez-vous savoir d'autre ?", chatPlaceholder: "Posez une question...", chatThinking: "L'IA réfléchit...",
-    loaderTitle: "Décodage Visuel...", loaderSubtitle: "Apprenez des styles en attendant."
+    loaderTitle: "Décodage Visuel...", loaderSubtitle: "Apprenez des styles en attendant.",
+    loaderDone: "Décodage Terminé", btnView: "Voir le Résultat",
   },
 
   German: {
-    btnBack: "Zurück", btnSave: "Speichern", 
-    btnCamera: "Schnappschuss", btnUpload: "Upload",
+    btnBack: "Zurück", btnSave: "Speichern", btnCamera: "Schnappschuss", btnUpload: "Upload",
     homeTitle: "Knipsen & Lernen", homeSubtitle: "Knipsen zum Dekodieren. Lernen zu Erstellen.",
     errCamera: "Kamera nicht verfügbar. Bitte Berechtigungen prüfen oder Upload nutzen.",
     libraryTitle: "Deine Bibliothek", searchPlaceholder: "Suchen (z.B. Rot, Nahaufnahme)...", btnFind: "Finden",
@@ -231,12 +226,12 @@ export const translations = {
     lblSubject: "SUBJEKT", lblEnvironment: "UMGEBUNG", lblComposition: "KOMPOSITION",
     lblLighting: "BELEUCHTUNG/FARBE", lblMood: "STIMMUNG/VIBE", lblStyle: "ÄSTHETISCHER STIL", lblDescription: "BESCHREIBUNG",
     chatGreeting: "Was möchtest du noch wissen?", chatPlaceholder: "Stelle eine Frage...", chatThinking: "KI denkt nach...",
-    loaderTitle: "Visuelle Dekodierung...", loaderSubtitle: "Lerne Stile beim Warten."
+    loaderTitle: "Visuelle Dekodierung...", loaderSubtitle: "Lerne Stile beim Warten.",
+    loaderDone: "Dekodierung Abgeschlossen", btnView: "Ergebnis Ansehen",
   },
 
   Korean: {
-    btnBack: "뒤로", btnSave: "저장", 
-    btnCamera: "스냅 촬영", btnUpload: "업로드",
+    btnBack: "뒤로", btnSave: "저장", btnCamera: "스냅 촬영", btnUpload: "업로드",
     homeTitle: "스냅 & 러닝", homeSubtitle: "찍어서 해독하고, 만들며 배웁니다.",
     errCamera: "카메라에 접근할 수 없습니다. 권한을 허용하거나 업로드를 사용하세요.",
     libraryTitle: "라이브러리", searchPlaceholder: "검색 (예: 빨강, 클로즈업)...", btnFind: "검색",
@@ -254,6 +249,14 @@ export const translations = {
     lblSubject: "주제", lblEnvironment: "환경", lblComposition: "구도",
     lblLighting: "조명/색상", lblMood: "무드/분위기", lblStyle: "미적 스타일", lblDescription: "설명",
     chatGreeting: "이 이미지에 대해 더 알고 싶은 것이 있나요?", chatPlaceholder: "질문하세요...", chatThinking: "AI 생각 중...",
-    loaderTitle: "시각적 해독 중...", loaderSubtitle: "기다리는 동안 스타일 배우기"
+    loaderTitle: "시각적 해독 중...", loaderSubtitle: "기다리는 동안 스타일 배우기",
+    loaderDone: "해독 완료", btnView: "결과 보기",
   }
+};
+
+// 2. 智能匹配助手 (放在后面，确保 translations 已定义)
+export const getTranslation = (langString: string | undefined) => {
+  if (!langString) return translations.English;
+  const key = langString.split(' ')[0]; // 例如 "Chinese (中文)" -> "Chinese"
+  return (translations as any)[key] || translations.English;
 };

@@ -285,3 +285,56 @@ export const sendChatMessageStream = async (
     onUpdate("Connection error or invalid API Key.");
   }
 };
+// ==========================================
+// 👇 请将以下代码追加到文件的最底部
+// ==========================================
+
+// 定义解释结果的数据结构
+export interface TermExplanation {
+  def: string; // 定义 (Definition)
+  app: string; // 应用 (Application)
+}
+
+/**
+ * 专门用于复古打印机：解释一个视觉术语
+ * @param term 需要解释的词 (如 "Cyberpunk")
+ * @param language 目标语言 (如 "Chinese")
+ */
+export const explainVisualTerm = async (term: string, language: string): Promise<TermExplanation> => {
+  try {
+    const prompt = `
+      As an expert Art Director, explain the visual style/term: "${term}".
+      
+      Target Language: ${language} (Must output in this language)
+      
+      Rules:
+      1. Keep it VERY concise (for a small screen).
+      2. "def": Definition/Characteristics (Max 20 words).
+      3. "app": Common usage/Application (Max 15 words).
+      
+      Output strictly JSON:
+      { "def": "...", "app": "..." }
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [{ parts: [{ text: prompt }] }],
+      config: { 
+        responseMimeType: "application/json" 
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No response from AI");
+    
+    return JSON.parse(text) as TermExplanation;
+
+  } catch (error) {
+    console.error("Explain term failed:", error);
+    // 兜底返回，防止打印机卡死
+    return {
+      def: language.startsWith("Chinese") ? "正在检索数据..." : "Retrieving data...",
+      app: language.startsWith("Chinese") ? "分析历史档案中" : "Analyzing archives"
+    };
+  }
+};
