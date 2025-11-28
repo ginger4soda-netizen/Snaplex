@@ -187,8 +187,12 @@ const StylePrinter: React.FC<Props> = ({ systemLanguage = 'English', isFinished 
       )}
 
       {/* --- 2. 复古打印机 (保留你的视觉参数: scale-110, max-w-md) --- */}
-      <div className="transform scale-110 origin-center transition-transform duration-500">
-        <div className="relative w-full max-w-md bg-[#e8e4dc] rounded-[2.5rem] p-8 shadow-[inset_0_-8px_10px_rgba(0,0,0,0.05),0_30px_60px_rgba(0,0,0,0.15)] border border-[#d6d3cb]">
+      {/* ✅ 核心修复：响应式缩放
+          scale-[0.8] : 手机端默认缩小到 80%，完美放入屏幕
+          sm:scale-100 : 平板端恢复 100%
+          md:scale-110 : 电脑端放大到 110% 
+      */}
+      <div className="transform scale-[0.8] sm:scale-100 md:scale-110 origin-center transition-transform duration-500">        <div className="relative w-full max-w-md bg-[#e8e4dc] rounded-[2.5rem] p-8 shadow-[inset_0_-8px_10px_rgba(0,0,0,0.05),0_30px_60px_rgba(0,0,0,0.15)] border border-[#d6d3cb]">
             
             {/* 顶部出纸口 */}
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-3/4 h-5 bg-[#d1cec5] rounded-full shadow-inner overflow-visible">
