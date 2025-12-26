@@ -44,7 +44,6 @@ const App: React.FC = () => {
   const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
   
   const [loading, setLoading] = useState(false);
-  // ✅ 新增状态：控制是否查看结果
   const [isReadyToView, setIsReadyToView] = useState(false); 
 
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
@@ -106,7 +105,6 @@ const App: React.FC = () => {
   const handleImageUpload = async (files: File[]) => {
     if (files.length === 0) return;
     
-    // ✅ 初始化状态：开始加载，未准备好查看，增加了音效
     setLoading(true); 
     setMode('analysis'); 
     setAnalysis(null); 
@@ -150,7 +148,6 @@ const App: React.FC = () => {
     } catch (error) {
       console.error(error); alert("Analysis failed. Please try again."); setMode('home');
     } finally { 
-      // ✅ 加载结束，但界面会停留在打印机上，直到用户点击按钮
       setLoading(false); 
     }
   };
@@ -161,7 +158,7 @@ const App: React.FC = () => {
     setAnalysis(item.analysis);
     setCurrentHistoryId(item.id); 
     setMode('analysis');
-    setIsReadyToView(true); // 从历史记录进入，直接查看
+    setIsReadyToView(true);
   };
   
   const currentItem = historyItems.find(h => h.id === currentHistoryId);
@@ -181,19 +178,27 @@ const App: React.FC = () => {
             <Settings settings={settings} onSave={handleSaveSettings} />
         )}
 
+        {/* ✅ 新增：独立的打印机页面路由 */}
+        {mode === 'printer' && (
+            <div className="px-4">
+                <StylePrinter 
+                    mode="standalone" // 独立模式
+                    systemLanguage={settings.systemLanguage}
+                />
+            </div>
+        )}
+
         {mode === 'analysis' && (
-          // ✅ 核心逻辑修改：
-          // 如果正在加载，或者已经加载完但用户还没点击查看 -> 显示打印机
           (loading || (analysis && !isReadyToView)) ? (
             <div className="px-4 py-8">
                 <StylePrinter 
+                    mode="analysis" // 分析模式（尺寸已修复）
                     systemLanguage={settings.systemLanguage}
-                    isFinished={!loading && !!analysis} // 告诉打印机：是否完成了？
-                    onViewResult={() => setIsReadyToView(true)} // 告诉打印机：用户点击查看后做什么
+                    isFinished={!loading && !!analysis} 
+                    onViewResult={() => setIsReadyToView(true)}
                 />
             </div>
           ) : (
-            // 用户点击查看后 -> 显示结果页
             analysis && currentImage && (
               <AnalysisView 
                 image={currentImage} 

@@ -31,7 +31,8 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-export type AppMode = 'home' | 'analysis' | 'chat' | 'history' | 'settings';
+// ✅ 修改点：新增 'printer' 模式
+export type AppMode = 'home' | 'analysis' | 'chat' | 'history' | 'settings' | 'printer';
 
 export interface HistoryItem {
   id: string;

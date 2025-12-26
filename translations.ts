@@ -15,7 +15,7 @@ export const translations = {
     errCamera: "Could not access camera. Please allow permissions or use Batch Upload.",
     
     // 历史页 (History)
-    libraryTitle: "Your Library",
+    libraryTitle: "Library",
     searchPlaceholder: "Search snaps (e.g., 'red', 'close-up')...",
     btnFind: "Find",
     btnSelect: "Select",

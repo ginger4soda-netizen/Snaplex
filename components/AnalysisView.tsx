@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { AnalysisResult, UserSettings, ChatMessage, PromptSegment } from '../types';
 import ChatBot from './ChatBot';
-import { getTranslation } from '../translations'; // 引入字典
+import { getTranslation } from '../translations';
+import { copyToClipboard } from '../utils/clipboard'; // ✅ 1. 引入新工具
 
 interface Props {
   image: string;
@@ -20,11 +21,17 @@ const COLOR_MAP: Record<string, string> = {
 
 const PromptCard: React.FC<{ title: string; systemLabel: string; content: PromptSegment; color: string; isGlobalFlipped: boolean; }> = ({ title, systemLabel, content, color, isGlobalFlipped }) => {
     const [isCopied, setIsCopied] = useState(false);
-    const handleCopy = () => {
+    
+    const handleCopy = async () => {
         const textToCopy = isGlobalFlipped ? content.translated : content.original;
-        navigator.clipboard.writeText(textToCopy);
-        setIsCopied(true); setTimeout(() => setIsCopied(false), 2000);
+        // ✅ 2. 使用强壮的复制函数
+        const success = await copyToClipboard(textToCopy);
+        if (success) {
+            setIsCopied(true); 
+            setTimeout(() => setIsCopied(false), 2000);
+        }
     };
+    
     const hexColor = COLOR_MAP[color] || '#78716c';
     return (
         <div className="relative mb-6 perspective-1000">
@@ -51,10 +58,9 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
   const [isGlobalFlipped, setIsGlobalFlipped] = useState(false);
   const [showChat, setShowChat] = useState(false);
   
-  const t = getTranslation(settings.systemLanguage); // 获取当前语言包
+  const t = getTranslation(settings.systemLanguage);
   const hasStructuredPrompts = !!analysis.structuredPrompts;
 
-  // 使用字典中的 label
   const modules = hasStructuredPrompts ? [
       { title: 'Subject', label: t.lblSubject, color: 'text-coral', content: analysis.structuredPrompts?.subject },
       { title: 'Environment', label: t.lblEnvironment, color: 'text-mint', content: analysis.structuredPrompts?.environment },
@@ -66,14 +72,21 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
       { title: 'Description', label: t.lblDescription, color: 'text-softblue', content: { original: analysis.description, translated: t.transUnavailable } }
   ];
 
-  const handleGlobalCopy = () => {
+  const handleGlobalCopy = async () => {
       const allowed = settings.copyIncludedModules || ["Subject", "Environment", "Composition", "Lighting", "Mood", "Style"];
       const text = modules.filter(m => allowed.includes(m.title)).map(m => {
           const contentToUse = isGlobalFlipped ? m.content.translated : m.content.original;
           return `[${m.title}]\n${contentToUse}`;
       }).join('\n\n');
-      navigator.clipboard.writeText(text);
-      alert(isGlobalFlipped ? t.msgCopiedConfig : t.msgCopied);
+
+      // ✅ 3. 使用强壮的复制函数
+      const success = await copyToClipboard(text);
+      if (success) {
+          alert(isGlobalFlipped ? t.msgCopiedConfig : t.msgCopied);
+      } else {
+          // 如果真的都失败了（极少情况），给个提示
+          alert("Copy failed. Please select text manually.");
+      }
   };
 
   const handleCopyImage = async () => {
@@ -84,7 +97,15 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
           const ctx = canvas.getContext("2d"); if (!ctx) throw new Error("Canvas context failed");
           ctx.drawImage(img, 0, 0);
           canvas.toBlob(async (blob) => {
-              if (blob) { await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]); alert(t.msgImgCopied); }
+              if (blob) { 
+                  // 图片复制比较特殊，仍然尝试使用 API，因为 execCommand 不支持图片
+                  try {
+                    await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]); 
+                    alert(t.msgImgCopied); 
+                  } catch (e) {
+                    alert(t.msgImgFail);
+                  }
+              }
           }, 'image/png');
       } catch (e) { alert(t.msgImgFail); }
   };

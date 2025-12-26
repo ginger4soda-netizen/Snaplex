@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AppMode } from '../types';
 
@@ -11,6 +10,8 @@ const Header: React.FC<HeaderProps> = ({ currentMode, setMode }) => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
       <div className="w-full max-w-screen-md bg-cream/95 backdrop-blur-md px-6 py-4 flex justify-between items-center border-b border-stone-100 pointer-events-auto shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
+        
+        {/* Logo */}
         <div 
           className="flex items-center gap-2 cursor-pointer group"
           onClick={() => setMode('home')}
@@ -21,6 +22,19 @@ const Header: React.FC<HeaderProps> = ({ currentMode, setMode }) => {
         </div>
 
         <div className="flex items-center gap-3">
+          
+          {/* NEW: Printer / Collection Gallery Button */}
+          <button 
+            onClick={() => setMode(currentMode === 'printer' ? 'home' : 'printer')}
+            className={`p-2 rounded-full transition-all shadow-pop-sm active:translate-y-1 active:shadow-none ${currentMode === 'printer' ? 'bg-coral text-white' : 'bg-white text-stone-600 hover:text-coral'}`}
+            title="Style Printer & Collection"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </button>
+
+          {/* Settings Button */}
           <button 
             onClick={() => setMode(currentMode === 'settings' ? 'home' : 'settings')}
             className={`p-2 rounded-full transition-all shadow-pop-sm active:translate-y-1 active:shadow-none ${currentMode === 'settings' ? 'bg-stone-800 text-white' : 'bg-white text-stone-600'}`}
@@ -32,6 +46,7 @@ const Header: React.FC<HeaderProps> = ({ currentMode, setMode }) => {
             </svg>
           </button>
 
+          {/* History Button */}
           <button 
             onClick={() => setMode(currentMode === 'history' ? 'home' : 'history')}
             className={`p-2 rounded-full transition-all shadow-pop-sm active:translate-y-1 active:shadow-none ${currentMode === 'history' ? 'bg-softblue text-white' : 'bg-white text-stone-600'}`}

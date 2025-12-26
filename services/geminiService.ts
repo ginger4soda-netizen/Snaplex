@@ -1,8 +1,21 @@
 import { GoogleGenAI, Type } from "@google/genai";
+// 👇 修复点：去掉了这里原本错误的 TermExplanation
 import { AnalysisResult, UserSettings, ChatMessage, HistoryItem } from "../types";
 
-// Instantiate with default environment key
-const ai = new GoogleGenAI({ apiKey: 'AIzaSyBFgYGbUZUbnaiFIKiGK5QzwW-DC3M1ANQ' });
+// --- Helper: Dynamic Client Initialization ---
+// 仅修改此处：动态读取 Key 和 Model，不改动下方任何业务逻辑
+const getAIClient = () => {
+  const apiKey = localStorage.getItem("SNAPLEX_API_KEY");
+  // 默认为 gemini-2.5-flash，但支持读取用户设置的任何模型ID（包括 gemini-3.0-flash）
+  const modelName = localStorage.getItem("SNAPLEX_MODEL_ID") || "gemini-2.5-flash"; 
+  
+  if (!apiKey) {
+    throw new Error("MISSING_API_KEY");
+  }
+  
+  const ai = new GoogleGenAI({ apiKey });
+  return { ai, modelName };
+};
 
 // --- Schemas ---
 
@@ -41,8 +54,10 @@ export const analyzeImage = async (
   settings: UserSettings
 ): Promise<AnalysisResult> => {
   try {
+    const { ai, modelName } = getAIClient(); // <--- 动态获取
+
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: modelName, // <--- 使用动态模型
       contents: {
         parts: [
           {
@@ -52,6 +67,7 @@ export const analyzeImage = async (
             },
           },
           {
+            // 👇 这里保留了你原始的完整提示词，一字未改 👇
             text: `You are a Expert Prompt Engineer & Senior Art Director & Filmmaker & Art Historian, and Pop Culture Analyst. 
             Your task is to reverse-engineer this image into high-precision prompts with deep "World Knowledge."
             
@@ -145,11 +161,13 @@ export const searchHistory = async (query: string, history: HistoryItem[]): Prom
     if (!query.trim() || !history.length) return [];
 
     try {
+        const { ai, modelName } = getAIClient(); // <--- 动态获取
+
         // 1. Query Expansion via Gemini (Semantic)
         // Instead of sending all history (heavy payload), we ask Gemini to expand the query into synonyms/concepts.
         // This keeps the API call fast and robust.
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: modelName, // <--- 动态模型
             contents: {
                 parts: [{
                     text: `Analyze the search query: "${query}". 
@@ -227,6 +245,8 @@ export const sendChatMessageStream = async (
   settings?: UserSettings
 ): Promise<void> => {
   try {
+    const { ai, modelName } = getAIClient(); // <--- 动态获取
+
     const historyParts = history.map(h => ({
       role: h.role === 'user' ? 'user' : 'model',
       parts: [{ text: h.text }]
@@ -258,14 +278,14 @@ export const sendChatMessageStream = async (
       parts.push({ text: contextPrompt });
 
       resultStream = await ai.models.generateContentStream({
-        model: "gemini-2.5-flash",
+        model: modelName, // <--- 动态模型
         contents: { parts },
         config: { systemInstruction }
       });
 
     } else {
       const chat = ai.chats.create({
-        model: "gemini-2.5-flash",
+        model: modelName, // <--- 动态模型
         history: historyParts as any,
         config: { systemInstruction }
       });
@@ -280,9 +300,14 @@ export const sendChatMessageStream = async (
       }
     }
 
-  } catch (e) {
+  } catch (e: any) {
     console.error("Chat Stream Error:", e);
-    onUpdate("Connection error or invalid API Key.");
+    // 捕获 Key 缺失错误
+    if (e.message === "MISSING_API_KEY") {
+      onUpdate("Please set your API Key in Settings.");
+    } else {
+      onUpdate("Connection error or invalid API Key.");
+    }
   }
 };
 // ==========================================
@@ -302,6 +327,8 @@ export interface TermExplanation {
  */
 export const explainVisualTerm = async (term: string, language: string): Promise<TermExplanation> => {
   try {
+    const { ai, modelName } = getAIClient(); // <--- 动态获取
+
     const prompt = `
       As an expert Art Director, explain the visual style/term: "${term}".
       
@@ -317,7 +344,7 @@ export const explainVisualTerm = async (term: string, language: string): Promise
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: modelName, // <--- 动态模型
       contents: [{ parts: [{ text: prompt }] }],
       config: { 
         responseMimeType: "application/json" 
@@ -331,10 +358,18 @@ export const explainVisualTerm = async (term: string, language: string): Promise
 
   } catch (error) {
     console.error("Explain term failed:", error);
-    // 兜底返回，防止打印机卡死
+    // 兜底返回
+    const errorMessage = error.message || String(error);
+    
     return {
-      def: language.startsWith("Chinese") ? "正在检索数据..." : "Retrieving data...",
-      app: language.startsWith("Chinese") ? "分析历史档案中" : "Analyzing archives"
+      // 如果是 Key 真的缺失，保留原提示；如果是其他错误，直接显示错误详情
+      def: errorMessage.includes("MISSING_API_KEY") 
+           ? (language.startsWith("Chinese") ? "API Key 缺失" : "Missing API Key")
+           : `Error: ${errorMessage.slice(0, 15)}...`, // 截取前15个字符避免排版爆炸
+           
+      app: errorMessage.includes("MISSING_API_KEY")
+           ? (language.startsWith("Chinese") ? "请在设置中配置" : "Check settings")
+           : "Check Console (F12)" // 提示去看控制台
     };
   }
 };
