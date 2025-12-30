@@ -1,4 +1,9 @@
-// --- translations.ts (修复版：先定义词典，再定义函数) ---
+// --- translations.ts (修复版：包含 Chips 数据结构) ---
+
+export interface ChipData {
+  label: string;
+  prompt: string;
+}
 
 // 1. 完整词典 (7 国语言)
 export const translations = {
@@ -69,6 +74,38 @@ export const translations = {
     chatGreeting: "What else do you want to know about this image?",
     chatPlaceholder: "Ask something...",
     chatThinking: "AI is thinking...",
+    
+    // ✅ 新增：Chat Chips (English Prompts)
+    chatChips: [
+      { 
+        label: "Inspiration", 
+        prompt: "Please recommend inspiration resource websites for images of this type, along with corresponding search keywords." 
+      },
+      { 
+        label: "Terms&Functions", 
+        prompt: "Please provide professional tagging for this image. From broad categories (e.g., Illustration) to precise industry terms (e.g., Isometric Vector Art). Explain the typical industry applications and functions of this type of image." 
+      },
+      { 
+        label: "Text&Font", 
+        prompt: "Please extract all text content from the image. Professionally analyze the font design: speculate on the font family (e.g., Serif/Sans/Script), font characteristics, font weight, font personality (e.g., modern, retro, handwritten), and graphical treatment of the text." 
+      },
+      { 
+        label: "Material&Texture", 
+        prompt: "Please analyze the materials and textures of objects in the scene in detail. Extract prompt words that precisely describe these textures." 
+      },
+      { 
+        label: "Camera&Lens", 
+        prompt: "If this is a photograph or realistic render, please analyze its photography parameters: speculate on the camera model, camera format, lens focal length (e.g., 35mm, 85mm), and specific filters or post-processing color grading used." 
+      },
+      { 
+        label: "Color Scheme", 
+        prompt: "Please analyze the color scheme. List dominant, secondary, and accent colors. Analyze the mood and information hierarchy conveyed by the colors." 
+      },
+      { 
+        label: "Cultural Symbol", 
+        prompt: "Please conduct a semiotic analysis: What shapes, totems, visual symbols, or colors appear in the scene? First, describe their cross-cultural unified symbolism, then describe their specific symbolism in certain cultures. Are there metaphors or cultural symbols?" 
+      }
+    ] as ChipData[],
 
     // 等待页 (Loader)
     loaderTitle: "Visual Decoding...",
@@ -132,6 +169,39 @@ export const translations = {
     chatGreeting: "对这张图你还有什么想了解的？",
     chatPlaceholder: "输入你的问题...",
     chatThinking: "AI 思考中...",
+
+    // ✅ 新增：Chat Chips (中文 Prompt)
+    chatChips: [
+      { 
+        label: "灵感资源", 
+        prompt: "请推荐同类型图的灵感资源网址及对应的搜索关键词。" 
+      },
+      { 
+        label: "术语&功能", 
+        prompt: "请给出这张图片的专业定位词（Tagging）。从宽泛分类（如插画）到精准术语（如等轴矢量图）。并解释这种类型的图通常应用在哪些行业领域，起什么作用？" 
+      },
+      { 
+        label: "文字&字体", 
+        prompt: "请提取图中的所有文字内容。并专业分析字体设计：推测所属字体家族（如衬线/无衬线/手写）、字体特征、字重、字体性格（如现代、复古、手写）、以及文字的图形化处理方式。" 
+      },
+      { 
+        label: "材质&纹理", 
+        prompt: "请详细分析画面中物体的材质和纹理。请提取能精准描述这些质感的提示词。" 
+      },
+      { 
+        label: "相机&镜头", 
+        prompt: "如果这是一张摄影作品或写实渲染，请分析其摄影参数：推测相机型号、相机画幅、镜头焦段（如35mm, 85mm）、以及使用的滤镜或后期色调风格。" 
+      },
+      { 
+        label: "配色方案", 
+        prompt: "请分析这张图的配色方案。列出主色、辅色、强调色。分析色彩传递出的情感和信息层级。" 
+      },
+      { 
+        label: "文化象征", 
+        prompt: "请进行符号学分析：画面中出现了哪些图形、图腾、视觉符号或色彩？首先描述其跨文化统一的象征义，再描述其在特定文化中的特殊象征义。是否存在隐喻或文化象征？" 
+      }
+    ] as ChipData[],
+
     loaderTitle: "视觉解码中...",
     loaderSubtitle: "等待时学点词条吧",
     loaderDone: "解码完成",
@@ -157,6 +227,18 @@ export const translations = {
     lblSubject: "SUJETO", lblEnvironment: "ENTORNO", lblComposition: "COMPOSICIÓN",
     lblLighting: "ILUMINACIÓN/COLOR", lblMood: "ESTADO DE ÁNIMO/VIBRA", lblStyle: "ESTILO ESTÉTICO", lblDescription: "DESCRIPCIÓN",
     chatGreeting: "¿Qué más quieres saber sobre esta imagen?", chatPlaceholder: "Pregunta algo...", chatThinking: "IA pensando...",
+    
+    // ✅ Nuevo: Chat Chips (Español)
+    chatChips: [
+        { label: "Inspiración", prompt: "Recomiende sitios web de recursos de inspiración para imágenes de este tipo, junto con las palabras clave de búsqueda correspondientes." },
+        { label: "Términos&Funciones", prompt: "Proporcione etiquetas profesionales (de amplias a precisas). Explique las aplicaciones industriales típicas y funciones." },
+        { label: "Texto&Fuente", prompt: "Extraiga todo el texto. Analice la fuente: familia, peso, características, personalidad y tratamiento gráfico." },
+        { label: "Material&Textura", prompt: "Analice materiales y texturas en detalle. Extraiga palabras clave que describan estas cualidades táctiles." },
+        { label: "Cámara&Lente", prompt: "Analice parámetros fotográficos: especule sobre el modelo de cámara, formato, distancia focal (35mm/85mm), filtros y gradación de color." },
+        { label: "Esquema de Color", prompt: "Analice el esquema de color (Dominante/Secundario/Acento). Analice el estado de ánimo y jerarquía." },
+        { label: "Símbolo Cultural", prompt: "Análisis semiótico: ¿Qué formas, símbolos o colores aparecen? Describa su simbolismo transcultural y luego sus significados culturales específicos." }
+    ] as ChipData[],
+
     loaderTitle: "Decodificación Visual...", loaderSubtitle: "Aprende estilos mientras esperas.",
     loaderDone: "Decodificación Completa", btnView: "Ver Resultado",
   },
@@ -180,6 +262,18 @@ export const translations = {
     lblSubject: "主題", lblEnvironment: "環境", lblComposition: "構図",
     lblLighting: "照明/色彩", lblMood: "ムード/雰囲気", lblStyle: "美的スタイル", lblDescription: "説明",
     chatGreeting: "この画像について他に知りたいことは？", chatPlaceholder: "質問を入力...", chatThinking: "AI思考中...",
+    
+    // ✅ 新規: Chat Chips (日本語)
+    chatChips: [
+        { label: "インスピレーション", prompt: "このタイプの画像のインスピレーションリソースのウェブサイトと、対応する検索キーワードを推奨してください。" },
+        { label: "用語&機能", prompt: "画像の専門的なタグ付けを行ってください（広義から狭義まで）。典型的な業界での用途と機能について説明してください。" },
+        { label: "テキスト&フォント", prompt: "テキストを抽出してください。フォントの分析：ファミリー、太さ、特徴、性格（モダン/レトロ）、およびグラフィック処理について。" },
+        { label: "素材&テクスチャ", prompt: "素材とテクスチャを詳細に分析してください。これらの質感を正確に描写するプロンプト単語を抽出してください。" },
+        { label: "カメラ&レンズ", prompt: "撮影パラメータの分析：カメラモデル、フォーマット、焦点距離（35mm/85mm）、フィルター、およびカラーグレーディングについて推測してください。" },
+        { label: "配色スキーム", prompt: "配色を分析してください（主色/補助色/アクセント）。色が伝える雰囲気と情報の階層を分析してください。" },
+        { label: "文化的シンボル", prompt: "記号論的分析：どのような形、シンボル、色が現れていますか？異文化共通の象徴性と、特定の文化における意味を説明してください。" }
+    ] as ChipData[],
+
     loaderTitle: "視覚的解読中...", loaderSubtitle: "待機中にスタイルを学ぶ",
     loaderDone: "解読完了", btnView: "結果を見る",
   },
@@ -203,6 +297,18 @@ export const translations = {
     lblSubject: "SUJET", lblEnvironment: "ENVIRONNEMENT", lblComposition: "COMPOSITION",
     lblLighting: "ÉCLAIRAGE/COULEUR", lblMood: "AMBIANCE/VIBE", lblStyle: "STYLE ESTHÉTIQUE", lblDescription: "DESCRIPTION",
     chatGreeting: "Que voulez-vous savoir d'autre ?", chatPlaceholder: "Posez une question...", chatThinking: "L'IA réfléchit...",
+    
+    // ✅ Nouveau: Chat Chips (Français)
+    chatChips: [
+        {label: "Inspiration", prompt: "Veuillez recommander des sites de ressources d'inspiration pour ce type d'image, ainsi que les mots-clés de recherche correspondants." },
+        { label: "Termes&Fonctions", prompt: "Fournissez un balisage professionnel (du général au précis). Expliquez les applications industrielles typiques et les fonctions." },
+        { label: "Texte&Police", prompt: "Extrayez tout le texte. Analysez la police : famille, graisse, caractéristiques, personnalité et traitement graphique." },
+        { label: "Matériau&Texture", prompt: "Analysez les matériaux et textures en détail. Extrayez des mots-clés décrivant ces qualités tactiles." },
+        { label: "Caméra&Objectif", prompt: "Analysez les paramètres photo : modèle d'appareil, format, focale, filtres et étalonnage des couleurs." },
+        { label: "Palette Couleurs", prompt: "Analysez la palette de couleurs (Dominante/Secondaire). Analysez l'ambiance et la hiérarchie." },
+        { label: "Symbole Culturel", prompt: "Analyse sémiotique : Quels formes, symboles ou couleurs apparaissent ? Décrivez leur symbolisme unifié puis leurs significations spécifiques." }
+    ] as ChipData[],
+
     loaderTitle: "Décodage Visuel...", loaderSubtitle: "Apprenez des styles en attendant.",
     loaderDone: "Décodage Terminé", btnView: "Voir le Résultat",
   },
@@ -226,6 +332,18 @@ export const translations = {
     lblSubject: "SUBJEKT", lblEnvironment: "UMGEBUNG", lblComposition: "KOMPOSITION",
     lblLighting: "BELEUCHTUNG/FARBE", lblMood: "STIMMUNG/VIBE", lblStyle: "ÄSTHETISCHER STIL", lblDescription: "BESCHREIBUNG",
     chatGreeting: "Was möchtest du noch wissen?", chatPlaceholder: "Stelle eine Frage...", chatThinking: "KI denkt nach...",
+    
+    // ✅ Neu: Chat Chips (Deutsch)
+    chatChips: [
+        { label: "Inspiration", prompt: "Bitte empfehlen Sie Inspirationsquellen-Websites für Bilder dieser Art sowie entsprechende Suchbegriffe." },
+        { label: "Begriffe&Funktionen", prompt: "Bieten Sie professionelles Tagging (breit bis präzise). Erklären Sie typische Branchenanwendungen und Funktionen." },
+        { label: "Text&Schrift", prompt: "Extrahieren Sie Text. Analysieren Sie die Schriftart: Familie, Stärke, Merkmale, Persönlichkeit und grafische Behandlung." },
+        { label: "Material&Textur", prompt: "Analysieren Sie Materialien und Texturen im Detail. Extrahieren Sie Prompt-Wörter für diese haptischen Qualitäten." },
+        { label: "Kamera&Objektiv", prompt: "Foto-Parameter analysieren: Kameramodell, Format, Brennweite, Filter und Farbkorrektur." },
+        { label: "Farbschema", prompt: "Analysieren Sie das Farbschema (Dominant/Sekundär). Analysieren Sie Stimmung und Hierarchie." },
+        { label: "Kultursymbol", prompt: "Semiotische Analyse: Welche Formen, Symbole oder Farben erscheinen? Beschreiben Sie die kulturübergreifende Symbolik, dann spezifische Bedeutungen." }
+    ] as ChipData[],
+
     loaderTitle: "Visuelle Dekodierung...", loaderSubtitle: "Lerne Stile beim Warten.",
     loaderDone: "Dekodierung Abgeschlossen", btnView: "Ergebnis Ansehen",
   },
@@ -249,12 +367,24 @@ export const translations = {
     lblSubject: "주제", lblEnvironment: "환경", lblComposition: "구도",
     lblLighting: "조명/색상", lblMood: "무드/분위기", lblStyle: "미적 스타일", lblDescription: "설명",
     chatGreeting: "이 이미지에 대해 더 알고 싶은 것이 있나요?", chatPlaceholder: "질문하세요...", chatThinking: "AI 생각 중...",
+    
+    // ✅ 신규: Chat Chips (한국어)
+    chatChips: [
+        { label: "영감 리소스", prompt: "이 유형의 이미지에 대한 영감 리소스 웹사이트와 해당 검색 키워드를 추천해 주십시오." },
+        { label: "용어&기능", prompt: "전문적인 태그(광범위한 분류에서 정밀한 용어까지)를 제공하십시오. 전형적인 산업 응용 분야와 기능을 설명하십시오." },
+        { label: "텍스트&폰트", prompt: "모든 텍스트를 추출하세요. 폰트 디자인(패밀리, 두께, 특징, 성격, 그래픽 처리)을 전문적으로 분석하십시오." },
+        { label: "재질&텍스처", prompt: "재질과 텍스처를 자세히 분석하십시오. 이러한 질감을 정확하게 묘사하는 프롬프트 단어를 추출하십시오." },
+        { label: "카메라&렌즈", prompt: "촬영 매개변수 분석: 카메라 모델, 포맷, 초점 거리, 필터 및 색보정 스타일을 추측하십시오." },
+        { label: "색상 구성", prompt: "색상 구성을 분석하십시오 (주조색/보조색). 색상이 전달하는 분위기와 정보 계층을 분석하십시오." },
+        { label: "문화적 상징", prompt: "기호학적 분석: 어떤 모양, 상징 또는 색상이 나타납니까? 문화 간 보편적 상징성을 먼저 설명한 다음 특정 문화의 의미를 설명하십시오." }
+    ] as ChipData[],
+
     loaderTitle: "시각적 해독 중...", loaderSubtitle: "기다리는 동안 스타일 배우기",
     loaderDone: "해독 완료", btnView: "결과 보기",
   }
 };
 
-// 2. 智能匹配助手 (放在后面，确保 translations 已定义)
+// 2. 智能匹配助手
 export const getTranslation = (langString: string | undefined) => {
   if (!langString) return translations.English;
   const key = langString.split(' ')[0]; // 例如 "Chinese (中文)" -> "Chinese"
