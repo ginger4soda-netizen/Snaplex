@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { UserSettings } from '../types';
 import { getTranslation } from '../translations';
+import {
+    ProviderType,
+    PROVIDER_MODELS,
+    PROVIDER_LABELS,
+    STORAGE_KEYS,
+    getApiKey,
+    setApiKey as saveApiKey,
+    getCurrentProvider,
+    getCurrentModel
+} from '../services/providers';
 
 interface Props {
     settings: UserSettings;
@@ -17,34 +27,51 @@ const LANGUAGES = [
     { code: 'Korean', label: 'Korean (한국어)' },
 ];
 
-const MODELS = [
-    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recommended)' },
-    { id: 'gemini-3.0-flash', label: 'Gemini 3.0 Flash (Experimental)' },
-];
+// Provider key help links
+const PROVIDER_KEY_LINKS: Record<ProviderType, { url: string; label: string }> = {
+    gemini: { url: 'https://aistudio.google.com/app/apikey', label: 'GET FREE KEY →' },
+    openai: { url: 'https://platform.openai.com/api-keys', label: 'GET API KEY →' },
+    claude: { url: 'https://console.anthropic.com/settings/keys', label: 'GET API KEY →' },
+    siliconflow: { url: 'https://cloud.siliconflow.cn/account/ak', label: 'GET API KEY →' },
+};
 
 const STORED_MODULE_KEYS = ["Subject", "Environment", "Composition", "Lighting", "Mood", "Style"];
 
 const Settings: React.FC<Props> = ({ settings, onSave }) => {
     const t = getTranslation(settings.systemLanguage);
-    
-    // --- API & Model Local State ---
+
+    // --- Provider & API State ---
+    const [provider, setProvider] = useState<ProviderType>('gemini');
     const [apiKey, setApiKey] = useState('');
     const [model, setModel] = useState('gemini-2.5-flash');
 
     useEffect(() => {
         // Load from LocalStorage
-        setApiKey(localStorage.getItem('SNAPLEX_API_KEY') || '');
-        setModel(localStorage.getItem('SNAPLEX_MODEL_ID') || 'gemini-2.5-flash');
+        const loadedProvider = getCurrentProvider();
+        setProvider(loadedProvider);
+        setApiKey(getApiKey(loadedProvider) || '');
+        setModel(getCurrentModel());
     }, []);
+
+    const handleProviderChange = (newProvider: ProviderType) => {
+        setProvider(newProvider);
+        localStorage.setItem(STORAGE_KEYS.PROVIDER, newProvider);
+        // Load the API key for this provider
+        setApiKey(getApiKey(newProvider) || '');
+        // Set default model for new provider
+        const defaultModel = PROVIDER_MODELS[newProvider][0]?.id || '';
+        setModel(defaultModel);
+        localStorage.setItem(STORAGE_KEYS.MODEL, defaultModel);
+    };
 
     const handleApiKeyChange = (val: string) => {
         setApiKey(val);
-        localStorage.setItem('SNAPLEX_API_KEY', val.trim());
+        saveApiKey(provider, val);
     };
 
     const handleModelChange = (val: string) => {
         setModel(val);
-        localStorage.setItem('SNAPLEX_MODEL_ID', val);
+        localStorage.setItem(STORAGE_KEYS.MODEL, val);
     };
 
     // --- Translations Map ---
@@ -66,11 +93,11 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
         { id: "Literary", label: t.styleLiterary, color: "bg-white border-2 border-stone-200 text-stone-800", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" }
     ];
 
-    const renderSelect = (label: string, value: string, onChange: (val: string) => void, options: {code: string, label: string}[]) => (
+    const renderSelect = (label: string, value: string, onChange: (val: string) => void, options: { code: string, label: string }[]) => (
         <div className="flex-1">
             <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">{label}</label>
             <div className="relative">
-                <select 
+                <select
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-stone-400 appearance-none shadow-sm cursor-pointer hover:border-stone-300 transition-colors"
@@ -94,32 +121,51 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
     };
 
     return (
-        <div className="p-6 animate-[fadeIn_0.3s_ease-out] pb-24 max-w-3xl mx-auto">
-            <h2 className="text-3xl font-extrabold text-stone-800 mb-10 tracking-tight">{t.settingsTitle}</h2>
+        <div className="p-8 animate-[fadeIn_0.3s_ease-out] pb-24 max-w-3xl mx-auto">
+            <h2 className="text-3xl font-black text-stone-800 mb-12 tracking-tight">{t.settingsTitle}</h2>
 
             <div className="space-y-12">
-                
-                {/* 1. API Configuration Section (NEW) */}
+
+                {/* 1. API Configuration Section */}
                 <div className="bg-stone-100/50 p-6 rounded-2xl border border-stone-200">
                     <div className="flex items-center gap-2 mb-6">
                         <span className="text-xl">🔌</span>
                         <h3 className="text-stone-800 font-bold text-lg">API Configuration</h3>
                     </div>
-                    
-                    <div className="space-y-4">
+
+                    <div className="space-y-5">
+                        {/* Provider Selection */}
+                        <div>
+                            <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Provider</label>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {(Object.keys(PROVIDER_LABELS) as ProviderType[]).map(p => (
+                                    <button
+                                        key={p}
+                                        onClick={() => handleProviderChange(p)}
+                                        className={`px-3 py-2.5 rounded-xl text-sm font-bold border transition-all ${provider === p
+                                            ? 'bg-stone-800 text-white border-stone-800 shadow-md'
+                                            : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
+                                            }`}
+                                    >
+                                        {PROVIDER_LABELS[p].split(' ')[0]}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
                         {/* API Key */}
                         <div>
-                            <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">Gemini API Key</label>
-                            <input 
-                                type="password" 
+                            <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">{PROVIDER_LABELS[provider]} API Key</label>
+                            <input
+                                type="password"
                                 value={apiKey}
                                 onChange={(e) => handleApiKeyChange(e.target.value)}
-                                placeholder="AIzaSy..."
+                                placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
                                 className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none focus:border-softblue focus:ring-1 focus:ring-softblue shadow-sm"
                             />
                             <div className="mt-2 text-right">
-                                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[10px] font-bold text-softblue hover:underline">
-                                    GET FREE KEY →
+                                <a href={PROVIDER_KEY_LINKS[provider].url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-softblue hover:underline">
+                                    {PROVIDER_KEY_LINKS[provider].label}
                                 </a>
                             </div>
                         </div>
@@ -128,12 +174,12 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                         <div>
                             <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Model</label>
                             <div className="relative">
-                                <select 
+                                <select
                                     value={model}
                                     onChange={(e) => handleModelChange(e.target.value)}
                                     className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-softblue appearance-none shadow-sm cursor-pointer"
                                 >
-                                    {MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                                    {PROVIDER_MODELS[provider].map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
                                 </select>
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -172,10 +218,10 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                         <div className="h-px bg-stone-200 flex-1 ml-4" />
                     </div>
                     <div className="space-y-4">
-                        {renderSelect(t.lblSystemLang, settings.systemLanguage || 'English', (v) => onSave({...settings, systemLanguage: v}), LANGUAGES)}
+                        {renderSelect(t.lblSystemLang, settings.systemLanguage || 'English', (v) => onSave({ ...settings, systemLanguage: v }), LANGUAGES)}
                         <div className="flex gap-4">
-                            {renderSelect(t.lblFrontLang, settings.cardFrontLanguage || 'English', (v) => onSave({...settings, cardFrontLanguage: v}), LANGUAGES)}
-                            {renderSelect(t.lblBackLang, settings.cardBackLanguage || 'Chinese', (v) => onSave({...settings, cardBackLanguage: v}), LANGUAGES)}
+                            {renderSelect(t.lblFrontLang, settings.cardFrontLanguage || 'English', (v) => onSave({ ...settings, cardFrontLanguage: v }), LANGUAGES)}
+                            {renderSelect(t.lblBackLang, settings.cardBackLanguage || 'Chinese', (v) => onSave({ ...settings, cardBackLanguage: v }), LANGUAGES)}
                         </div>
                     </div>
                 </div>
@@ -183,14 +229,14 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                 {/* 4. Style Preferences */}
                 <div>
                     <div className="flex items-center gap-2 mb-6">
-                         <h3 className="text-stone-800 font-bold text-lg">{t.lblStylePref}</h3>
-                         <div className="h-px bg-stone-200 flex-1 ml-4" />
+                        <h3 className="text-stone-800 font-bold text-lg">{t.lblStylePref}</h3>
+                        <div className="h-px bg-stone-200 flex-1 ml-4" />
                     </div>
                     <div className="grid grid-cols-3 gap-3 sm:gap-4">
                         {styles.map(style => (
                             <button
                                 key={style.id}
-                                onClick={() => onSave({...settings, descriptionStyle: style.id})}
+                                onClick={() => onSave({ ...settings, descriptionStyle: style.id })}
                                 className={`
                                     aspect-[4/3] sm:aspect-square rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow-sm active:scale-95
                                     ${style.color}

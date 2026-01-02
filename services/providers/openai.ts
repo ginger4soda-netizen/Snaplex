@@ -1,0 +1,205 @@
+import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey } from '../../types';
+import { AIProvider, TermExplanation, getApiKey, getCurrentModel } from './types';
+import { getMasterAnalysisPrompt } from './masterPrompt';
+
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+
+export class OpenAIProvider implements AIProvider {
+
+    readonly name = 'openai';
+
+    private getHeaders() {
+        const apiKey = getApiKey('openai');
+        if (!apiKey) throw new Error("MISSING_API_KEY");
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        };
+    }
+
+    async analyzeImage(base64Image: string, settings: UserSettings): Promise<AnalysisResult> {
+        const modelName = getCurrentModel();
+        const imageData = base64Image.includes(',') ? base64Image : `data:image/jpeg;base64,${base64Image}`;
+
+        const response = await fetch(OPENAI_API_URL, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                model: modelName,
+                messages: [
+                    {
+                        role: 'user',
+                        content: [
+                            { type: 'image_url', image_url: { url: imageData } },
+                            { type: 'text', text: getMasterAnalysisPrompt(settings) }
+                        ]
+                    }
+                ],
+                response_format: { type: 'json_object' },
+                max_tokens: 4000
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error?.message || 'OpenAI API error');
+        }
+
+        const data = await response.json();
+        const text = data.choices?.[0]?.message?.content;
+        if (!text) throw new Error("No response from OpenAI");
+        return JSON.parse(text) as AnalysisResult;
+    }
+
+    async explainTerm(term: string, language: string): Promise<TermExplanation> {
+        const modelName = getCurrentModel();
+
+        const prompt = `As an expert Art Director, explain the visual style/term: "${term}".
+Target Language: ${language}
+Rules: Keep it VERY concise.
+"def": Definition (Max 100 words).
+"app": Application (Max 100 words).
+Output JSON: { "def": "...", "app": "..." }`;
+
+        const response = await fetch(OPENAI_API_URL, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                model: modelName,
+                messages: [{ role: 'user', content: prompt }],
+                response_format: { type: 'json_object' },
+                max_tokens: 2000
+            })
+        });
+
+        if (!response.ok) throw new Error("OpenAI API error");
+        const data = await response.json();
+        return JSON.parse(data.choices?.[0]?.message?.content || '{}') as TermExplanation;
+    }
+
+    async chatStream(
+        history: ChatMessage[],
+        message: string,
+        image: string | undefined,
+        onUpdate: (text: string) => void,
+        settings?: UserSettings
+    ): Promise<void> {
+        const modelName = getCurrentModel();
+        const messages: any[] = [];
+
+        // System message
+        messages.push({
+            role: 'system',
+            content: `You are an AI assistant analyzing images. Use ${settings?.systemLanguage || 'English'}. Be direct and technical.`
+        });
+
+        // History
+        history.forEach(h => {
+            messages.push({ role: h.role === 'user' ? 'user' : 'assistant', content: h.text });
+        });
+
+        // Current message with optional image
+        if (image) {
+            const imageData = image.includes(',') ? image : `data:image/jpeg;base64,${image}`;
+            messages.push({
+                role: 'user',
+                content: [
+                    { type: 'image_url', image_url: { url: imageData } },
+                    { type: 'text', text: message }
+                ]
+            });
+        } else {
+            messages.push({ role: 'user', content: message });
+        }
+
+        const response = await fetch(OPENAI_API_URL, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                model: modelName,
+                messages,
+                stream: true
+            })
+        });
+
+        if (!response.ok) throw new Error("OpenAI stream error");
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let accumulatedText = "";
+
+        if (reader) {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+
+                for (const line of lines) {
+                    const data = line.slice(6);
+                    if (data === '[DONE]') break;
+                    try {
+                        const parsed = JSON.parse(data);
+                        const content = parsed.choices?.[0]?.delta?.content;
+                        if (content) {
+                            accumulatedText += content;
+                            onUpdate(accumulatedText);
+                        }
+                    } catch { }
+                }
+            }
+        }
+    }
+
+    async expandSearchQuery(query: string): Promise<string[][]> {
+        const modelName = getCurrentModel();
+
+        const response = await fetch(OPENAI_API_URL, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                model: modelName,
+                messages: [{
+                    role: 'user',
+                    content: `Analyze "${query}". Break into semantic concepts with synonyms.
+Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
+                }],
+                response_format: { type: 'json_object' },
+                max_tokens: 300
+            })
+        });
+
+        if (!response.ok) return [];
+        const data = await response.json();
+        const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
+        return parsed.groups || [];
+    }
+
+    async regenerateDimension(base64Image: string, dimension: DimensionKey, settings: UserSettings): Promise<PromptSegment> {
+        const { getDimensionPrompt } = await import('./masterPrompt');
+        const imageData = base64Image.includes(',') ? base64Image : `data:image/jpeg;base64,${base64Image}`;
+        const modelName = getCurrentModel();
+
+        const response = await fetch(OPENAI_API_URL, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                model: modelName,
+                messages: [{
+                    role: 'user',
+                    content: [
+                        { type: 'image_url', image_url: { url: imageData } },
+                        { type: 'text', text: getDimensionPrompt(dimension, settings) }
+                    ]
+                }],
+                response_format: { type: 'json_object' },
+                max_tokens: 500
+            })
+        });
+
+        if (!response.ok) throw new Error("OpenAI API error");
+        const data = await response.json();
+        return JSON.parse(data.choices?.[0]?.message?.content || '{"original":"","translated":""}') as PromptSegment;
+    }
+}

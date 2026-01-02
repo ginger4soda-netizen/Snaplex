@@ -13,7 +13,7 @@ export interface PromptSegment {
 }
 
 export interface AnalysisResult {
-  description: string; 
+  description: string;
   structuredPrompts: {
     subject: PromptSegment;
     environment: PromptSegment;
@@ -31,6 +31,13 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+// Custom preset chip for chat
+export interface CustomChip {
+  id: string;
+  label: string;
+  prompt: string;
+}
+
 // ✅ 修改点：新增 'printer' 模式
 export type AppMode = 'home' | 'analysis' | 'chat' | 'history' | 'settings' | 'printer';
 
@@ -41,9 +48,23 @@ export interface HistoryItem {
   analysis: AnalysisResult;
   isFavorite?: boolean;
   chatHistory?: ChatMessage[];
-  read?: boolean; 
+  read?: boolean;
   lastExported?: number; // Timestamp of last export
+  dimensionHistories?: DimensionHistories; // Track regeneration history per dimension
 }
+
+// Dimension types
+export type DimensionKey = 'subject' | 'environment' | 'composition' | 'lighting' | 'mood' | 'style';
+
+// History tracking for each dimension
+export interface DimensionHistory {
+  versions: PromptSegment[]; // Array of historical versions
+  currentIndex: number; // Which version is currently displayed
+}
+
+export type DimensionHistories = {
+  [K in DimensionKey]?: DimensionHistory;
+};
 
 export const DEFAULT_SETTINGS: UserSettings = {
   persona: "",

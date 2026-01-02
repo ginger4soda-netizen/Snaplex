@@ -4,92 +4,92 @@ import { searchHistory } from '../services/geminiService';
 import { getTranslation } from '../translations';
 
 interface Props {
-  items: HistoryItem[];
-  onSelect: (item: HistoryItem) => void;
-  onDeleteItems: (ids: string[]) => void;
-  onMarkAsExported: (ids: string[]) => void;
-  systemLanguage?: string;
+    items: HistoryItem[];
+    onSelect: (item: HistoryItem) => void;
+    onDeleteItems: (ids: string[]) => void;
+    onMarkAsExported: (ids: string[]) => void;
+    systemLanguage?: string;
 }
 
 const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkAsExported, systemLanguage }) => {
-  const [filteredItems, setFilteredItems] = useState<HistoryItem[]>([]);
-  const [query, setQuery] = useState('');
-  const [searching, setSearching] = useState(false);
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [filteredItems, setFilteredItems] = useState<HistoryItem[]>([]);
+    const [query, setQuery] = useState('');
+    const [searching, setSearching] = useState(false);
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const t = getTranslation(systemLanguage);
+    const t = getTranslation(systemLanguage);
 
-  useEffect(() => {
-    if (!query) {
-        setFilteredItems(items);
-    }
-  }, [items, query]);
+    useEffect(() => {
+        if (!query) {
+            setFilteredItems(items);
+        }
+    }, [items, query]);
 
-  const handleSearch = async () => {
-      if (!query.trim()) {
-          setFilteredItems(items);
-          return;
-      }
-      setSearching(true);
-      try {
-          const ids = await searchHistory(query, items);
-          const results = items.filter(item => ids.includes(item.id));
-          setFilteredItems(results);
-      } catch (error) {
-          console.error("Search failed", error);
-      } finally {
-          setSearching(false);
-      }
-  };
+    const handleSearch = async () => {
+        if (!query.trim()) {
+            setFilteredItems(items);
+            return;
+        }
+        setSearching(true);
+        try {
+            const ids = await searchHistory(query, items);
+            const results = items.filter(item => ids.includes(item.id));
+            setFilteredItems(results);
+        } catch (error) {
+            console.error("Search failed", error);
+        } finally {
+            setSearching(false);
+        }
+    };
 
-  const toggleSelectionMode = () => {
-      setIsSelectionMode(!isSelectionMode);
-      setSelectedIds(new Set());
-  };
+    const toggleSelectionMode = () => {
+        setIsSelectionMode(!isSelectionMode);
+        setSelectedIds(new Set());
+    };
 
-  const toggleItemSelection = (id: string, e: React.MouseEvent) => {
-      e.stopPropagation();
-      const newSelected = new Set(selectedIds);
-      if (newSelected.has(id)) {
-          newSelected.delete(id);
-      } else {
-          newSelected.add(id);
-      }
-      setSelectedIds(newSelected);
-  };
+    const toggleItemSelection = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const newSelected = new Set(selectedIds);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedIds(newSelected);
+    };
 
-  const handleSelectAll = () => {
-      if (selectedIds.size === filteredItems.length) {
-          setSelectedIds(new Set());
-      } else {
-          const allIds = new Set(filteredItems.map(item => item.id));
-          setSelectedIds(allIds);
-      }
-  };
+    const handleSelectAll = () => {
+        if (selectedIds.size === filteredItems.length) {
+            setSelectedIds(new Set());
+        } else {
+            const allIds = new Set(filteredItems.map(item => item.id));
+            setSelectedIds(allIds);
+        }
+    };
 
-  const handleSelectUnexported = () => {
-      const unexportedIds = filteredItems.filter(i => !i.lastExported).map(i => i.id);
-      setSelectedIds(new Set(unexportedIds));
-  };
+    const handleSelectUnexported = () => {
+        const unexportedIds = filteredItems.filter(i => !i.lastExported).map(i => i.id);
+        setSelectedIds(new Set(unexportedIds));
+    };
 
-  const handleBatchDelete = () => {
-      if (selectedIds.size === 0) return;
-      if (confirm(t.confirmDelete)) {
-          onDeleteItems(Array.from(selectedIds));
-          setIsSelectionMode(false);
-          setSelectedIds(new Set());
-      }
-  };
+    const handleBatchDelete = () => {
+        if (selectedIds.size === 0) return;
+        if (confirm(t.confirmDelete)) {
+            onDeleteItems(Array.from(selectedIds));
+            setIsSelectionMode(false);
+            setSelectedIds(new Set());
+        }
+    };
 
-  // ✅ 核心修复：优化 Excel 导出逻辑
-  const handleExport = () => {
-      if (selectedIds.size === 0) return;
-      const selectedItems = items.filter(item => selectedIds.has(item.id));
-      const idsToMark = Array.from(selectedIds);
-      
-      // 1. 定义样式：移除 td 的 height 限制，增加 vertical-align: top 和 white-space: pre-wrap
-      let tableContent = `
+    // ✅ 核心修复：优化 Excel 导出逻辑
+    const handleExport = () => {
+        if (selectedIds.size === 0) return;
+        const selectedItems = items.filter(item => selectedIds.has(item.id));
+        const idsToMark = Array.from(selectedIds);
+
+        // 1. 定义样式：移除 td 的 height 限制，增加 vertical-align: top 和 white-space: pre-wrap
+        let tableContent = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
             <meta http-equiv="content-type" content="application/vnd.ms-excel; charset=UTF-8">
@@ -114,21 +114,21 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
                 <tbody>
       `;
 
-      selectedItems.forEach(item => {
-          const sp = item.analysis.structuredPrompts;
-          let frontText = "", backText = "";
-          
-          // 使用 HTML <br> 换行，确保 Excel 能识别
-          if (sp) {
-              frontText = `[SUBJECT]:<br>${sp.subject.original}<br><br>[ENVIRONMENT]:<br>${sp.environment.original}<br><br>[COMPOSITION]:<br>${sp.composition.original}<br><br>[LIGHTING]:<br>${sp.lighting.original}<br><br>[MOOD]:<br>${sp.mood.original}<br><br>[STYLE]:<br>${sp.style.original}`;
-              backText = `[SUBJECT]:<br>${sp.subject.translated}<br><br>[ENVIRONMENT]:<br>${sp.environment.translated}<br><br>[COMPOSITION]:<br>${sp.composition.translated}<br><br>[LIGHTING]:<br>${sp.lighting.translated}<br><br>[MOOD]:<br>${sp.mood.translated}<br><br>[STYLE]:<br>${sp.style.translated}`;
-          } else {
-              frontText = item.analysis.description || "";
-              backText = "N/A";
-          }
+        selectedItems.forEach(item => {
+            const sp = item.analysis.structuredPrompts;
+            let frontText = "", backText = "";
 
-          // 2. 构建行：图片单元格不设高度，文字单元格应用 .text-cell 样式
-          tableContent += `
+            // 使用 HTML <br> 换行，确保 Excel 能识别
+            if (sp) {
+                frontText = `[SUBJECT]:<br>${sp.subject.original}<br><br>[ENVIRONMENT]:<br>${sp.environment.original}<br><br>[COMPOSITION]:<br>${sp.composition.original}<br><br>[LIGHTING]:<br>${sp.lighting.original}<br><br>[MOOD]:<br>${sp.mood.original}<br><br>[STYLE]:<br>${sp.style.original}`;
+                backText = `[SUBJECT]:<br>${sp.subject.translated}<br><br>[ENVIRONMENT]:<br>${sp.environment.translated}<br><br>[COMPOSITION]:<br>${sp.composition.translated}<br><br>[LIGHTING]:<br>${sp.lighting.translated}<br><br>[MOOD]:<br>${sp.mood.translated}<br><br>[STYLE]:<br>${sp.style.translated}`;
+            } else {
+                frontText = item.analysis.description || "";
+                backText = "N/A";
+            }
+
+            // 2. 构建行：图片单元格不设高度，文字单元格应用 .text-cell 样式
+            tableContent += `
             <tr>
                 <td class="img-cell">
                     <img src="${item.imageUrl}" width="150" style="object-fit: contain; max-height: 300px; display: block; margin: 0 auto;" />
@@ -139,123 +139,123 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
                 <td class="text-cell">${backText}</td>
             </tr>
           `;
-      });
+        });
 
-      tableContent += `</tbody></table></body></html>`;
+        tableContent += `</tbody></table></body></html>`;
 
-      const blob = new Blob([tableContent], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `snaplex_export_${Date.now()}.xls`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+        const blob = new Blob([tableContent], { type: 'application/vnd.ms-excel' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `snaplex_export_${Date.now()}.xls`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
-      onMarkAsExported(idsToMark);
-      setIsSelectionMode(false);
-      setSelectedIds(new Set());
-  };
+        onMarkAsExported(idsToMark);
+        setIsSelectionMode(false);
+        setSelectedIds(new Set());
+    };
 
-  const handleItemClick = (item: HistoryItem, e: React.MouseEvent) => {
-      if (isSelectionMode) toggleItemSelection(item.id, e);
-      else onSelect(item);
-  };
+    const handleItemClick = (item: HistoryItem, e: React.MouseEvent) => {
+        if (isSelectionMode) toggleItemSelection(item.id, e);
+        else onSelect(item);
+    };
 
-  const renderGrid = (itemsToRender: HistoryItem[], title?: string) => {
-      if (itemsToRender.length === 0) return null;
-      return (
-          <div className="mb-10">
-              {title && (
-                  <h3 className="text-stone-400 font-bold text-xs uppercase tracking-wider mb-4 border-b border-stone-200 pb-2">
-                      {title} ({itemsToRender.length})
-                  </h3>
-              )}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {itemsToRender.map(item => (
-                <div 
-                    key={item.id} onClick={(e) => handleItemClick(item, e)}
-                    className={`relative aspect-square rounded-3xl cursor-pointer overflow-hidden group bg-stone-100 shadow-sm hover:shadow-md transition-all duration-300 ${isSelectionMode && selectedIds.has(item.id) ? 'ring-4 ring-softblue scale-95' : ''} ${!item.lastExported ? 'ring-2 ring-transparent hover:ring-sunny/50' : 'opacity-90'}`}
-                >
-                    <img src={item.imageUrl} alt="Thumbnail" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                    {!item.read && !isSelectionMode && <div className="absolute top-3 right-3 w-3 h-3 bg-coral rounded-full shadow-sm ring-2 ring-white animate-pulse"></div>}
-                    {isSelectionMode && (
-                        <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors z-10 ${selectedIds.has(item.id) ? 'bg-softblue border-softblue' : 'border-white bg-black/20 backdrop-blur-sm'}`}>
-                            {selectedIds.has(item.id) && <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
+    const renderGrid = (itemsToRender: HistoryItem[], title?: string) => {
+        if (itemsToRender.length === 0) return null;
+        return (
+            <div className="mb-10">
+                {title && (
+                    <h3 className="text-stone-400 font-bold text-xs uppercase tracking-wider mb-4 border-b border-stone-200 pb-2">
+                        {title} ({itemsToRender.length})
+                    </h3>
+                )}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {itemsToRender.map(item => (
+                        <div
+                            key={item.id} onClick={(e) => handleItemClick(item, e)}
+                            className={`relative aspect-square rounded-3xl cursor-pointer overflow-hidden group bg-stone-100 shadow-sm hover:shadow-md transition-all duration-300 ${isSelectionMode && selectedIds.has(item.id) ? 'ring-4 ring-softblue scale-95' : ''} ${!item.lastExported ? 'ring-2 ring-transparent hover:ring-sunny/50' : 'opacity-90'}`}
+                        >
+                            <img src={item.imageUrl} alt="Thumbnail" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            {!item.read && !isSelectionMode && <div className="absolute top-3 right-3 w-3 h-3 bg-coral rounded-full shadow-sm ring-2 ring-white animate-pulse"></div>}
+                            {isSelectionMode && (
+                                <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors z-10 ${selectedIds.has(item.id) ? 'bg-softblue border-softblue' : 'border-white bg-black/20 backdrop-blur-sm'}`}>
+                                    {selectedIds.has(item.id) && <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
+                                </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
+                                <span className="text-white text-xs font-bold tracking-wide block">{new Date(item.timestamp).toLocaleDateString()}</span>
+                                {item.lastExported && <span className="text-stone-300 text-[10px] block mt-1">Exported</span>}
+                            </div>
                         </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
-                        <span className="text-white text-xs font-bold tracking-wide block">{new Date(item.timestamp).toLocaleDateString()}</span>
-                        {item.lastExported && <span className="text-stone-300 text-[10px] block mt-1">Exported</span>}
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    const safeFilteredItems = filteredItems || [];
+    const unexportedItems = safeFilteredItems.filter(i => !i.lastExported);
+    const exportedItems = safeFilteredItems.filter(i => i.lastExported);
+
+    return (
+        <div className="p-6 animate-[fadeIn_0.3s_ease-out] max-w-4xl mx-auto">
+            <div className="flex justify-between items-center mb-6 px-1">
+                <h2 className="text-2xl font-black text-stone-800 tracking-tight">{t.libraryTitle}</h2>
+                <button onClick={toggleSelectionMode} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${isSelectionMode ? 'bg-stone-200 text-stone-800' : 'text-stone-500 hover:bg-stone-100'}`}>
+                    {isSelectionMode ? t.btnCancel : t.btnSelect}
+                </button>
+            </div>
+
+            {!isSelectionMode ? (
+                <div className="mb-8 flex gap-2">
+                    <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.searchPlaceholder} className="flex-1 bg-white border border-stone-200 rounded-xl px-4 py-3 outline-none focus:border-softblue transition-colors shadow-sm" onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
+                    <button onClick={handleSearch} disabled={searching} className="bg-stone-800 text-white px-6 rounded-xl font-bold disabled:opacity-50 shadow-md hover:bg-stone-700 transition-colors min-w-[80px] flex items-center justify-center">
+                        {searching ? (
+                            <div className="flex gap-1.5 items-center">
+                                <div className="w-2 h-2 bg-coral rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                <div className="w-2 h-2 bg-sunny rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                <div className="w-2 h-2 bg-softblue rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            </div>
+                        ) : t.btnFind}
+                    </button>
+                </div>
+            ) : (
+                <div className="mb-8 flex flex-col sm:flex-row justify-between items-center bg-stone-100 p-3 rounded-xl border border-stone-200 gap-3">
+                    <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto">
+                        <button onClick={handleSelectAll} className="text-stone-500 hover:text-stone-800 font-bold text-sm px-2 whitespace-nowrap">{selectedIds.size === safeFilteredItems.length ? t.btnDeselectAll : t.btnSelectAll}</button>
+                        <span className="text-stone-400">|</span>
+                        <button onClick={handleSelectUnexported} className="text-softblue hover:text-stone-800 font-bold text-sm px-2 whitespace-nowrap">{t.btnSelectNew} ({unexportedItems.length})</button>
+                        <span className="text-stone-400">|</span>
+                        <span className="font-bold text-stone-600 whitespace-nowrap">{selectedIds.size} {t.txtSelected}</span>
+                    </div>
+
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <button onClick={handleExport} disabled={selectedIds.size === 0} className="flex-1 sm:flex-none bg-softblue text-white px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:bg-stone-300 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
+                            {t.btnExport}
+                        </button>
+                        <button onClick={handleBatchDelete} disabled={selectedIds.size === 0} className="flex-1 sm:flex-none bg-coral text-white px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:bg-stone-300 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
+                            {t.btnDelete}
+                        </button>
                     </div>
                 </div>
-                ))}
-            </div>
-          </div>
-      );
-  };
+            )}
 
-  const safeFilteredItems = filteredItems || [];
-  const unexportedItems = safeFilteredItems.filter(i => !i.lastExported);
-  const exportedItems = safeFilteredItems.filter(i => i.lastExported);
-
-  return (
-    <div className="p-4 animate-[fadeIn_0.3s_ease-out] max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-stone-800">{t.libraryTitle}</h2>
-          <button onClick={toggleSelectionMode} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${isSelectionMode ? 'bg-stone-200 text-stone-800' : 'text-stone-500 hover:bg-stone-100'}`}>
-              {isSelectionMode ? t.btnCancel : t.btnSelect}
-          </button>
-      </div>
-      
-      {!isSelectionMode ? (
-        <div className="mb-8 flex gap-2">
-            <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.searchPlaceholder} className="flex-1 bg-white border border-stone-200 rounded-xl px-4 py-3 outline-none focus:border-softblue transition-colors shadow-sm" onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
-            <button onClick={handleSearch} disabled={searching} className="bg-stone-800 text-white px-6 rounded-xl font-bold disabled:opacity-50 shadow-md hover:bg-stone-700 transition-colors min-w-[80px] flex items-center justify-center">
-                {searching ? (
-                    <div className="flex gap-1.5 items-center">
-                        <div className="w-2 h-2 bg-coral rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-sunny rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-softblue rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                    </div>
-                ) : t.btnFind}
-            </button>
+            {items.length === 0 ? (
+                <div className="p-10 text-center text-stone-400">
+                    <p>{t.emptyHistory}</p>
+                </div>
+            ) : (
+                <>
+                    {renderGrid(unexportedItems, t.sectionNew)}
+                    {unexportedItems.length > 0 && exportedItems.length > 0 && <div className="h-px bg-stone-200 my-8" />}
+                    {renderGrid(exportedItems, t.sectionExported)}
+                    {safeFilteredItems.length === 0 && !searching && <p className="text-center text-stone-400 col-span-full py-10">{t.noMatches}</p>}
+                </>
+            )}
         </div>
-      ) : (
-          <div className="mb-8 flex flex-col sm:flex-row justify-between items-center bg-stone-100 p-3 rounded-xl border border-stone-200 gap-3">
-             <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto">
-                 <button onClick={handleSelectAll} className="text-stone-500 hover:text-stone-800 font-bold text-sm px-2 whitespace-nowrap">{selectedIds.size === safeFilteredItems.length ? t.btnDeselectAll : t.btnSelectAll}</button>
-                 <span className="text-stone-400">|</span>
-                 <button onClick={handleSelectUnexported} className="text-softblue hover:text-stone-800 font-bold text-sm px-2 whitespace-nowrap">{t.btnSelectNew} ({unexportedItems.length})</button>
-                 <span className="text-stone-400">|</span>
-                 <span className="font-bold text-stone-600 whitespace-nowrap">{selectedIds.size} {t.txtSelected}</span>
-             </div>
-             
-             <div className="flex gap-2 w-full sm:w-auto">
-                 <button onClick={handleExport} disabled={selectedIds.size === 0} className="flex-1 sm:flex-none bg-softblue text-white px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:bg-stone-300 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
-                     {t.btnExport}
-                 </button>
-                 <button onClick={handleBatchDelete} disabled={selectedIds.size === 0} className="flex-1 sm:flex-none bg-coral text-white px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:bg-stone-300 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
-                     {t.btnDelete}
-                 </button>
-             </div>
-          </div>
-      )}
-
-      {items.length === 0 ? (
-        <div className="p-10 text-center text-stone-400">
-            <p>{t.emptyHistory}</p>
-        </div>
-      ) : (
-        <>
-            {renderGrid(unexportedItems, t.sectionNew)}
-            {unexportedItems.length > 0 && exportedItems.length > 0 && <div className="h-px bg-stone-200 my-8" />}
-            {renderGrid(exportedItems, t.sectionExported)}
-            {safeFilteredItems.length === 0 && !searching && <p className="text-center text-stone-400 col-span-full py-10">{t.noMatches}</p>}
-        </>
-      )}
-    </div>
-  );
+    );
 };
 
 export default History;

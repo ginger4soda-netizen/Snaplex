@@ -35,9 +35,9 @@ export const mineHistory = (items: HistoryItem[]): MiningResult[] => {
     // 遍历每个维度
     Object.entries(categories).forEach(([cat, text]) => {
       if (!text || typeof text !== 'string') return;
-      
+
       // 按逗号分割，清理空格 (例如 "Neon lights, Rain" -> ["Neon lights", "Rain"])
-      const tags = text.split(/[,，]/).map(t => t.trim()).filter(t => t.length > 2); 
+      const tags = text.split(/[,，]/).map(t => t.trim()).filter(t => t.length > 2);
 
       tags.forEach(tag => {
         // 转小写作为唯一键，防止 "Cyberpunk" 和 "cyberpunk" 被当成两个
@@ -45,7 +45,7 @@ export const mineHistory = (items: HistoryItem[]): MiningResult[] => {
 
         if (!termMap.has(key)) {
           termMap.set(key, {
-            term: tag, // 保持原样大小写用于显示
+            term: String(tag), // Ensure it is always a string
             category: cat,
             images: [],
             isPreset: false
@@ -75,12 +75,12 @@ export const mineHistory = (items: HistoryItem[]): MiningResult[] => {
       isPreset: true,
       presetId: t.id
     }));
-    
+
     // 合并：优先保留挖掘出的真实数据，不足的用预设补齐
     // (简单的去重合并逻辑)
     const existingTerms = new Set(results.map(r => r.term.toLowerCase()));
     const nonDuplicatePresets = presets.filter(p => !existingTerms.has(p.term.toLowerCase()));
-    
+
     results = [...results, ...nonDuplicatePresets];
   }
 

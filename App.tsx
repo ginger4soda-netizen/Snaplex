@@ -8,6 +8,8 @@ import Settings from './components/Settings';
 import StylePrinter from './components/StylePrinter';
 import { analyzeImage } from './services/geminiService';
 import { AnalysisResult, AppMode, HistoryItem, UserSettings, DEFAULT_SETTINGS, ChatMessage } from './types';
+import { mineHistory, MiningResult } from './utils/historyMiner';
+import { explainVisualTerm, TermExplanation } from './services/geminiService';
 
 
 // Image compression utility
@@ -42,13 +44,17 @@ const App: React.FC = () => {
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
-  
+
   const [loading, setLoading] = useState(false);
-  const [isReadyToView, setIsReadyToView] = useState(false); 
+  const [isReadyToView, setIsReadyToView] = useState(false);
 
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+  // Pre-fetching for Printer Optimization
+  const [preFetchedTerm, setPreFetchedTerm] = useState<MiningResult | null>(null);
+  const [preFetchedExplanation, setPreFetchedExplanation] = useState<TermExplanation | null>(null);
 
   // Load data
   useEffect(() => {
@@ -58,56 +64,73 @@ const App: React.FC = () => {
         if (storedSettings) setSettings(storedSettings);
         const storedHistory = await get('visionLearnHistory');
         if (storedHistory) setHistoryItems(storedHistory);
-      } catch (err) { console.error("Failed to load DB", err); } 
+      } catch (err) { console.error("Failed to load DB", err); }
       finally { setIsDataLoaded(true); }
     };
     loadData();
   }, []);
 
+  // background pre-fetch printer term
+  useEffect(() => {
+    if (!isDataLoaded) return;
+    const preFetch = async () => {
+      try {
+        const mined = mineHistory(historyItems);
+        if (mined.length > 0) {
+          const first = mined[0];
+          setPreFetchedTerm(first);
+          const expl = await explainVisualTerm(first.term, settings.systemLanguage || 'English');
+          setPreFetchedExplanation(expl);
+        }
+      } catch (e) { console.error("Pre-fetch failed", e); }
+    };
+    preFetch();
+  }, [isDataLoaded, settings.systemLanguage]);
+
   const handleSaveSettings = (newSettings: UserSettings) => {
-      setSettings(newSettings);
-      set('visionLearnSettings', newSettings);
+    setSettings(newSettings);
+    set('visionLearnSettings', newSettings);
   };
 
   const updateHistoryItem = (id: string, updates: Partial<HistoryItem>) => {
-      const updatedHistory = historyItems.map(item => item.id === id ? { ...item, ...updates } : item);
-      setHistoryItems(updatedHistory);
-      set('visionLearnHistory', updatedHistory);
+    const updatedHistory = historyItems.map(item => item.id === id ? { ...item, ...updates } : item);
+    setHistoryItems(updatedHistory);
+    set('visionLearnHistory', updatedHistory);
   };
 
   const handleDeleteHistoryItems = (ids: string[]) => {
-      const newHistory = historyItems.filter(item => !ids.includes(item.id));
-      setHistoryItems(newHistory);
-      set('visionLearnHistory', newHistory);
-      if (currentHistoryId && ids.includes(currentHistoryId)) {
-          setMode('history'); setCurrentImage(null); setAnalysis(null);
-      }
+    const newHistory = historyItems.filter(item => !ids.includes(item.id));
+    setHistoryItems(newHistory);
+    set('visionLearnHistory', newHistory);
+    if (currentHistoryId && ids.includes(currentHistoryId)) {
+      setMode('history'); setCurrentImage(null); setAnalysis(null);
+    }
   };
 
   const handleMarkAsExported = (ids: string[]) => {
-      const now = Date.now();
-      const updatedHistory = historyItems.map(item => ids.includes(item.id) ? { ...item, lastExported: now, read: true } : item);
-      setHistoryItems(updatedHistory);
-      set('visionLearnHistory', updatedHistory);
+    const now = Date.now();
+    const updatedHistory = historyItems.map(item => ids.includes(item.id) ? { ...item, lastExported: now, read: true } : item);
+    setHistoryItems(updatedHistory);
+    set('visionLearnHistory', updatedHistory);
   };
 
   const handleToggleFavorite = () => {
-      if (!currentHistoryId) return;
-      const currentItem = historyItems.find(h => h.id === currentHistoryId);
-      if (currentItem) updateHistoryItem(currentHistoryId, { isFavorite: !currentItem.isFavorite });
+    if (!currentHistoryId) return;
+    const currentItem = historyItems.find(h => h.id === currentHistoryId);
+    if (currentItem) updateHistoryItem(currentHistoryId, { isFavorite: !currentItem.isFavorite });
   };
-  
+
   const handleUpdateChatHistory = (msgs: ChatMessage[]) => {
-      if (!currentHistoryId) return;
-      updateHistoryItem(currentHistoryId, { chatHistory: msgs });
+    if (!currentHistoryId) return;
+    updateHistoryItem(currentHistoryId, { chatHistory: msgs });
   };
 
   const handleImageUpload = async (files: File[]) => {
     if (files.length === 0) return;
-    
-    setLoading(true); 
-    setMode('analysis'); 
-    setAnalysis(null); 
+
+    setLoading(true);
+    setMode('analysis');
+    setAnalysis(null);
     setIsReadyToView(false);
 
     try {
@@ -117,111 +140,114 @@ const App: React.FC = () => {
 
       const primaryResult = await analyzeImage(primaryImage, settings);
       setAnalysis(primaryResult);
-      
+
       const primaryId = Date.now().toString();
       setCurrentHistoryId(primaryId);
 
       const primaryItem: HistoryItem = {
-          id: primaryId, timestamp: Date.now(), imageUrl: primaryImage,
-          analysis: primaryResult, isFavorite: false, chatHistory: [], read: true,
+        id: primaryId, timestamp: Date.now(), imageUrl: primaryImage,
+        analysis: primaryResult, isFavorite: false, chatHistory: [], read: true,
       };
 
       let backgroundItems: HistoryItem[] = [];
       if (compressedImages.length > 1) {
-          const restImages = compressedImages.slice(1);
-          const restResults = await Promise.all(restImages.map(async (img, idx) => {
-              try {
-                  const res = await analyzeImage(img, settings);
-                  return {
-                      id: (Date.now() + idx + 1).toString(), timestamp: Date.now(),
-                      imageUrl: img, analysis: res, isFavorite: false, chatHistory: [], read: false,
-                  } as HistoryItem;
-              } catch (e) { return null; }
-          }));
-          backgroundItems = restResults.filter((item): item is HistoryItem => item !== null);
+        const restImages = compressedImages.slice(1);
+        const restResults = await Promise.all(restImages.map(async (img, idx) => {
+          try {
+            const res = await analyzeImage(img, settings);
+            return {
+              id: (Date.now() + idx + 1).toString(), timestamp: Date.now(),
+              imageUrl: img, analysis: res, isFavorite: false, chatHistory: [], read: false,
+            } as HistoryItem;
+          } catch (e) { return null; }
+        }));
+        backgroundItems = restResults.filter((item): item is HistoryItem => item !== null);
       }
-      
+
       const newHistory = [primaryItem, ...backgroundItems, ...historyItems];
       setHistoryItems(newHistory);
       await set('visionLearnHistory', newHistory);
 
     } catch (error) {
       console.error(error); alert("Analysis failed. Please try again."); setMode('home');
-    } finally { 
-      setLoading(false); 
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleHistorySelect = (item: HistoryItem) => {
     if (!item.read) updateHistoryItem(item.id, { read: true });
-    setCurrentImage(item.imageUrl); 
+    setCurrentImage(item.imageUrl);
     setAnalysis(item.analysis);
-    setCurrentHistoryId(item.id); 
+    setCurrentHistoryId(item.id);
     setMode('analysis');
     setIsReadyToView(true);
   };
-  
+
   const currentItem = historyItems.find(h => h.id === currentHistoryId);
 
   if (!isDataLoaded) return <div className="min-h-screen bg-cream flex items-center justify-center text-stone-400">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-cream font-sans text-dark pb-10 max-w-screen-md mx-auto shadow-2xl">
+    <div className={`min-h-screen bg-cream font-sans text-dark max-w-screen-md mx-auto shadow-2xl ${mode === 'home' || mode === 'history' || mode === 'settings' ? 'pb-10' : ''}`}>
       <Header currentMode={mode} setMode={setMode} />
-      <main className="pt-24">
-        
+      <main className="pt-20">
+
         {mode === 'home' && (
           <Home onImageUpload={handleImageUpload} systemLanguage={settings.systemLanguage} />
         )}
 
         {mode === 'settings' && (
-            <Settings settings={settings} onSave={handleSaveSettings} />
+          <Settings settings={settings} onSave={handleSaveSettings} />
         )}
 
         {/* ✅ 新增：独立的打印机页面路由 */}
         {mode === 'printer' && (
-            <div className="px-4">
-                <StylePrinter 
-                    mode="standalone" // 独立模式
-                    systemLanguage={settings.systemLanguage}
-                />
-            </div>
+          <div className="px-4">
+            <StylePrinter
+              mode="standalone" // 独立模式
+              systemLanguage={settings.systemLanguage}
+            />
+          </div>
         )}
 
         {mode === 'analysis' && (
           (loading || (analysis && !isReadyToView)) ? (
             <div className="px-4 py-8">
-                <StylePrinter 
-                    mode="analysis" // 分析模式（尺寸已修复）
-                    systemLanguage={settings.systemLanguage}
-                    isFinished={!loading && !!analysis} 
-                    onViewResult={() => setIsReadyToView(true)}
-                />
+              <StylePrinter
+                mode="analysis" // 分析模式（尺寸已修复）
+                systemLanguage={settings.systemLanguage}
+                isFinished={!loading && !!analysis}
+                onViewResult={() => setIsReadyToView(true)}
+                preFetchedTerm={preFetchedTerm}
+                preFetchedExplanation={preFetchedExplanation}
+              />
             </div>
           ) : (
             analysis && currentImage && (
-              <AnalysisView 
-                image={currentImage} 
-                analysis={analysis} 
+              <AnalysisView
+                image={currentImage}
+                analysis={analysis}
                 onBack={() => setMode('history')}
                 settings={settings}
                 isFavorite={currentItem?.isFavorite || false}
                 onToggleFavorite={handleToggleFavorite}
                 chatHistory={currentItem?.chatHistory || []}
                 onUpdateChatHistory={handleUpdateChatHistory}
+                historyItemId={currentItem?.id}
               />
             )
           )
         )}
-        
+
         {mode === 'history' && (
-            <History 
-                items={historyItems} 
-                onSelect={handleHistorySelect} 
-                onDeleteItems={handleDeleteHistoryItems}
-                onMarkAsExported={handleMarkAsExported}
-                systemLanguage={settings.systemLanguage}
-            />
+          <History
+            items={historyItems}
+            onSelect={handleHistorySelect}
+            onDeleteItems={handleDeleteHistoryItems}
+            onMarkAsExported={handleMarkAsExported}
+            systemLanguage={settings.systemLanguage}
+          />
         )}
       </main>
     </div>
