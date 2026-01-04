@@ -477,10 +477,10 @@ const StylePrinter: React.FC<Props> = ({
         /* Standalone Mode: Full-screen split layout for desktop */
         <div className="min-h-screen pt-20 pb-10">
           {/* Desktop: Split layout - 1/3 printer, 2/3 favorites */}
-          <div className="hidden md:flex h-[calc(100vh-8rem)] max-w-full">
+          <div className="hidden md:flex h-[calc(100vh-8rem)] w-full overflow-hidden">
             {/* Left Side: Printer (1/3 width, centered) */}
-            <div className="w-1/3 flex items-center justify-center bg-cream">
-              <div className="transform scale-75 lg:scale-85">
+            <div className="w-1/3 min-w-[400px] flex items-center justify-center bg-cream overflow-visible">
+              <div className="transform scale-[0.7] lg:scale-[0.8] xl:scale-[0.85]">
                 <div className="relative w-[440px] bg-[#e8e4dc] rounded-[2.5rem] p-8 shadow-[inset_0_-8px_10px_rgba(0,0,0,0.05),0_30px_60px_rgba(0,0,0,0.15)] border border-[#d6d3cb]">
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-3/4 h-5 bg-[#d1cec5] rounded-full shadow-inner overflow-visible">
                     <div className={`absolute top-2 left-2 right-2 bg-white shadow-sm transition-all duration-[1.5s] ease-linear flex flex-col items-center justify-center border border-stone-100 overflow-hidden ${isPrinting ? 'h-40 -translate-y-32 opacity-100' : 'h-0 opacity-0'}`}>{printedVisual}</div>
