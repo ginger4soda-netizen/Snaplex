@@ -224,12 +224,10 @@ const App: React.FC = () => {
 
         {/* ✅ 新增：独立的打印机页面路由 */}
         {mode === 'printer' && (
-          <div className="px-4">
-            <StylePrinter
-              mode="standalone" // 独立模式
-              systemLanguage={settings.systemLanguage}
-            />
-          </div>
+          <StylePrinter
+            mode="standalone" // 独立模式
+            systemLanguage={settings.systemLanguage}
+          />
         )}
 
         {mode === 'analysis' && (
