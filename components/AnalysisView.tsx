@@ -78,7 +78,7 @@ const PromptCard: React.FC<{
                             <button
                                 onClick={() => onNavigate('prev')}
                                 disabled={!canGoPrev}
-                                className="p-1.5 rounded-lg transition-colors text-stone-300 hover:bg-stone-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                                className="p-1.5 transition-colors text-stone-300 hover:text-stone-500 disabled:opacity-20 disabled:hover:text-stone-300"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -87,7 +87,7 @@ const PromptCard: React.FC<{
                             <button
                                 onClick={() => onNavigate('next')}
                                 disabled={!canGoNext}
-                                className="p-1.5 rounded-lg transition-colors text-stone-300 hover:bg-stone-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                                className="p-1.5 transition-colors text-stone-300 hover:text-stone-500 disabled:opacity-20 disabled:hover:text-stone-300"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
@@ -99,14 +99,14 @@ const PromptCard: React.FC<{
                     <button
                         onClick={handleRefresh}
                         disabled={isRefreshing}
-                        className="p-1.5 rounded-lg transition-all text-stone-300 hover:bg-stone-100 disabled:opacity-50"
+                        className="p-1.5 transition-all text-stone-300 hover:text-stone-500 disabled:opacity-30"
                     >
                         <svg className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                     </button>
                     {/* Copy Button */}
-                    <button onClick={handleCopy} className="p-1.5 rounded-lg transition-colors text-stone-300 hover:bg-stone-100" style={{ color: isCopied ? hexColor : undefined }}>
+                    <button onClick={handleCopy} className="p-1.5 transition-colors text-stone-300 hover:text-stone-500" style={{ color: isCopied ? hexColor : undefined }}>
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                     </button>
                 </div>
@@ -296,14 +296,14 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
     };
 
     return (
-        <div className={`bg-cream flex flex-col ${showChat ? 'h-[calc(100vh-64px)] overflow-hidden' : 'min-h-screen'}`}>
+        <div className={`bg-cream flex flex-col md:flex-row md:h-screen md:overflow-hidden ${showChat ? 'h-[calc(100vh-64px)] overflow-hidden' : 'min-h-screen md:min-h-0'}`}>
             <style>{`.perspective-1000 { perspective: 1000px; } .style-preserve-3d { transform-style: preserve-3d; } .rotate-y-180 { transform: rotateY(180deg); } .backface-hidden { backface-visibility: hidden; }`}</style>
 
             {/* Hidden Long Image Template */}
             <div id="share-long-image" className="absolute left-[-9999px] top-0 w-[600px] bg-[#fefcf5] text-stone-800 font-sans" style={{ display: 'none' }}>
                 <div className="relative">
                     {/* Full Image: No cropping */}
-                    <img src={image} alt="Original" className="w-full h-auto object-contain" crossOrigin="anonymous" />
+                    <img src={image} alt="Original" className="w-full h-auto object-contain" />
                 </div>
                 <div className="px-12 py-10 space-y-8">
                     {modules.map((mod, i) => (
@@ -325,20 +325,23 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
                     </div>
                 </div>
             )}
-            <div className="relative group shrink-0">
-                <div className={`${showChat ? 'h-32' : 'h-96'} w-full bg-stone-100 overflow-hidden relative transition-all duration-300`}>
+            {/* ========== LEFT COLUMN: IMAGE (Desktop) / Top Section (Mobile) ========== */}
+            <div className="relative group shrink-0 md:w-1/2 md:h-full md:sticky md:top-0">
+                <div className={`${showChat ? 'h-32' : 'h-96'} md:h-full w-full bg-stone-100 overflow-hidden relative transition-all duration-300`}>
                     <img src={image} alt="Analysis" className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 cursor-pointer" onClick={() => setIsZoomed(true)} />
                     <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/50 to-transparent pointer-events-none" />
                 </div>
-                <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-10">
+                <div className="absolute top-20 md:top-4 left-4 right-4 md:right-auto flex justify-between md:justify-start md:gap-2 items-center z-10">
                     <button onClick={onBack} className="w-10 h-10 bg-black/30 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/50 transition-colors border border-white/10"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg></button>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 md:contents">
                         <button onClick={handleCopyImage} className="w-10 h-10 bg-black/30 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/50 transition-colors border border-white/10"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></button>
                         <button onClick={handleDownloadImage} className="w-10 h-10 bg-black/30 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/50 transition-colors border border-white/10"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
                     </div>
                 </div>
             </div>
-            <div className="flex-1 bg-cream rounded-t-[2.5rem] -mt-10 relative z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col">
+
+            {/* ========== RIGHT COLUMN: DATA DECK (Desktop) / Content Area (Mobile) ========== */}
+            <div className="flex-1 bg-cream rounded-t-[2.5rem] md:rounded-none -mt-10 md:mt-0 relative z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] md:shadow-none overflow-hidden flex flex-col md:h-full md:overflow-y-auto">
                 <div className={`flex-1 flex flex-col h-full relative ${showChat ? 'flex' : 'hidden'}`}>
                     <div className="flex justify-between items-center px-6 py-3 border-b border-stone-100 bg-white/50 backdrop-blur-md shrink-0">
                         <span className="text-xs font-black uppercase tracking-widest text-stone-400">{t.tabChat}</span>
@@ -348,13 +351,13 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
                         <ChatBot messages={chatHistory} onUpdateMessages={onUpdateChatHistory} imageContext={image} systemLanguage={settings.systemLanguage} settings={settings} />
                     </div>
                 </div>
-                <div className={`px-6 py-8 flex-1 ${showChat ? 'hidden' : 'block'}`}>
+                <div className={`px-6 py-8 flex-1 md:overflow-y-auto ${showChat ? 'hidden' : 'block'}`}>
                     <div className="flex justify-center items-center gap-4 mb-10 px-4">
                         <button onClick={handleShareImage} className="w-12 h-12 bg-white text-stone-800 rounded-full flex items-center justify-center shadow-sm border border-stone-200 hover:border-stone-400 transition-all active:scale-95"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg></button>
                         <button onClick={handleGlobalCopy} className="flex items-center justify-center gap-2 bg-stone-800 text-white px-6 py-3 rounded-full shadow-lg active:scale-95 transition-transform hover:bg-stone-700"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg><span className="font-bold text-sm">{t.btnCopyAll}</span></button>
                         <button onClick={() => setIsGlobalFlipped(!isGlobalFlipped)} className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm border transition-all active:scale-95 ${isGlobalFlipped ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-800 border-stone-200 hover:border-stone-400'}`}><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg></button>
                     </div>
-                    <div className="space-y-4 pb-20">
+                    <div className="space-y-4 pb-20 md:pb-8">
                         {modules.map((mod, i) => (
                             <div key={i} className="animate-[fadeIn_0.5s]" style={{ animationDelay: `${i * 0.1}s` }}>
                                 <PromptCard
@@ -372,7 +375,7 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
                             </div>
                         ))}
                     </div>
-                    <button onClick={() => setShowChat(true)} className="fixed bottom-6 right-6 w-14 h-14 bg-stone-800 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all z-40 border-2 border-cream"><svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" /><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" /></svg></button>
+                    <button onClick={() => setShowChat(true)} className="fixed bottom-6 right-6 md:absolute w-14 h-14 bg-stone-800 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all z-40 border-2 border-cream"><svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" /><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" /></svg></button>
                 </div>
             </div>
         </div>

@@ -121,134 +121,271 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
     };
 
     return (
-        <div className="p-8 animate-[fadeIn_0.3s_ease-out] pb-24 max-w-3xl mx-auto">
-            <h2 className="text-3xl font-black text-stone-800 mb-12 tracking-tight">{t.settingsTitle}</h2>
+        <div className="min-h-screen pt-20 pb-10 animate-[fadeIn_0.3s_ease-out]">
+            {/* Desktop: Full-screen with max-width constraint */}
+            <div className="hidden md:block px-8">
+                <div className="max-w-4xl mx-auto">
+                    <h2 className="text-3xl font-black text-stone-800 mb-12 tracking-tight">{t.settingsTitle}</h2>
 
-            <div className="space-y-12">
+                    <div className="space-y-12">
 
-                {/* 1. API Configuration Section */}
-                <div className="bg-stone-100/50 p-6 rounded-2xl border border-stone-200">
-                    <div className="flex items-center gap-2 mb-6">
-                        <span className="text-xl">🔌</span>
-                        <h3 className="text-stone-800 font-bold text-lg">API Configuration</h3>
-                    </div>
+                        {/* 1. API Configuration Section */}
+                        <div className="bg-stone-100/50 p-6 rounded-2xl border border-stone-200">
+                            <div className="flex items-center gap-2 mb-6">
+                                <span className="text-xl">🔌</span>
+                                <h3 className="text-stone-800 font-bold text-lg">API Configuration</h3>
+                            </div>
 
-                    <div className="space-y-5">
-                        {/* Provider Selection */}
+                            <div className="space-y-5">
+                                {/* Provider Selection */}
+                                <div>
+                                    <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Provider</label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {(Object.keys(PROVIDER_LABELS) as ProviderType[]).map(p => (
+                                            <button
+                                                key={p}
+                                                onClick={() => handleProviderChange(p)}
+                                                className={`px-3 py-2.5 rounded-xl text-sm font-bold border transition-all ${provider === p
+                                                    ? 'bg-stone-800 text-white border-stone-800 shadow-md'
+                                                    : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
+                                                    }`}
+                                            >
+                                                {PROVIDER_LABELS[p].split(' ')[0]}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* API Key */}
+                                <div>
+                                    <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">{PROVIDER_LABELS[provider]} API Key</label>
+                                    <input
+                                        type="password"
+                                        value={apiKey}
+                                        onChange={(e) => handleApiKeyChange(e.target.value)}
+                                        placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none focus:border-softblue focus:ring-1 focus:ring-softblue shadow-sm"
+                                    />
+                                    <div className="mt-2 text-right">
+                                        <a href={PROVIDER_KEY_LINKS[provider].url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-softblue hover:underline">
+                                            {PROVIDER_KEY_LINKS[provider].label}
+                                        </a>
+                                    </div>
+                                </div>
+
+                                {/* Model Selection */}
+                                <div>
+                                    <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Model</label>
+                                    <div className="relative">
+                                        <select
+                                            value={model}
+                                            onChange={(e) => handleModelChange(e.target.value)}
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-softblue appearance-none shadow-sm cursor-pointer"
+                                        >
+                                            {PROVIDER_MODELS[provider].map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 2. Copy Config */}
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-stone-800 font-bold text-lg">{t.lblCopyConfig}</h3>
+                                <div className="h-px bg-stone-200 flex-1 ml-4" />
+                            </div>
+                            <div className="grid grid-cols-6 gap-3">
+                                {STORED_MODULE_KEYS.map(modKey => {
+                                    const isActive = (settings.copyIncludedModules || STORED_MODULE_KEYS).includes(modKey);
+                                    return (
+                                        <button
+                                            key={modKey}
+                                            onClick={() => toggleModule(modKey)}
+                                            className={`px-3 py-2 rounded-lg text-sm font-bold border transition-all ${isActive ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-200'}`}
+                                        >
+                                            {MODULE_LABEL_MAP[modKey] || modKey}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* 3. Language Settings */}
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-stone-800 font-bold text-lg">{t.lblLangSettings}</h3>
+                                <div className="h-px bg-stone-200 flex-1 ml-4" />
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                                {renderSelect(t.lblSystemLang, settings.systemLanguage || 'English', (v) => onSave({ ...settings, systemLanguage: v }), LANGUAGES)}
+                                {renderSelect(t.lblFrontLang, settings.cardFrontLanguage || 'English', (v) => onSave({ ...settings, cardFrontLanguage: v }), LANGUAGES)}
+                                {renderSelect(t.lblBackLang, settings.cardBackLanguage || 'Chinese', (v) => onSave({ ...settings, cardBackLanguage: v }), LANGUAGES)}
+                            </div>
+                        </div>
+
+                        {/* 4. Style Preferences */}
                         <div>
-                            <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Provider</label>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                {(Object.keys(PROVIDER_LABELS) as ProviderType[]).map(p => (
+                            <div className="flex items-center gap-2 mb-6">
+                                <h3 className="text-stone-800 font-bold text-lg">{t.lblStylePref}</h3>
+                                <div className="h-px bg-stone-200 flex-1 ml-4" />
+                            </div>
+                            <div className="grid grid-cols-6 gap-4">
+                                {styles.map(style => (
                                     <button
-                                        key={p}
-                                        onClick={() => handleProviderChange(p)}
-                                        className={`px-3 py-2.5 rounded-xl text-sm font-bold border transition-all ${provider === p
-                                            ? 'bg-stone-800 text-white border-stone-800 shadow-md'
-                                            : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
-                                            }`}
+                                        key={style.id}
+                                        onClick={() => onSave({ ...settings, descriptionStyle: style.id })}
+                                        className={`
+                                            aspect-square rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow-sm active:scale-95
+                                            ${style.color}
+                                            ${settings.descriptionStyle === style.id ? 'ring-4 ring-offset-2 ring-stone-200 transform scale-[1.02] shadow-pop z-10' : 'opacity-90 hover:opacity-100 hover:scale-[1.02]'}
+                                        `}
                                     >
-                                        {PROVIDER_LABELS[p].split(' ')[0]}
+                                        <div className="scale-90">
+                                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={style.icon} /></svg>
+                                        </div>
+                                        <span className="font-bold text-xs tracking-wide">{style.label}</span>
                                     </button>
                                 ))}
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
 
-                        {/* API Key */}
-                        <div>
-                            <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">{PROVIDER_LABELS[provider]} API Key</label>
-                            <input
-                                type="password"
-                                value={apiKey}
-                                onChange={(e) => handleApiKeyChange(e.target.value)}
-                                placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
-                                className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none focus:border-softblue focus:ring-1 focus:ring-softblue shadow-sm"
-                            />
-                            <div className="mt-2 text-right">
-                                <a href={PROVIDER_KEY_LINKS[provider].url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-softblue hover:underline">
-                                    {PROVIDER_KEY_LINKS[provider].label}
-                                </a>
-                            </div>
+            {/* Mobile: Original layout */}
+            <div className="md:hidden p-6 max-w-screen-md mx-auto">
+                <h2 className="text-3xl font-black text-stone-800 mb-12 tracking-tight">{t.settingsTitle}</h2>
+
+                <div className="space-y-12">
+
+                    {/* 1. API Configuration Section */}
+                    <div className="bg-stone-100/50 p-6 rounded-2xl border border-stone-200">
+                        <div className="flex items-center gap-2 mb-6">
+                            <span className="text-xl">🔌</span>
+                            <h3 className="text-stone-800 font-bold text-lg">API Configuration</h3>
                         </div>
 
-                        {/* Model Selection */}
-                        <div>
-                            <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Model</label>
-                            <div className="relative">
-                                <select
-                                    value={model}
-                                    onChange={(e) => handleModelChange(e.target.value)}
-                                    className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-softblue appearance-none shadow-sm cursor-pointer"
-                                >
-                                    {PROVIDER_MODELS[provider].map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-                                </select>
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        <div className="space-y-5">
+                            {/* Provider Selection */}
+                            <div>
+                                <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Provider</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {(Object.keys(PROVIDER_LABELS) as ProviderType[]).map(p => (
+                                        <button
+                                            key={p}
+                                            onClick={() => handleProviderChange(p)}
+                                            className={`px-3 py-2.5 rounded-xl text-sm font-bold border transition-all ${provider === p
+                                                ? 'bg-stone-800 text-white border-stone-800 shadow-md'
+                                                : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
+                                                }`}
+                                        >
+                                            {PROVIDER_LABELS[p].split(' ')[0]}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* API Key */}
+                            <div>
+                                <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">{PROVIDER_LABELS[provider]} API Key</label>
+                                <input
+                                    type="password"
+                                    value={apiKey}
+                                    onChange={(e) => handleApiKeyChange(e.target.value)}
+                                    placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
+                                    className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none focus:border-softblue focus:ring-1 focus:ring-softblue shadow-sm"
+                                />
+                                <div className="mt-2 text-right">
+                                    <a href={PROVIDER_KEY_LINKS[provider].url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-softblue hover:underline">
+                                        {PROVIDER_KEY_LINKS[provider].label}
+                                    </a>
+                                </div>
+                            </div>
+
+                            {/* Model Selection */}
+                            <div>
+                                <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Model</label>
+                                <div className="relative">
+                                    <select
+                                        value={model}
+                                        onChange={(e) => handleModelChange(e.target.value)}
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-softblue appearance-none shadow-sm cursor-pointer"
+                                    >
+                                        {PROVIDER_MODELS[provider].map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                                    </select>
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* 2. Copy Config */}
-                <div className="space-y-6">
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-stone-800 font-bold text-lg">{t.lblCopyConfig}</h3>
-                        <div className="h-px bg-stone-200 flex-1 ml-4" />
+                    {/* 2. Copy Config */}
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-stone-800 font-bold text-lg">{t.lblCopyConfig}</h3>
+                            <div className="h-px bg-stone-200 flex-1 ml-4" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            {STORED_MODULE_KEYS.map(modKey => {
+                                const isActive = (settings.copyIncludedModules || STORED_MODULE_KEYS).includes(modKey);
+                                return (
+                                    <button
+                                        key={modKey}
+                                        onClick={() => toggleModule(modKey)}
+                                        className={`px-3 py-2 rounded-lg text-sm font-bold border transition-all ${isActive ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-200'}`}
+                                    >
+                                        {MODULE_LABEL_MAP[modKey] || modKey}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {STORED_MODULE_KEYS.map(modKey => {
-                            const isActive = (settings.copyIncludedModules || STORED_MODULE_KEYS).includes(modKey);
-                            return (
+
+                    {/* 3. Language Settings */}
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-stone-800 font-bold text-lg">{t.lblLangSettings}</h3>
+                            <div className="h-px bg-stone-200 flex-1 ml-4" />
+                        </div>
+                        <div className="space-y-4">
+                            {renderSelect(t.lblSystemLang, settings.systemLanguage || 'English', (v) => onSave({ ...settings, systemLanguage: v }), LANGUAGES)}
+                            <div className="flex gap-4">
+                                {renderSelect(t.lblFrontLang, settings.cardFrontLanguage || 'English', (v) => onSave({ ...settings, cardFrontLanguage: v }), LANGUAGES)}
+                                {renderSelect(t.lblBackLang, settings.cardBackLanguage || 'Chinese', (v) => onSave({ ...settings, cardBackLanguage: v }), LANGUAGES)}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 4. Style Preferences */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-6">
+                            <h3 className="text-stone-800 font-bold text-lg">{t.lblStylePref}</h3>
+                            <div className="h-px bg-stone-200 flex-1 ml-4" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                            {styles.map(style => (
                                 <button
-                                    key={modKey}
-                                    onClick={() => toggleModule(modKey)}
-                                    className={`px-3 py-2 rounded-lg text-sm font-bold border transition-all ${isActive ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-200'}`}
+                                    key={style.id}
+                                    onClick={() => onSave({ ...settings, descriptionStyle: style.id })}
+                                    className={`
+                                        aspect-[4/3] rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow-sm active:scale-95
+                                        ${style.color}
+                                        ${settings.descriptionStyle === style.id ? 'ring-4 ring-offset-2 ring-stone-200 transform scale-[1.02] shadow-pop z-10' : 'opacity-90 hover:opacity-100 hover:scale-[1.02]'}
+                                    `}
                                 >
-                                    {MODULE_LABEL_MAP[modKey] || modKey}
+                                    <div className="scale-90">
+                                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={style.icon} /></svg>
+                                    </div>
+                                    <span className="font-bold text-[10px] tracking-wide">{style.label}</span>
                                 </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* 3. Language Settings */}
-                <div className="space-y-6">
-                    <div className="flex items-center gap-2">
-                        <h3 className="text-stone-800 font-bold text-lg">{t.lblLangSettings}</h3>
-                        <div className="h-px bg-stone-200 flex-1 ml-4" />
-                    </div>
-                    <div className="space-y-4">
-                        {renderSelect(t.lblSystemLang, settings.systemLanguage || 'English', (v) => onSave({ ...settings, systemLanguage: v }), LANGUAGES)}
-                        <div className="flex gap-4">
-                            {renderSelect(t.lblFrontLang, settings.cardFrontLanguage || 'English', (v) => onSave({ ...settings, cardFrontLanguage: v }), LANGUAGES)}
-                            {renderSelect(t.lblBackLang, settings.cardBackLanguage || 'Chinese', (v) => onSave({ ...settings, cardBackLanguage: v }), LANGUAGES)}
+                            ))}
                         </div>
-                    </div>
-                </div>
-
-                {/* 4. Style Preferences */}
-                <div>
-                    <div className="flex items-center gap-2 mb-6">
-                        <h3 className="text-stone-800 font-bold text-lg">{t.lblStylePref}</h3>
-                        <div className="h-px bg-stone-200 flex-1 ml-4" />
-                    </div>
-                    <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                        {styles.map(style => (
-                            <button
-                                key={style.id}
-                                onClick={() => onSave({ ...settings, descriptionStyle: style.id })}
-                                className={`
-                                    aspect-[4/3] sm:aspect-square rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow-sm active:scale-95
-                                    ${style.color}
-                                    ${settings.descriptionStyle === style.id ? 'ring-4 ring-offset-2 ring-stone-200 transform scale-[1.02] shadow-pop z-10' : 'opacity-90 hover:opacity-100 hover:scale-[1.02]'}
-                                `}
-                            >
-                                <div className="scale-90">
-                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={style.icon} /></svg>
-                                </div>
-                                <span className="font-bold text-[10px] sm:text-xs tracking-wide">{style.label}</span>
-                            </button>
-                        ))}
                     </div>
                 </div>
             </div>

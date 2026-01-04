@@ -75,6 +75,31 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
         loadChips();
     }, []);
 
+    // Sync default chips with current language - runs on mount and when language changes
+    useEffect(() => {
+        // Skip if no chips loaded yet
+        if (allChips.length === 0) return;
+
+        const defaultsMap = new Map(defaultChipsFromTranslation.map((d, i) => [`default-${i}`, d]));
+        let hasChanges = false;
+
+        const newChips = allChips.map(chip => {
+            if (chip.isDefault && chip.id.startsWith('default-')) {
+                const newContent = defaultsMap.get(chip.id);
+                if (newContent && (newContent.label !== chip.label || newContent.prompt !== chip.prompt)) {
+                    hasChanges = true;
+                    return { ...chip, label: newContent.label, prompt: newContent.prompt };
+                }
+            }
+            return chip;
+        });
+
+        if (hasChanges) {
+            setAllChips(newChips);
+            set(IDB_KEY_ALL_CHIPS, newChips).catch(e => console.error('Failed to update chips lang', e));
+        }
+    }, [systemLanguage, allChips.length > 0]);
+
     const saveChips = useCallback(async (chips: UnifiedChip[]) => {
         setAllChips(chips);
         try {

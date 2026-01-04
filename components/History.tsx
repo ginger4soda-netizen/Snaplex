@@ -195,65 +195,143 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
         );
     };
 
+    // Get recent items (last 3 read items, sorted by most recent)
+    const recentItems = items.filter(i => i.read).slice(0, 3);
+
     const safeFilteredItems = filteredItems || [];
     const unexportedItems = safeFilteredItems.filter(i => !i.lastExported);
     const exportedItems = safeFilteredItems.filter(i => i.lastExported);
 
     return (
-        <div className="p-6 animate-[fadeIn_0.3s_ease-out] max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-6 px-1">
-                <h2 className="text-2xl font-black text-stone-800 tracking-tight">{t.libraryTitle}</h2>
-                <button onClick={toggleSelectionMode} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${isSelectionMode ? 'bg-stone-200 text-stone-800' : 'text-stone-500 hover:bg-stone-100'}`}>
-                    {isSelectionMode ? t.btnCancel : t.btnSelect}
-                </button>
-            </div>
-
-            {!isSelectionMode ? (
-                <div className="mb-8 flex gap-2">
-                    <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.searchPlaceholder} className="flex-1 bg-white border border-stone-200 rounded-xl px-4 py-3 outline-none focus:border-softblue transition-colors shadow-sm" onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
-                    <button onClick={handleSearch} disabled={searching} className="bg-stone-800 text-white px-6 rounded-xl font-bold disabled:opacity-50 shadow-md hover:bg-stone-700 transition-colors min-w-[80px] flex items-center justify-center">
-                        {searching ? (
-                            <div className="flex gap-1.5 items-center">
-                                <div className="w-2 h-2 bg-coral rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                <div className="w-2 h-2 bg-sunny rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                <div className="w-2 h-2 bg-softblue rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                            </div>
-                        ) : t.btnFind}
+        <div className="min-h-screen pt-20 pb-10 animate-[fadeIn_0.3s_ease-out]">
+            {/* Desktop: Full-screen grid layout */}
+            <div className="hidden md:block px-8 max-w-7xl mx-auto">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-3xl font-black text-stone-800 tracking-tight">{t.libraryTitle}</h2>
+                    <button onClick={toggleSelectionMode} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${isSelectionMode ? 'bg-stone-200 text-stone-800' : 'text-stone-500 hover:bg-stone-100'}`}>
+                        {isSelectionMode ? t.btnCancel : t.btnSelect}
                     </button>
                 </div>
-            ) : (
-                <div className="mb-8 flex flex-col sm:flex-row justify-between items-center bg-stone-100 p-3 rounded-xl border border-stone-200 gap-3">
-                    <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto">
-                        <button onClick={handleSelectAll} className="text-stone-500 hover:text-stone-800 font-bold text-sm px-2 whitespace-nowrap">{selectedIds.size === safeFilteredItems.length ? t.btnDeselectAll : t.btnSelectAll}</button>
-                        <span className="text-stone-400">|</span>
-                        <button onClick={handleSelectUnexported} className="text-softblue hover:text-stone-800 font-bold text-sm px-2 whitespace-nowrap">{t.btnSelectNew} ({unexportedItems.length})</button>
-                        <span className="text-stone-400">|</span>
-                        <span className="font-bold text-stone-600 whitespace-nowrap">{selectedIds.size} {t.txtSelected}</span>
-                    </div>
 
-                    <div className="flex gap-2 w-full sm:w-auto">
-                        <button onClick={handleExport} disabled={selectedIds.size === 0} className="flex-1 sm:flex-none bg-softblue text-white px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:bg-stone-300 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
-                            {t.btnExport}
-                        </button>
-                        <button onClick={handleBatchDelete} disabled={selectedIds.size === 0} className="flex-1 sm:flex-none bg-coral text-white px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:bg-stone-300 shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
-                            {t.btnDelete}
+                {/* Search Bar */}
+                {!isSelectionMode ? (
+                    <div className="mb-6 flex gap-2">
+                        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.searchPlaceholder} className="flex-1 bg-white border border-stone-200 rounded-xl px-4 py-3 outline-none focus:border-softblue transition-colors shadow-sm" onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
+                        <button onClick={handleSearch} disabled={searching} className="bg-stone-800 text-white px-6 rounded-xl font-bold disabled:opacity-50 shadow-md hover:bg-stone-700 transition-colors min-w-[80px] flex items-center justify-center">
+                            {searching ? (
+                                <div className="flex gap-1.5 items-center">
+                                    <div className="w-2 h-2 bg-coral rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                    <div className="w-2 h-2 bg-sunny rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                    <div className="w-2 h-2 bg-softblue rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                </div>
+                            ) : t.btnFind}
                         </button>
                     </div>
-                </div>
-            )}
+                ) : (
+                    <div className="mb-6 flex flex-wrap justify-between items-center bg-stone-100 p-3 rounded-xl border border-stone-200 gap-3">
+                        <div className="flex items-center gap-3">
+                            <button onClick={handleSelectAll} className="text-stone-500 hover:text-stone-800 font-bold text-sm px-2 whitespace-nowrap">{selectedIds.size === safeFilteredItems.length ? t.btnDeselectAll : t.btnSelectAll}</button>
+                            <span className="text-stone-400">|</span>
+                            <button onClick={handleSelectUnexported} className="text-softblue hover:text-stone-800 font-bold text-sm px-2 whitespace-nowrap">{t.btnSelectNew} ({unexportedItems.length})</button>
+                            <span className="text-stone-400">|</span>
+                            <span className="font-bold text-stone-600 whitespace-nowrap">{selectedIds.size} {t.txtSelected}</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={handleExport} disabled={selectedIds.size === 0} className="bg-softblue text-white px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:bg-stone-300 shadow-sm active:scale-95 transition-all">{t.btnExport}</button>
+                            <button onClick={handleBatchDelete} disabled={selectedIds.size === 0} className="bg-coral text-white px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:bg-stone-300 shadow-sm active:scale-95 transition-all">{t.btnDelete}</button>
+                        </div>
+                    </div>
+                )}
 
-            {items.length === 0 ? (
-                <div className="p-10 text-center text-stone-400">
-                    <p>{t.emptyHistory}</p>
+                {/* Split Layout: Recent (Left) + History (Right) */}
+                <div className="flex gap-6">
+                    {/* Left Column: Recent */}
+                    {recentItems.length > 0 && !isSelectionMode && (
+                        <div className="w-64 flex-shrink-0">
+                            <h3 className="text-stone-400 font-bold text-xs uppercase tracking-wider mb-4 border-b border-stone-200 pb-2">
+                                {t.sectionRecent}
+                            </h3>
+                            <div className="p-4 bg-sunny/10 rounded-[1.5rem] shadow-[6px_6px_0px_0px_rgba(255,209,102,0.3)] sticky top-24">
+                                <div className="flex flex-col gap-3">
+                                    {recentItems.map(item => (
+                                        <div
+                                            key={item.id}
+                                            onClick={() => onSelect(item)}
+                                            className="w-full aspect-square rounded-xl overflow-hidden cursor-pointer group relative border-2 border-stone-200 hover:border-softblue transition-colors"
+                                        >
+                                            <img src={item.imageUrl} alt="Recent" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Right Column: History Grid */}
+                    <div className="flex-1">
+                        {items.length === 0 ? (
+                            <div className="p-10 text-center text-stone-400"><p>{t.emptyHistory}</p></div>
+                        ) : (
+                            <>
+                                {renderGrid(unexportedItems, t.sectionNew)}
+                                {unexportedItems.length > 0 && exportedItems.length > 0 && <div className="h-px bg-stone-200 my-8" />}
+                                {renderGrid(exportedItems, t.sectionExported)}
+                                {safeFilteredItems.length === 0 && !searching && <p className="text-center text-stone-400 col-span-full py-10">{t.noMatches}</p>}
+                            </>
+                        )}
+                    </div>
                 </div>
-            ) : (
-                <>
-                    {renderGrid(unexportedItems, t.sectionNew)}
-                    {unexportedItems.length > 0 && exportedItems.length > 0 && <div className="h-px bg-stone-200 my-8" />}
-                    {renderGrid(exportedItems, t.sectionExported)}
-                    {safeFilteredItems.length === 0 && !searching && <p className="text-center text-stone-400 col-span-full py-10">{t.noMatches}</p>}
-                </>
-            )}
+            </div>
+
+            {/* Mobile: Original centered layout */}
+            <div className="md:hidden p-6 max-w-screen-md mx-auto">
+                <div className="flex justify-between items-center mb-6 px-1">
+                    <h2 className="text-2xl font-black text-stone-800 tracking-tight">{t.libraryTitle}</h2>
+                    <button onClick={toggleSelectionMode} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${isSelectionMode ? 'bg-stone-200 text-stone-800' : 'text-stone-500 hover:bg-stone-100'}`}>
+                        {isSelectionMode ? t.btnCancel : t.btnSelect}
+                    </button>
+                </div>
+
+                {!isSelectionMode ? (
+                    <div className="mb-8 flex gap-2">
+                        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.searchPlaceholder} className="flex-1 bg-white border border-stone-200 rounded-xl px-4 py-3 outline-none focus:border-softblue transition-colors shadow-sm" onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
+                        <button onClick={handleSearch} disabled={searching} className="bg-stone-800 text-white px-6 rounded-xl font-bold disabled:opacity-50 shadow-md hover:bg-stone-700 transition-colors min-w-[80px] flex items-center justify-center">
+                            {searching ? (
+                                <div className="flex gap-1.5 items-center">
+                                    <div className="w-2 h-2 bg-coral rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                    <div className="w-2 h-2 bg-sunny rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                    <div className="w-2 h-2 bg-softblue rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                </div>
+                            ) : t.btnFind}
+                        </button>
+                    </div>
+                ) : (
+                    <div className="mb-8 flex flex-col gap-3 bg-stone-100 p-3 rounded-xl border border-stone-200">
+                        <div className="flex items-center gap-3 overflow-x-auto">
+                            <button onClick={handleSelectAll} className="text-stone-500 hover:text-stone-800 font-bold text-sm px-2 whitespace-nowrap">{selectedIds.size === safeFilteredItems.length ? t.btnDeselectAll : t.btnSelectAll}</button>
+                            <span className="text-stone-400">|</span>
+                            <button onClick={handleSelectUnexported} className="text-softblue hover:text-stone-800 font-bold text-sm px-2 whitespace-nowrap">{t.btnSelectNew} ({unexportedItems.length})</button>
+                            <span className="text-stone-400">|</span>
+                            <span className="font-bold text-stone-600 whitespace-nowrap">{selectedIds.size} {t.txtSelected}</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={handleExport} disabled={selectedIds.size === 0} className="flex-1 bg-softblue text-white px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:bg-stone-300 shadow-sm">{t.btnExport}</button>
+                            <button onClick={handleBatchDelete} disabled={selectedIds.size === 0} className="flex-1 bg-coral text-white px-4 py-2 rounded-lg font-bold disabled:opacity-50 disabled:bg-stone-300 shadow-sm">{t.btnDelete}</button>
+                        </div>
+                    </div>
+                )}
+
+                {items.length === 0 ? (
+                    <div className="p-10 text-center text-stone-400"><p>{t.emptyHistory}</p></div>
+                ) : (
+                    <>
+                        {renderGrid(unexportedItems, t.sectionNew)}
+                        {unexportedItems.length > 0 && exportedItems.length > 0 && <div className="h-px bg-stone-200 my-8" />}
+                        {renderGrid(exportedItems, t.sectionExported)}
+                        {safeFilteredItems.length === 0 && !searching && <p className="text-center text-stone-400 col-span-full py-10">{t.noMatches}</p>}
+                    </>
+                )}
+            </div>
         </div>
     );
 };

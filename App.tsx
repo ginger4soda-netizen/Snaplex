@@ -47,6 +47,7 @@ const App: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [isReadyToView, setIsReadyToView] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
 
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
@@ -70,22 +71,22 @@ const App: React.FC = () => {
     loadData();
   }, []);
 
-  // background pre-fetch printer term
-  useEffect(() => {
-    if (!isDataLoaded) return;
-    const preFetch = async () => {
-      try {
-        const mined = mineHistory(historyItems);
-        if (mined.length > 0) {
-          const first = mined[0];
-          setPreFetchedTerm(first);
-          const expl = await explainVisualTerm(first.term, settings.systemLanguage || 'English');
-          setPreFetchedExplanation(expl);
-        }
-      } catch (e) { console.error("Pre-fetch failed", e); }
-    };
-    preFetch();
-  }, [isDataLoaded, settings.systemLanguage]);
+  // ✅ Pre-fetch disabled to save tokens - user clicks refresh button to load term explanation
+  // useEffect(() => {
+  //   if (!isDataLoaded) return;
+  //   const preFetch = async () => {
+  //     try {
+  //       const mined = mineHistory(historyItems);
+  //       if (mined.length > 0) {
+  //         const first = mined[0];
+  //         setPreFetchedTerm(first);
+  //         const expl = await explainVisualTerm(first.term, settings.systemLanguage || 'English');
+  //         setPreFetchedExplanation(expl);
+  //       }
+  //     } catch (e) { console.error("Pre-fetch failed", e); }
+  //   };
+  //   preFetch();
+  // }, [isDataLoaded, settings.systemLanguage]);
 
   const handleSaveSettings = (newSettings: UserSettings) => {
     setSettings(newSettings);
@@ -129,9 +130,18 @@ const App: React.FC = () => {
     if (files.length === 0) return;
 
     setLoading(true);
-    setMode('analysis');
+    setAnalysisProgress(0);
+    // Stay on home to show progress bar, NOT switching to analysis immediately
     setAnalysis(null);
     setIsReadyToView(false);
+
+    // Simulate progress animation
+    const progressInterval = setInterval(() => {
+      setAnalysisProgress(prev => {
+        if (prev >= 90) return prev; // Cap at 90% until complete
+        return prev + Math.random() * 15;
+      });
+    }, 500);
 
     try {
       const compressedImages = await Promise.all(files.map(compressImage));
@@ -168,10 +178,21 @@ const App: React.FC = () => {
       setHistoryItems(newHistory);
       await set('visionLearnHistory', newHistory);
 
+      // Complete progress and navigate directly to analysis
+      clearInterval(progressInterval);
+      setAnalysisProgress(100);
+      setTimeout(() => {
+        setMode('analysis');
+        setIsReadyToView(true);
+        setLoading(false);
+        setAnalysisProgress(0);
+      }, 500);
+
     } catch (error) {
+      clearInterval(progressInterval);
       console.error(error); alert("Analysis failed. Please try again."); setMode('home');
-    } finally {
       setLoading(false);
+      setAnalysisProgress(0);
     }
   };
 
@@ -189,12 +210,12 @@ const App: React.FC = () => {
   if (!isDataLoaded) return <div className="min-h-screen bg-cream flex items-center justify-center text-stone-400">Loading...</div>;
 
   return (
-    <div className={`min-h-screen bg-cream font-sans text-dark max-w-screen-md mx-auto shadow-2xl ${mode === 'home' || mode === 'history' || mode === 'settings' ? 'pb-10' : ''}`}>
+    <div className="min-h-screen bg-cream font-sans text-dark">
       <Header currentMode={mode} setMode={setMode} />
-      <main className="pt-20">
+      <main>
 
         {mode === 'home' && (
-          <Home onImageUpload={handleImageUpload} systemLanguage={settings.systemLanguage} />
+          <Home onImageUpload={handleImageUpload} systemLanguage={settings.systemLanguage} isAnalyzing={loading} analysisProgress={analysisProgress} />
         )}
 
         {mode === 'settings' && (
