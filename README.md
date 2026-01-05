@@ -20,14 +20,19 @@ It transforms how you explore images by combining **Deep Visual Insights**, a **
     -   Mood
     -   Style
 -   **Deep Visual Insight**: Go beyond basic analysis with an interactive **Chat Mode**. Use preset or custom tags to query specific visual details and gain deeper insights.
+    ![Chat Terms](public/screenshots/chat_terms.png)
+    ![Chat Inspiration](public/screenshots/chat_inspiration.png)
+    ![Chat Typography](public/screenshots/chat_typography.png)
 -   **Personalized Inspiration Library**: All analyzed images are saved locally. Rediscover your past inspirations using **fuzzy search** to find specific terms or concepts and spark new ideas.
     ![Library View](public/screenshots/library.png)
 -   **Visual Term Printer**: "Mining" your history to build a glossary of visual terms with definitions and application context.
     ![Wordbank View](public/screenshots/wordbank.png)
     ![Wordbank Detail](public/screenshots/wordbank_detail.png)
 -   **Batch Operations**: Efficiently extract and **export** structured prompt data from multiple images at once.
+    ![Batch Export](public/screenshots/batch_export.png)
 -   **7-Language Support**: Simultaneously generate prompts in different languages for the same image, optimized for various AI models. Supports **English, Chinese, Spanish, Japanese, French, German, and Korean**.
 -   **Multi-Model Support**: Switch seamlessly between **Google Gemini**, **OpenAI (GPT-4o)**, **Claude**, and **SiliconFlow**.
+    ![Settings View](public/screenshots/settings.png)
 -   **Local History**: Your analysis history is saved locally in your browser (IndexedDB), ensuring privacy and quick access.
 
 ## Getting Started
