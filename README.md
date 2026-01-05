@@ -1,5 +1,5 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+<img width="1200" alt="Snaplex Home" src="public/screenshots/home.png" />
 
 # Snaplex - AI Image Analysis & Prompt Reverse Studio
 
@@ -12,6 +12,7 @@ It transforms how you explore images by combining **Deep Visual Insights**, a **
 ## Features
 
 -   **Get Structured Prompt**: Get structured breakdowns of your images:
+    ![Analysis View](public/screenshots/analysis.png)
     -   Subject
     -   Environment
     -   Composition
@@ -20,7 +21,10 @@ It transforms how you explore images by combining **Deep Visual Insights**, a **
     -   Style
 -   **Deep Visual Insight**: Go beyond basic analysis with an interactive **Chat Mode**. Use preset or custom tags to query specific visual details and gain deeper insights.
 -   **Personalized Inspiration Library**: All analyzed images are saved locally. Rediscover your past inspirations using **fuzzy search** to find specific terms or concepts and spark new ideas.
+    ![Library View](public/screenshots/library.png)
 -   **Visual Term Printer**: "Mining" your history to build a glossary of visual terms with definitions and application context.
+    ![Wordbank View](public/screenshots/wordbank.png)
+    ![Wordbank Detail](public/screenshots/wordbank_detail.png)
 -   **Batch Operations**: Efficiently extract and **export** structured prompt data from multiple images at once.
 -   **7-Language Support**: Simultaneously generate prompts in different languages for the same image, optimized for various AI models. Supports **English, Chinese, Spanish, Japanese, French, German, and Korean**.
 -   **Multi-Model Support**: Switch seamlessly between **Google Gemini**, **OpenAI (GPT-4o)**, **Claude**, and **SiliconFlow**.
