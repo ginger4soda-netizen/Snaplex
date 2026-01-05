@@ -475,7 +475,7 @@ const StylePrinter: React.FC<Props> = ({
         </div>
       ) : (
         /* Standalone Mode: Full-screen split layout for desktop */
-        <div className="min-h-screen pt-20 pb-10">
+        <div className="min-h-screen pt-20 pb-10 w-full">
           {/* Desktop: Split layout - 1/3 printer, 2/3 favorites */}
           <div className="hidden md:flex h-[calc(100vh-8rem)] w-full overflow-hidden">
             {/* Left Side: Printer (1/3 width, centered) */}
