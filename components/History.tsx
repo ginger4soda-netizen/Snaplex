@@ -235,7 +235,7 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
     const exportedItems = safeFilteredItems.filter(i => i.lastExported);
 
     return (
-        <div className="min-h-screen pt-20 pb-10 animate-[fadeIn_0.3s_ease-out]">
+        <div className="min-h-screen pt-40 pb-10 animate-[fadeIn_0.3s_ease-out]">
             {/* Desktop: Full-screen grid layout */}
             <div className="hidden md:block px-8 max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-6">

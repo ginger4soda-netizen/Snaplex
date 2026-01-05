@@ -217,7 +217,13 @@ const App: React.FC = () => {
       <main>
 
         {mode === 'home' && (
-          <Home onImageUpload={handleImageUpload} systemLanguage={settings.systemLanguage} isAnalyzing={loading} analysisProgress={analysisProgress} />
+          <Home
+            onImageUpload={handleImageUpload}
+            systemLanguage={settings.systemLanguage}
+            isAnalyzing={loading}
+            analysisProgress={analysisProgress}
+            onLanguageChange={(lang) => handleSaveSettings({ ...settings, systemLanguage: lang })}
+          />
         )}
 
         {mode === 'settings' && (

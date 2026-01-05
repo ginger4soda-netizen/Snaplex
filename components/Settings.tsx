@@ -121,11 +121,11 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
     };
 
     return (
-        <div className="min-h-screen pt-20 pb-10 animate-[fadeIn_0.3s_ease-out]">
+        <div className="min-h-screen pt-40 pb-10 animate-[fadeIn_0.3s_ease-out]">
             {/* Desktop: Full-screen with max-width constraint */}
             <div className="hidden md:block px-8">
                 <div className="max-w-4xl mx-auto">
-                    <h2 className="text-3xl font-black text-stone-800 mb-12 tracking-tight">{t.settingsTitle}</h2>
+
 
                     <div className="space-y-12">
 
@@ -258,7 +258,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
 
             {/* Mobile: Original layout */}
             <div className="md:hidden p-6 max-w-screen-md mx-auto">
-                <h2 className="text-3xl font-black text-stone-800 mb-12 tracking-tight">{t.settingsTitle}</h2>
+
 
                 <div className="space-y-12">
 

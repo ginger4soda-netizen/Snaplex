@@ -17,12 +17,12 @@ const BentoBox: React.FC<BentoBoxProps> = ({ children, className = '', bgColor =
             onClick={onClick}
             className={`
         ${bgColor}
-        border-4 border-stone-900
+        ${className.includes('border-') ? '' : 'border-4 border-stone-900'}
         rounded-[1.5rem]
-        shadow-[6px_6px_0px_0px_rgba(0,0,0,0.15)]
+        ${className.includes('shadow-') ? '' : 'shadow-[6px_6px_0px_0px_rgba(0,0,0,0.15)]'}
         overflow-hidden
         transition-all duration-200 ease-out
-        hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,0.18)]
+        ${className.includes('hover:shadow-') ? '' : 'hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,0.18)]'}
         ${onClick ? 'cursor-pointer active:scale-[0.98]' : ''}
         ${className}
       `}
