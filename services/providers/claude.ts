@@ -95,24 +95,43 @@ Output JSON only (no markdown): { "def": "...", "app": "..." }`;
         const modelName = getCurrentModel();
         const messages: any[] = [];
 
-        // History
-        history.forEach(h => {
-            messages.push({ role: h.role === 'user' ? 'user' : 'assistant', content: h.text });
-        });
+        // Build history with image in FIRST user message only
+        let imageIncluded = false;
+        const imageData = image?.includes(',') ? image.split(',')[1] : image;
 
-        // Current message with optional image
-        if (image) {
-            const imageData = image.includes(',') ? image.split(',')[1] : image;
+        for (const h of history) {
+            if (h.role === 'user' && imageData && !imageIncluded) {
+                // First user message: include image
+                messages.push({
+                    role: 'user',
+                    content: [
+                        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageData } },
+                        { type: 'text', text: h.text }
+                    ]
+                });
+                imageIncluded = true;
+            } else {
+                messages.push({
+                    role: h.role === 'user' ? 'user' : 'assistant',
+                    content: h.text
+                });
+            }
+        }
+
+        // If no history yet but we have image, add it as first message
+        if (imageData && !imageIncluded) {
             messages.push({
                 role: 'user',
                 content: [
                     { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageData } },
-                    { type: 'text', text: message }
+                    { type: 'text', text: '[Image uploaded for analysis]' }
                 ]
             });
-        } else {
-            messages.push({ role: 'user', content: message });
+            messages.push({ role: 'assistant', content: 'I can see the image. How can I help you analyze it?' });
         }
+
+        // Current message (no image needed - it's in history)
+        messages.push({ role: 'user', content: message });
 
         const response = await fetch(CLAUDE_API_URL, {
             method: 'POST',
@@ -179,8 +198,43 @@ Output JSON only (no markdown): { "groups": [ ["word1", "syn1", "syn2"], ["word2
     }
 
     async regenerateDimension(base64Image: string, dimension: DimensionKey, settings: UserSettings): Promise<PromptSegment> {
+        console.time('⏱️ [Dimension] Total');
         const { getDimensionPrompt } = await import('./masterPrompt');
         const base64Data = base64Image.split(',')[1] || base64Image;
+        const modelName = getCurrentModel();
+
+        console.time('⏱️ [Dimension] API call');
+        const response = await fetch(CLAUDE_API_URL, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                model: modelName,
+                system: getDimensionPrompt(dimension, settings),
+                max_tokens: 500,
+                messages: [{
+                    role: 'user',
+                    content: [
+                        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64Data } },
+                        { type: 'text', text: "Analyze this image according to the instructions." }
+                    ]
+                }]
+            })
+        });
+        console.timeEnd('⏱️ [Dimension] API call');
+
+        if (!response.ok) return { original: '', translated: '' };
+
+        const data = await response.json();
+        console.time('⏱️ [Dimension] Parse result');
+        const { safeParseJSON } = await import('../../utils/jsonParser');
+        const parsed = safeParseJSON(data.content?.[0]?.text || '{"original":"","translated":""}', { original: '', translated: '' });
+        console.timeEnd('⏱️ [Dimension] Parse result');
+        // Return with empty translated - translation will be done lazily on card flip
+        return { original: parsed.original || '', translated: parsed.translated || '' };
+    }
+
+    async translateText(text: string, language: string): Promise<string> {
+        const { getTranslationPrompt } = await import('./masterPrompt');
         const modelName = getCurrentModel();
 
         const response = await fetch(CLAUDE_API_URL, {
@@ -188,19 +242,19 @@ Output JSON only (no markdown): { "groups": [ ["word1", "syn1", "syn2"], ["word2
             headers: this.getHeaders(),
             body: JSON.stringify({
                 model: modelName,
-                max_tokens: 500,
-                messages: [{
-                    role: 'user',
-                    content: [
-                        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64Data } },
-                        { type: 'text', text: getDimensionPrompt(dimension, settings) }
-                    ]
-                }]
+                max_tokens: 1000,
+                messages: [{ role: 'user', content: getTranslationPrompt(text, language) }]
             })
         });
 
-        if (!response.ok) throw new Error("Claude API error");
+        if (!response.ok) return '';
         const data = await response.json();
-        return JSON.parse(data.content?.[0]?.text || '{"original":"","translated":""}') as PromptSegment;
+        const content = data.content?.[0]?.text || '{"translated":""}';
+        // Extract JSON
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        const jsonStr = jsonMatch?.[0] || '{"translated":""}';
+        const result = JSON.parse(jsonStr);
+        return result.translated || '';
     }
 }
+

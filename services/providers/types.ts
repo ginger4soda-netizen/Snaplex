@@ -25,6 +25,9 @@ export interface AIProvider {
         settings?: UserSettings
     ): Promise<void>;
 
+    // Translate text
+    translateText(text: string, language: string): Promise<string>;
+
     // Semantic search expansion
     expandSearchQuery(query: string): Promise<string[][]>;
 

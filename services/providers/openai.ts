@@ -93,24 +93,43 @@ Output JSON: { "def": "...", "app": "..." }`;
             content: `You are an AI assistant analyzing images. Use ${settings?.systemLanguage || 'English'}. Be direct and technical.`
         });
 
-        // History
-        history.forEach(h => {
-            messages.push({ role: h.role === 'user' ? 'user' : 'assistant', content: h.text });
-        });
+        // Build history with image in FIRST user message only
+        let imageIncluded = false;
+        const imageData = image?.includes(',') ? image : (image ? `data:image/jpeg;base64,${image}` : undefined);
 
-        // Current message with optional image
-        if (image) {
-            const imageData = image.includes(',') ? image : `data:image/jpeg;base64,${image}`;
+        for (const h of history) {
+            if (h.role === 'user' && imageData && !imageIncluded) {
+                // First user message: include image
+                messages.push({
+                    role: 'user',
+                    content: [
+                        { type: 'image_url', image_url: { url: imageData } },
+                        { type: 'text', text: h.text }
+                    ]
+                });
+                imageIncluded = true;
+            } else {
+                messages.push({
+                    role: h.role === 'user' ? 'user' : 'assistant',
+                    content: h.text
+                });
+            }
+        }
+
+        // If no history yet but we have image, add it as first message
+        if (imageData && !imageIncluded) {
             messages.push({
                 role: 'user',
                 content: [
                     { type: 'image_url', image_url: { url: imageData } },
-                    { type: 'text', text: message }
+                    { type: 'text', text: '[Image uploaded for analysis]' }
                 ]
             });
-        } else {
-            messages.push({ role: 'user', content: message });
+            messages.push({ role: 'assistant', content: 'I can see the image. How can I help you analyze it?' });
         }
+
+        // Current message (no image needed - it's in history)
+        messages.push({ role: 'user', content: message });
 
         const response = await fetch(OPENAI_API_URL, {
             method: 'POST',
@@ -177,8 +196,47 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
     }
 
     async regenerateDimension(base64Image: string, dimension: DimensionKey, settings: UserSettings): Promise<PromptSegment> {
+        console.time('⏱️ [Dimension] Total');
         const { getDimensionPrompt } = await import('./masterPrompt');
         const imageData = base64Image.includes(',') ? base64Image : `data:image/jpeg;base64,${base64Image}`;
+        const modelName = getCurrentModel();
+
+        console.time('⏱️ [Dimension] API call');
+        const response = await fetch(OPENAI_API_URL, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                model: modelName,
+                messages: [
+                    {
+                        role: 'system',
+                        content: getDimensionPrompt(dimension, settings)
+                    },
+                    {
+                        role: 'user',
+                        content: [
+                            { type: 'image_url', image_url: { url: imageData } },
+                            { type: 'text', text: "Analyze this image according to the instructions." }
+                        ]
+                    }
+                ],
+                response_format: { type: 'json_object' },
+                max_tokens: 500
+            })
+        });
+        console.timeEnd('⏱️ [Dimension] API call');
+
+        if (!response.ok) throw new Error("OpenAI API error");
+        const data = await response.json();
+        const { safeParseJSON } = await import('../../utils/jsonParser');
+        const result = safeParseJSON(data.choices?.[0]?.message?.content || '{"original":"","translated":""}', { original: '', translated: '' });
+        console.timeEnd('⏱️ [Dimension] Total');
+
+        return { original: result.original || '', translated: result.translated || '' };
+    }
+
+    async translateText(text: string, language: string): Promise<string> {
+        const { getTranslationPrompt } = await import('./masterPrompt');
         const modelName = getCurrentModel();
 
         const response = await fetch(OPENAI_API_URL, {
@@ -186,20 +244,15 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
             headers: this.getHeaders(),
             body: JSON.stringify({
                 model: modelName,
-                messages: [{
-                    role: 'user',
-                    content: [
-                        { type: 'image_url', image_url: { url: imageData } },
-                        { type: 'text', text: getDimensionPrompt(dimension, settings) }
-                    ]
-                }],
+                messages: [{ role: 'user', content: getTranslationPrompt(text, language) }],
                 response_format: { type: 'json_object' },
-                max_tokens: 500
+                max_tokens: 1000
             })
         });
 
-        if (!response.ok) throw new Error("OpenAI API error");
+        if (!response.ok) throw new Error("OpenAI Translation failed");
         const data = await response.json();
-        return JSON.parse(data.choices?.[0]?.message?.content || '{"original":"","translated":""}') as PromptSegment;
+        const result = JSON.parse(data.choices?.[0]?.message?.content || '{"translated":""}');
+        return result.translated || '';
     }
 }

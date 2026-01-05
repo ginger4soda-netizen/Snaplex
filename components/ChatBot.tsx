@@ -113,6 +113,17 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
         endRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, loading]);
 
+    // Track previous messages length to detect reset
+    const prevMessagesLength = useRef(messages.length);
+
+    useEffect(() => {
+        // Reset initialized when messages become empty (new image/context)
+        if (messages.length === 0 && prevMessagesLength.current > 0) {
+            initialized.current = false;
+        }
+        prevMessagesLength.current = messages.length;
+    }, [messages.length]);
+
     useEffect(() => {
         if (!initialized.current && messages.length === 0) {
             initialized.current = true;
@@ -123,7 +134,7 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
             };
             onUpdateMessages([greetingMsg]);
         }
-    }, [messages, t]);
+    }, [messages, t, onUpdateMessages]);
 
     const processSend = async (textToSend: string) => {
         if (!textToSend.trim() || loading) return;

@@ -17,6 +17,8 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
     const [searching, setSearching] = useState(false);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    // New State for Grid Size (4-8)
+    const [gridCols, setGridCols] = useState(4);
 
     const t = getTranslation(systemLanguage);
 
@@ -164,14 +166,41 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
 
     const renderGrid = (itemsToRender: HistoryItem[], title?: string) => {
         if (itemsToRender.length === 0) return null;
+
+        // Safe Grid Class Mapping
+        const gridClass = {
+            4: 'md:grid-cols-4',
+            5: 'md:grid-cols-5',
+            6: 'md:grid-cols-6',
+            7: 'md:grid-cols-7',
+            8: 'md:grid-cols-8',
+        }[gridCols] || 'md:grid-cols-4';
+
         return (
             <div className="mb-10">
-                {title && (
-                    <h3 className="text-stone-400 font-bold text-xs uppercase tracking-wider mb-4 border-b border-stone-200 pb-2">
-                        {title} ({itemsToRender.length})
-                    </h3>
-                )}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <div className="flex justify-between items-end mb-4 border-b border-stone-200 pb-2">
+                    {title && (
+                        <h3 className="text-stone-400 font-bold text-xs uppercase tracking-wider">
+                            {title} ({itemsToRender.length})
+                        </h3>
+                    )}
+                    {/* Grid Size Slider UI */}
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-stone-400 font-bold">SIZE</span>
+                        <input
+                            type="range"
+                            min="4"
+                            max="8"
+                            step="1"
+                            value={gridCols}
+                            onChange={(e) => setGridCols(parseInt(e.target.value))}
+                            className="w-20 h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-softblue"
+                        />
+                        <span className="text-[10px] text-stone-400 font-mono w-3 text-right">{gridCols}</span>
+                    </div>
+                </div>
+
+                <div className={`grid grid-cols-2 sm:grid-cols-3 ${gridClass} gap-4`}>
                     {itemsToRender.map(item => (
                         <div
                             key={item.id} onClick={(e) => handleItemClick(item, e)}
@@ -195,8 +224,11 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
         );
     };
 
-    // Get recent items (last 3 read items, sorted by most recent)
-    const recentItems = items.filter(i => i.read).slice(0, 3);
+    // Get recent items (sorted by last viewed time, fallback to creation time)
+    const recentItems = items
+        .filter(i => i.read)
+        .sort((a, b) => (b.lastViewedAt || b.timestamp) - (a.lastViewedAt || a.timestamp))
+        .slice(0, 3);
 
     const safeFilteredItems = filteredItems || [];
     const unexportedItems = safeFilteredItems.filter(i => !i.lastExported);

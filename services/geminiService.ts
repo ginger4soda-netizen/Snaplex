@@ -132,3 +132,13 @@ export const explainVisualTerm = async (term: string, language: string): Promise
     };
   }
 };
+
+export const translateText = async (text: string, language: string): Promise<string> => {
+  try {
+    const provider = getProvider();
+    return await provider.translateText(text, language);
+  } catch (error) {
+    console.error("Translation failed:", error);
+    return "";
+  }
+};

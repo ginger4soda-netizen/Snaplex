@@ -4,7 +4,7 @@ import { get, set } from 'idb-keyval';
 import ChatBot from './ChatBot';
 import { getTranslation } from '../translations';
 import { copyToClipboard } from '../utils/clipboard';
-import { regenerateDimension } from '../services/geminiService';
+import { regenerateDimension, translateText } from '../services/geminiService';
 
 interface Props {
     image: string;
@@ -206,6 +206,8 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
             });
         }
     }, [dimensionHistories, saveHistories]);
+
+
 
     const t = getTranslation(settings.systemLanguage);
     const hasStructuredPrompts = !!analysis.structuredPrompts;

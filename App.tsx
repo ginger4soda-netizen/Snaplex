@@ -157,6 +157,7 @@ const App: React.FC = () => {
       const primaryItem: HistoryItem = {
         id: primaryId, timestamp: Date.now(), imageUrl: primaryImage,
         analysis: primaryResult, isFavorite: false, chatHistory: [], read: true,
+        lastViewedAt: Date.now()
       };
 
       let backgroundItems: HistoryItem[] = [];
@@ -197,7 +198,8 @@ const App: React.FC = () => {
   };
 
   const handleHistorySelect = (item: HistoryItem) => {
-    if (!item.read) updateHistoryItem(item.id, { read: true });
+    // Always update last viewed time when opening
+    updateHistoryItem(item.id, { read: true, lastViewedAt: Date.now() });
     setCurrentImage(item.imageUrl);
     setAnalysis(item.analysis);
     setCurrentHistoryId(item.id);

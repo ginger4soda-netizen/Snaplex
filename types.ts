@@ -49,6 +49,7 @@ export interface HistoryItem {
   isFavorite?: boolean;
   chatHistory?: ChatMessage[];
   read?: boolean;
+  lastViewedAt?: number; // Timestamp of last view
   lastExported?: number; // Timestamp of last export
   dimensionHistories?: DimensionHistories; // Track regeneration history per dimension
 }
