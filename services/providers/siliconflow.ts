@@ -230,7 +230,7 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
                         role: 'user',
                         content: [
                             { type: 'image_url', image_url: { url: imageData } },
-                            { type: 'text', text: "Analyze this image according to the instructions." }
+                            { type: 'text', text: "Analyze this image according to the instructions. Remember: TAGS for Style/Composition/Lighting/Mood. SENTENCES for Subject/Environment. Output STRICT JSON." }
                         ]
                     }
                 ],

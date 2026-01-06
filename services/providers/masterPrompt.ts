@@ -131,8 +131,9 @@ export const getDimensionPrompt = (dimension: 'subject' | 'environment' | 'compo
    * **TYPE**: E.g., "Chiaroscuro," "Rembrandt," "Rim light," "Global illumination," "Bioluminescence."
    * **PALETTE**: Describe the color grading (e.g., "Teal and Orange," "Monochromatic," "Pastel," "Desaturated").`,
 
-      mood: `5. [Mood]: EMOTION & VIBE. (Format: COMMA-SEPARATED TAGS, NO MARKDOWN)
-   * Specific adjectives (e.g., "Ethereal," "Claustrophobic," "Nostalgic," "Cybernetic").`,
+      mood: `5. [Mood]: EMOTION & VIBE. (Format: COMMA-SEPARATED TAGS ONLY)
+   * Instructions: Use specific adjectives (e.g., "Ethereal," "Claustrophobic," "Nostalgic," "Cybernetic").
+   * Constraint: Output must be a list of tags. NO sentences.`,
 
       style: `6. [Style]: AESTHETIC. (Format: COMMA-SEPARATED TAGS, NO MARKDOWN)
    * **ARTIST/STUDIO**: E.g., "by Greg Rutkowski," "by Makoto Shinkai," "Studio Ghibli style," "by Alphonse Mucha." Add "inspired by" when you are not sure.
@@ -159,8 +160,11 @@ ${dimensionInstructions[dimension]}
 ## STRICT Output Rules
 1. **Detail Level**: MUST be detailed, specific, and professional.
 2. **Format**: Follow the format specified above (SENTENCES or TAGS).
-3. **Accuracy**: strictly adhere to the visual evidence in the image.
-4. **Length**: Provide substantial content (at least 3 sentences or 6+ tags).
+   - For [Subject] and [Environment]: Write fluid, descriptive paragraphs.
+   - For [Composition], [Lighting], [Mood], [Style]: Write ONLY comma-separated keywords/phrases. NO sentences.
+3. **Constraint**: Do NOT include bullet points, label names (e.g. "Real-World Context:"), or markdown headers in the content. Just the raw analysis text.
+4. **Accuracy**: strictly adhere to the visual evidence in the image.
+5. **Length**: Provide substantial content (at least 3 sentences or 6+ tags).
 
 ## JSON Output Format
 Output ONLY raw JSON (no markdown block markers):

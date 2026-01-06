@@ -3,20 +3,27 @@ import React from 'react';
 interface CrabProgressBarProps {
     progress: number; // 0-100
     isComplete: boolean;
+    trackColor?: string;
+    fillColor?: string;
 }
 
 /**
  * A fun progress bar featuring a crab digging through sand.
  * The crab moves from left to right as progress increases.
  */
-const CrabProgressBar: React.FC<CrabProgressBarProps> = ({ progress, isComplete }) => {
+const CrabProgressBar: React.FC<CrabProgressBarProps> = ({
+    progress,
+    isComplete,
+    trackColor = "bg-sunny/30",
+    fillColor = "bg-sunny"
+}) => {
     return (
         <div className="flex items-center gap-3 w-full">
             {/* Progress Track (Sand) */}
-            <div className="flex-1 h-2 bg-sunny/30 rounded-full overflow-hidden relative">
+            <div className={`flex-1 h-2 ${trackColor} rounded-full overflow-hidden relative`}>
                 {/* Progress Fill */}
                 <div
-                    className="h-full bg-sunny rounded-full transition-all duration-300 ease-out"
+                    className={`h-full ${fillColor} rounded-full transition-all duration-300 ease-out`}
                     style={{ width: `${progress}%` }}
                 />
                 {/* Crab Icon */}
