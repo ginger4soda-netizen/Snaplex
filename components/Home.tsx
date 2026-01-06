@@ -221,6 +221,7 @@ const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = fa
           {/* TITLE AREA (Col 6) */}
           <div className="col-span-6 flex flex-col justify-center px-4 items-end text-right">
             <AnimatedText
+              key={`main-title-${systemLanguage}`}
               text={t.homeMainTitle || 'Vision to Prompt'}
               as="h1"
               className={`${getHomeMainTitleSize(systemLanguage)} font-black text-stone-900 tracking-tight leading-none mb-4`}
@@ -228,6 +229,7 @@ const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = fa
               staggerDelay={0.04}
             />
             <AnimatedText
+              key={`subtitle1-${systemLanguage}`}
               text={t.homeSubtitle1 || 'Turn Visual Inspiration'}
               as="h2"
               className={`${getHomeSubtitleSize(systemLanguage)} font-black text-stone-400 tracking-tight leading-snug mb-2`}
@@ -235,6 +237,7 @@ const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = fa
               staggerDelay={0.03}
             />
             <AnimatedText
+              key={`subtitle2-${systemLanguage}`}
               text={t.homeSubtitle2 || 'into Prompt Library'}
               as="h2"
               className={`${getHomeSubtitleSize(systemLanguage)} font-black text-stone-400 tracking-tight leading-snug`}
