@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { getTranslation } from '../translations';
 import BentoBox from './BentoBox';
 import CrabProgressBar from './CrabProgressBar';
+import AnimatedText from './AnimatedText';
 
 interface Props {
   onImageUpload: (files: File[]) => void;
@@ -26,6 +27,34 @@ const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = fa
     const timer = setTimeout(() => setShowSubtitle(true), 800);
     return () => clearTimeout(timer);
   }, []);
+
+  // Typing animation state
+  const typingWords = ["close-up", "red", "horror", "two-shot"];
+  const [typingText, setTypingText] = useState("");
+  const [wordIndex, setWordIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const currentWord = typingWords[wordIndex];
+    const typeSpeed = isDeleting ? 50 : 150;
+    const holdTime = 1000;
+
+    if (!isDeleting && typingText === currentWord) {
+      const timeout = setTimeout(() => setIsDeleting(true), holdTime);
+      return () => clearTimeout(timeout);
+    } else if (isDeleting && typingText === "") {
+      setIsDeleting(false);
+      setWordIndex((prev) => (prev + 1) % typingWords.length);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const nextText = currentWord.substring(0, typingText.length + (isDeleting ? -1 : 1));
+      setTypingText(nextText);
+    }, typeSpeed);
+
+    return () => clearTimeout(timer);
+  }, [typingText, isDeleting, wordIndex]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -119,6 +148,24 @@ const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = fa
     return current.toLowerCase().includes(langName.toLowerCase());
   };
 
+  // Helper for dynamic title size based on language
+  const getHomeMainTitleSize = (lang: string) => {
+    // English defaults
+    // Chinese: Larger (User request)
+    // Others (ES, DE, FR, JA, KR): Smaller to prevent wrap
+    if (!lang) return "text-7xl xl:text-7xl"; // Default fallback
+    if (lang.includes('Chinese')) return "text-7xl xl:text-8xl";
+    if (lang.includes('English')) return "text-7xl xl:text-7xl";
+    return "text-5xl xl:text-6xl";
+  };
+
+  const getHomeSubtitleSize = (lang: string) => {
+    if (!lang) return "text-4xl xl:text-5xl"; // Default fallback
+    if (lang.includes('Chinese')) return "text-5xl xl:text-6xl";
+    if (lang.includes('English')) return "text-4xl xl:text-5xl";
+    return "text-3xl xl:text-4xl";
+  };
+
   return (
     <>
       {/* Camera Overlay */}
@@ -139,7 +186,7 @@ const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = fa
 
       {/* ===================== MOBILE LAYOUT (Default) ===================== */}
       <div className="md:hidden p-6 flex flex-col items-center justify-center min-h-[90vh] text-center pt-32 bg-cream">
-        <h2 className="text-4xl font-black text-stone-800 mb-2 tracking-tight animate-[fadeIn_0.8s_ease-out]">{t.homeTitle}</h2>
+        <h2 className="text-4xl font-black text-stone-800 mb-2 tracking-tight animate-[fadeInUp_0.8s_ease-out]">{t.homeTitle}</h2>
         <p className={`text-2xl font-bold text-stone-500 mb-12 transition-opacity duration-1000 ${showSubtitle ? 'opacity-100' : 'opacity-0'}`}>
           {t.homeTitle2}
         </p>
@@ -166,129 +213,191 @@ const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = fa
       </div>
 
       {/* ===================== DESKTOP GRID LAYOUT ===================== */}
-      <div className="hidden md:grid grid-cols-12 gap-6 px-10 py-8 pt-40 min-h-screen bg-[#FDFBF7] max-w-[1600px] mx-auto overflow-auto">
+      <div className="hidden md:grid grid-cols-12 gap-6 px-10 py-8 pt-40 min-h-screen bg-[#FDFBF7] max-w-[1600px] mx-auto overflow-auto pb-24">
 
-        {/* LEFT COLUMN: Header + Upload (7 columns) */}
-        <div className="col-span-7 flex flex-col gap-4">
-          {/* Header Text Area */}
-          <div className="flex flex-col justify-center px-4 py-2 min-h-[200px]">
-            <h1 className="text-6xl xl:text-7xl font-black text-stone-900 tracking-tight leading-none mb-4 animate-[fadeInUp_0.8s_ease-out]">
-              {t.homeTitle}
-            </h1>
-            <p className={`text-3xl xl:text-4xl font-bold text-stone-400 transition-all duration-1000 transform ${showSubtitle ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-              {t.homeTitle2}
-            </p>
+        {/* 1. TOP SECTION: Title (Left 6) + Upload (Right 6) */}
+        {/* ROW 1 */}
+        <div className="col-span-12 grid grid-cols-12 gap-6 min-h-[300px]">
+          {/* TITLE AREA (Col 6) */}
+          <div className="col-span-6 flex flex-col justify-center px-4 items-end text-right">
+            <AnimatedText
+              text={t.homeMainTitle || 'Vision to Prompt'}
+              as="h1"
+              className={`${getHomeMainTitleSize(systemLanguage)} font-black text-stone-900 tracking-tight leading-none mb-4`}
+              baseDelay={0.2}
+              staggerDelay={0.04}
+            />
+            <AnimatedText
+              text={t.homeSubtitle1 || 'Turn Visual Inspiration'}
+              as="h2"
+              className={`${getHomeSubtitleSize(systemLanguage)} font-black text-stone-400 tracking-tight leading-snug mb-2`}
+              baseDelay={0.6}
+              staggerDelay={0.03}
+            />
+            <AnimatedText
+              text={t.homeSubtitle2 || 'into Prompt Library'}
+              as="h2"
+              className={`${getHomeSubtitleSize(systemLanguage)} font-black text-stone-400 tracking-tight leading-snug`}
+              baseDelay={1.0}
+              staggerDelay={0.03}
+            />
           </div>
 
-          {/* Upload Box */}
-          <BentoBox
-            bgColor={isDragOver ? 'bg-[#FDE68A]' : 'bg-[#FCD34D]'} // lighter yellow
-            className={`flex-1 border-none flex flex-col items-center justify-center cursor-pointer relative group transition-all duration-300 shadow-[8px_8px_0px_0px_#B45309] hover:shadow-[12px_12px_0px_0px_#B45309] hover:-translate-y-1 ${isDragOver ? 'scale-[1.02]' : ''}`}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <div
-              className="absolute inset-0 flex flex-col items-center justify-center p-8"
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
+          {/* UPLOAD BOX (Col 6) */}
+          <div className="col-span-6">
+            <BentoBox
+              bgColor={isDragOver ? 'bg-[#FDE68A]' : 'bg-[#FCD34D]'} // lighter yellow
+              className={`h-full border-none flex flex-col items-center justify-center cursor-pointer relative group transition-all duration-300 shadow-[8px_8px_0px_0px_#B45309] hover:shadow-[12px_12px_0px_0px_#B45309] hover:-translate-y-1 ${isDragOver ? 'scale-[1.02]' : ''}`}
+              onClick={() => fileInputRef.current?.click()}
             >
-              <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.12)] mb-8 group-hover:scale-110 transition-transform duration-300">
-                <svg className="w-10 h-10 text-stone-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+              <div
+                className="absolute inset-0 flex flex-col items-center justify-center p-8"
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+              >
+                <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.12)] mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-10 h-10 text-stone-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                </div>
+                <p className="text-3xl font-bold text-stone-900 mb-2">{isDragOver ? t.uploadDropIt : t.uploadDropHere}</p>
+                <p className="text-stone-700/60 font-medium text-lg mb-8">{t.uploadClickBrowse}</p>
+                <div className="flex gap-4 w-full justify-center">
+                  <button onClick={(e) => { e.stopPropagation(); startCamera(); }} className="px-10 py-3 bg-black text-white rounded-full font-bold hover:bg-stone-800 transition-colors flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 duration-200" aria-label={t.btnCamera}>
+                    <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-stone-900 mb-2">{isDragOver ? 'Drop it!' : 'Drop Image Here'}</p>
-              <p className="text-stone-700/60 font-medium text-lg mb-8">or click to browse</p>
-              <div className="flex gap-4 w-full max-w-sm px-8 justify-center">
-                <button onClick={(e) => { e.stopPropagation(); startCamera(); }} className="w-36 py-4 bg-black text-white rounded-full font-bold hover:bg-stone-800 transition-colors flex items-center justify-center">
-                  <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </BentoBox>
+            </BentoBox>
+          </div>
         </div>
 
-
-        {/* RIGHT COLUMN: Feature Boxes (5 columns) */}
-        <div className="col-span-12 lg:col-span-5 flex flex-col gap-6">
-
-          {/* 1. Deep Visual Mining */}
-          <BentoBox
-            bgColor="bg-[#6EE7B7]" // Emerald 300
-            className="flex-1 border-none shadow-[8px_8px_0px_0px_#047857] hover:shadow-[12px_12px_0px_0px_#047857] hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col relative overflow-hidden"
-          >
-            <div className="relative z-10 h-full flex flex-col">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-black text-stone-900">{t.featureMiningTitle}</h3>
-                  <p className="text-xs font-semibold text-stone-800/70 mt-1 w-full leading-relaxed">{t.featureMiningSubtitle}</p>
+        {/* 2. FEATURE AREA - ROW 1 (3 items, 4 cols each) */}
+        {/* Features: Structured, Insight, Library */}
+        <div className="col-span-12 xl:col-span-12 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="col-span-1 h-full min-h-[200px]">
+            <BentoBox bgColor="bg-[#3D5A3D]" className="h-full border-none shadow-[8px_8px_0px_0px_#6B8E6B] hover:shadow-[12px_12px_0px_0px_#6B8E6B] hover:-translate-y-1 p-6 relative overflow-hidden group flex flex-col">
+              <div>
+                <h3 className="text-2xl font-black text-white mb-3 leading-none">{t.featureStructuredTitle}</h3>
+                <p className="text-sm font-bold text-white/80 mb-3 leading-tight max-w-[90%]">{t.featureStructuredSubtitle}</p>
+              </div>
+              <div className="flex-1 flex flex-col justify-center relative z-10">
+                <div className="flex flex-wrap gap-2">
+                  {[t.lblSubject, t.lblEnvironment, t.lblComposition, t.lblLighting, t.lblMood, t.lblStyle].map((tag, i) => (
+                    <span key={i} className="px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-lg text-xs font-black text-white border border-white/30 shadow-sm">
+                      {tag}
+                    </span>
+                  ))}
                 </div>
-                <span className="text-3xl">⌨️</span>
+              </div>
+              <div className="absolute top-4 right-4 text-4xl opacity-70 group-hover:opacity-100 transition-opacity z-20">🏗️</div>
+            </BentoBox>
+          </div>
+
+          <div className="col-span-1 h-full min-h-[200px]">
+            <BentoBox bgColor="bg-[#C53030]" className="h-full border-none shadow-[8px_8px_0px_0px_#FDE68A] hover:shadow-[12px_12px_0px_0px_#FDE68A] hover:-translate-y-1 p-6 relative overflow-hidden group flex flex-col">
+              <div>
+                <h3 className="text-2xl font-black text-[#F6E05E] mb-3 leading-none">{t.featureInsightTitle}</h3>
+                <p className="text-sm font-bold text-[#F6E05E]/80 mb-3 leading-tight max-w-[90%]">{t.featureInsightSubtitle}</p>
+              </div>
+              <div className="flex-1 flex flex-col justify-center relative z-10">
+                <div className="flex flex-wrap gap-2">
+                  {t.chatChips?.slice(0, 5).map((chip, i) => (
+                    <span key={i} className="px-3 py-1.5 bg-[#F6E05E]/20 backdrop-blur-sm rounded-lg text-xs font-black text-[#F6E05E] border border-[#F6E05E]/30 shadow-sm">
+                      {chip.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="absolute top-4 right-4 text-4xl opacity-70 group-hover:opacity-100 transition-opacity z-20">💡</div>
+            </BentoBox>
+          </div>
+
+          <div className="col-span-1 h-full min-h-[200px]">
+            <BentoBox bgColor="bg-[#6B5B95]" className="h-full border-none shadow-[8px_8px_0px_0px_#F5B7B1] hover:shadow-[12px_12px_0px_0px_#F5B7B1] hover:-translate-y-1 p-6 relative overflow-hidden group flex flex-col">
+              <div className="flex justify-between items-start mb-3 relative z-10">
+                <div>
+                  <h3 className="text-2xl font-black text-[#F5B7B1] mb-3 leading-none">{t.featureLangTitle}</h3>
+                  <p className="text-sm font-bold text-[#F5B7B1]/80 leading-tight">{t.featureLangSubtitle}</p>
+                </div>
+                <span className="text-3xl z-20 opacity-70 group-hover:opacity-100 transition-opacity">🌍</span>
               </div>
 
-              <div className="flex-1 flex flex-wrap content-start gap-2 mt-2">
-                {miningTags.map((tag: string, i: number) => (
-                  <span key={i} className="px-3 py-1 bg-white/40 rounded-full text-xs font-bold text-stone-800 border border-white/20 backdrop-blur-sm">
-                    {tag}
-                  </span>
+              <div className="flex-1 flex flex-col justify-center relative z-10">
+                <div className="flex items-center justify-between px-1 w-full">
+                  {languages.map((lang, i) => (
+                    <div
+                      key={i}
+                      className={`flex flex-col items-center gap-1 group cursor-pointer transition-transform duration-300 ${isLangActive(lang.name) ? 'scale-110' : 'hover:scale-110'}`}
+                      onClick={(e) => { e.stopPropagation(); onLanguageChange && onLanguageChange(lang.name); }}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${isLangActive(lang.name) ? 'bg-[#F5B7B1] text-[#6B5B95] shadow-sm' : 'bg-[#F5B7B1]/30 text-[#F5B7B1] group-hover:bg-[#F5B7B1]'}`}>
+                        {lang.code.toUpperCase()}
+                      </div>
+                      <span className={`text-[9px] font-bold text-[#F5B7B1] transition-opacity ${isLangActive(lang.name) ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'}`}>{lang.native}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </BentoBox>
+          </div>
+        </div>
+        {/* 3. FEATURE AREA - ROW 2 (4 items, 3 cols each) - Using grid-cols-4 for this row */}
+        <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <div className="h-full min-h-[160px]">
+            <BentoBox bgColor="bg-[#A4B4C4]" className="h-full border-none shadow-[8px_8px_0px_0px_#7A8A9A] hover:shadow-[12px_12px_0px_0px_#7A8A9A] hover:-translate-y-1 p-6 relative overflow-hidden group flex flex-col">
+              <h3 className="text-xl font-black text-[#E8E03C] mb-1 leading-none">{t.featureBatchTitle}</h3>
+              <p className="text-xs font-bold text-[#E8E03C]/80 mt-2 mb-4 leading-relaxed">{t.featureBatchSubtitle}</p>
+              <div className="flex -space-x-4 mt-auto relative z-10 pl-2">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="w-10 h-10 rounded-lg bg-[#E8E03C]/20 border-2 border-[#E8E03C] shadow-sm transform hover:-translate-y-2 transition-transform duration-300"></div>
                 ))}
               </div>
-            </div>
-          </BentoBox>
+              <div className="absolute top-4 right-4 text-3xl opacity-70 group-hover:opacity-100 transition-opacity z-20">📦</div>
+            </BentoBox>
+          </div>
 
-          {/* 2. Multilanguage Support */}
-          <BentoBox
-            bgColor="bg-[#7DD3FC]" // Sky 300
-            className="flex-1 border-none shadow-[8px_8px_0px_0px_#0369A1] hover:shadow-[12px_12px_0px_0px_#0369A1] hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-xl font-black text-stone-900">{t.featureLangTitle}</h3>
-                <p className="text-xs font-semibold text-stone-800/70 mt-1 whitespace-nowrap overflow-hidden text-ellipsis">{t.featureLangSubtitle}</p>
+          <div className="h-full min-h-[160px]">
+            <BentoBox bgColor="bg-[#F5CCC3]" className="h-full border-none shadow-[8px_8px_0px_0px_#E8ADA0] hover:shadow-[12px_12px_0px_0px_#E8ADA0] hover:-translate-y-1 p-6 relative overflow-hidden group flex flex-col">
+              <h3 className="text-xl font-black text-[#C53030] mb-1 leading-none">{t.featurePrinterTitle}</h3>
+              <p className="text-xs font-bold text-[#C53030]/80 mt-2 mb-4 leading-relaxed">{t.featurePrinterSubtitle}</p>
+              <div className="mt-auto self-start bg-white border-2 border-[#C53030] rounded-lg px-3 py-2 relative z-10 w-full max-w-[120px] animate-[pulse_3s_infinite]">
+                <div className="w-full h-1.5 bg-[#C53030]/30 mb-1.5 rounded-full"></div>
+                <div className="w-2/3 h-1.5 bg-[#C53030]/30 rounded-full"></div>
               </div>
-              <span className="text-3xl">🌍</span>
-            </div>
-            <div className="flex-1 flex items-center justify-between px-1">
-              {languages.map((lang, i) => (
-                <div
-                  key={i}
-                  className={`flex flex-col items-center gap-1 group cursor-pointer transition-transform duration-300 ${isLangActive(lang.name) ? 'scale-110' : 'hover:scale-110'}`}
-                  onClick={() => onLanguageChange && onLanguageChange(lang.name)}
-                >
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${isLangActive(lang.name) ? 'bg-white text-stone-900 shadow-sm' : 'bg-white/30 text-stone-900 group-hover:bg-white'}`}>
-                    {lang.code.toUpperCase()}
-                  </div>
-                  <span className={`text-[10px] font-bold text-stone-700 transition-opacity ${isLangActive(lang.name) ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'}`}>{lang.native}</span>
-                </div>
-              ))}
-            </div>
-          </BentoBox>
+              <div className="absolute top-4 right-4 text-3xl opacity-70 group-hover:opacity-100 transition-opacity z-20">🖨️</div>
+            </BentoBox>
+          </div>
 
-          {/* 3. Semantic Search */}
-          <BentoBox
-            bgColor="bg-[#FCA5A5]" // Red 300
-            className="flex-1 border-none shadow-[8px_8px_0px_0px_#BE123C] hover:shadow-[12px_12px_0px_0px_#BE123C] hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-xl font-black text-stone-900">{t.featureSearchTitle}</h3>
-                <p className="text-xs font-semibold text-stone-800/70 mt-1 whitespace-nowrap overflow-hidden text-ellipsis">{t.featureSearchSubtitle}</p>
-              </div>
-              <span className="text-3xl">🔍</span>
-            </div>
-            <div className="flex gap-3 overflow-hidden pb-1">
-              {searchKeywords.slice(0, 3).map((kw: string, i: number) => (
-                <div key={i} className="px-4 py-3 bg-white rounded-xl shadow-sm flex items-center gap-2 transform hover:-rotate-2 transition-transform cursor-default">
-                  <div className="w-2 h-2 rounded-full bg-red-400/50"></div>
-                  <span className="text-sm font-bold text-stone-800 whitespace-nowrap">{kw}</span>
+          <div className="h-full min-h-[160px]">
+            <BentoBox bgColor="bg-[#FDF5E6]" className="h-full border-none shadow-[8px_8px_0px_0px_#C4A77D] hover:shadow-[12px_12px_0px_0px_#C4A77D] hover:-translate-y-1 p-6 relative overflow-hidden group flex flex-col">
+              <h3 className="text-xl font-black text-[#6B4423] mb-1 leading-none">{t.featureLibraryTitle}</h3>
+              <p className="text-xs font-bold text-[#6B4423]/80 mt-2 mb-4 leading-relaxed">{t.featureLibrarySubtitle}</p>
+              {/* Compact Search Bar */}
+              <div className="mt-auto bg-white border-2 border-[#6B4423] rounded-lg px-3 py-2 flex items-center gap-2 shadow-sm relative z-10">
+                <svg className="w-3 h-3 text-[#6B4423]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <div className="h-4 flex items-center overflow-hidden">
+                  <span className="font-bold text-[#6B4423]/60 font-mono text-xs whitespace-nowrap">{typingText}</span>
+                  <span className="w-1 h-3 bg-[#6B4423] ml-0.5 animate-pulse"></span>
                 </div>
-              ))}
-            </div>
-          </BentoBox>
-        </div>
+              </div>
+              <div className="absolute top-4 right-4 text-3xl opacity-70 group-hover:opacity-100 transition-opacity z-20">📚</div>
+            </BentoBox>
+          </div>
+
+          <div className="h-full min-h-[160px]">
+            <BentoBox bgColor="bg-[#E5E7EB]" className="h-full border-none shadow-[8px_8px_0px_0px_#6B8E23] hover:shadow-[12px_12px_0px_0px_#6B8E23] hover:-translate-y-1 p-6 relative overflow-hidden group flex flex-col">
+              <h3 className="text-xl font-black text-[#556B2F] mb-1 leading-none">{t.featureHistoryTitle}</h3>
+              <p className="text-xs font-bold text-[#556B2F]/80 mt-2 mb-4 leading-relaxed">{t.featureHistorySubtitle}</p>
+              <div className="absolute bottom-4 right-4 text-5xl opacity-70 group-hover:opacity-100 transition-opacity z-20">💾</div>
+            </BentoBox>
+          </div>
+        </div >
+
 
         {/* FOOTER (Full Width) */}
-        <div className="col-span-12 flex flex-col gap-2 mt-24">
+        <div className="col-span-12 flex flex-col gap-2 mt-6">
           <p className="text-center text-stone-500 font-medium text-sm">
             {t.homeInstruction}
           </p>
