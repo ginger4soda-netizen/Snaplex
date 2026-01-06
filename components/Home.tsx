@@ -290,13 +290,7 @@ const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = fa
                   </div>
                   <p className="text-3xl font-bold text-stone-900 mb-2">{isDragOver ? t.uploadDropIt : t.uploadDropHere}</p>
                   <p className="text-stone-700/60 font-medium text-lg mb-8">{t.uploadClickBrowse}</p>
-                  <div className="flex gap-4 w-full justify-center">
-                    <button onClick={(e) => { e.stopPropagation(); startCamera(); }} className="px-10 py-3 bg-black text-white rounded-full font-bold hover:bg-stone-800 transition-colors flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 duration-200" aria-label={t.btnCamera}>
-                      <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
+
                 </div>
               )}
             </BentoBox>
@@ -326,7 +320,7 @@ const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = fa
           </div>
 
           <div className="col-span-1 h-full min-h-[200px]">
-            <BentoBox bgColor="bg-[#C53030]" className="h-full border-none shadow-[8px_8px_0px_0px_#FDE68A] hover:shadow-[12px_12px_0px_0px_#FDE68A] hover:-translate-y-1 p-6 relative overflow-hidden group flex flex-col">
+            <BentoBox bgColor="bg-[#1e3a8a]" className="h-full border-none shadow-[8px_8px_0px_0px_#93C5FD] hover:shadow-[12px_12px_0px_0px_#93C5FD] hover:-translate-y-1 p-6 relative overflow-hidden group flex flex-col">
               <div>
                 <h3 className="text-2xl font-black text-[#F6E05E] mb-3 leading-none">{t.featureInsightTitle}</h3>
                 <p className="text-sm font-bold text-[#F6E05E]/80 mb-3 leading-tight max-w-[90%]">{t.featureInsightSubtitle}</p>
