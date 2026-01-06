@@ -184,8 +184,8 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
                             {title} ({itemsToRender.length})
                         </h3>
                     )}
-                    {/* Grid Size Slider UI */}
-                    <div className="flex items-center gap-2">
+                    {/* Grid Size Slider UI - Desktop Only */}
+                    <div className="hidden md:flex items-center gap-2">
                         <span className="text-[10px] text-stone-400 font-bold">SIZE</span>
                         <input
                             type="range"
@@ -200,7 +200,7 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
                     </div>
                 </div>
 
-                <div className={`grid grid-cols-2 sm:grid-cols-3 ${gridClass} gap-4`}>
+                <div className={`grid gap-4`} style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}>
                     {itemsToRender.map(item => (
                         <div
                             key={item.id} onClick={(e) => handleItemClick(item, e)}
@@ -235,7 +235,7 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
     const exportedItems = safeFilteredItems.filter(i => i.lastExported);
 
     return (
-        <div className="min-h-screen pt-40 pb-10 animate-[fadeIn_0.3s_ease-out]">
+        <div className="min-h-screen md:pt-40 pb-10 animate-[fadeIn_0.3s_ease-out]">
             {/* Desktop: Full-screen grid layout */}
             <div className="hidden md:block px-8 max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-6">
@@ -316,12 +316,29 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
             </div>
 
             {/* Mobile: Original centered layout */}
-            <div className="md:hidden p-6 max-w-screen-md mx-auto">
+            <div className="md:hidden px-6 pt-24 pb-6 max-w-screen-md mx-auto">
                 <div className="flex justify-between items-center mb-6 px-1">
                     <h2 className="text-2xl font-black text-stone-800 tracking-tight">{t.libraryTitle}</h2>
-                    <button onClick={toggleSelectionMode} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${isSelectionMode ? 'bg-stone-200 text-stone-800' : 'text-stone-500 hover:bg-stone-100'}`}>
-                        {isSelectionMode ? t.btnCancel : t.btnSelect}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {/* Size Slider for Mobile */}
+                        {!isSelectionMode && (
+                            <div className="flex items-center gap-1 mr-2">
+                                <span className="text-[10px] text-stone-400 font-bold">SIZE</span>
+                                <input
+                                    type="range"
+                                    min="2"
+                                    max="6"
+                                    step="1"
+                                    value={gridCols}
+                                    onChange={(e) => setGridCols(parseInt(e.target.value))}
+                                    className="w-16 h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-softblue"
+                                />
+                            </div>
+                        )}
+                        <button onClick={toggleSelectionMode} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${isSelectionMode ? 'bg-stone-200 text-stone-800' : 'text-stone-500 hover:bg-stone-100'}`}>
+                            {isSelectionMode ? t.btnCancel : t.btnSelect}
+                        </button>
+                    </div>
                 </div>
 
                 {!isSelectionMode ? (

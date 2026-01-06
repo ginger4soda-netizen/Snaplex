@@ -186,28 +186,42 @@ const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = fa
 
       {/* ===================== MOBILE LAYOUT (Default) ===================== */}
       <div className="md:hidden p-6 flex flex-col items-center justify-center min-h-[90vh] text-center pt-32 bg-cream">
-        <h2 className="text-4xl font-black text-stone-800 mb-2 tracking-tight animate-[fadeInUp_0.8s_ease-out]">{t.homeTitle}</h2>
+        <h2 className="text-4xl font-black text-stone-800 mb-2 tracking-tight animate-[fadeInUp_0.8s_ease-out]">{t.homeMainTitle || 'Vision to Prompt'}</h2>
         <p className={`text-2xl font-bold text-stone-500 mb-12 transition-opacity duration-1000 ${showSubtitle ? 'opacity-100' : 'opacity-0'}`}>
-          {t.homeTitle2}
+          {t.homeSubtitle1 || 'Turn Visual Inspiration'} {t.homeSubtitle2 || 'into Prompt Library'}
         </p>
 
-        <div className="flex gap-5 w-full max-w-sm px-4">
-          <button
-            onClick={startCamera}
-            className="flex-1 aspect-square bg-stone-800 text-white rounded-3xl shadow-pop-sm active:scale-95 transition-all flex flex-col items-center justify-center gap-2 hover:bg-stone-700 hover:-translate-y-1"
-            aria-label={t.btnCamera}
-          >
-            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          </button>
+        {isAnalyzing ? (
+          <div className="w-full max-w-sm px-4 animate-[fadeIn_0.3s_ease-out]">
+            <div className="bg-white p-6 rounded-3xl border-2 border-stone-100 shadow-sm flex flex-col items-center gap-4">
+              <CrabProgressBar
+                progress={analysisProgress}
+                isComplete={analysisProgress >= 100}
+                trackColor="bg-stone-200"
+                fillColor="bg-stone-800"
+              />
+              <p className="text-stone-500 font-bold text-sm animate-pulse">{t.analyzing || 'Analyzing...'}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-5 w-full max-w-sm px-4 animate-[fadeIn_0.3s_ease-out]">
+            <button
+              onClick={startCamera}
+              className="flex-1 aspect-square bg-stone-800 text-white rounded-3xl shadow-pop-sm active:scale-95 transition-all flex flex-col items-center justify-center gap-2 hover:bg-stone-700 hover:-translate-y-1"
+              aria-label={t.btnCamera}
+            >
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            </button>
 
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-1 aspect-square bg-white text-stone-800 border-2 border-stone-100 rounded-3xl shadow-sm active:scale-95 transition-all flex flex-col items-center justify-center gap-2 hover:border-softblue hover:text-softblue hover:-translate-y-1"
-            aria-label={t.btnUpload}
-          >
-            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-          </button>
-        </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 aspect-square bg-white text-stone-800 border-2 border-stone-100 rounded-3xl shadow-sm active:scale-95 transition-all flex flex-col items-center justify-center gap-2 hover:border-softblue hover:text-softblue hover:-translate-y-1"
+              aria-label={t.btnUpload}
+            >
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+            </button>
+          </div>
+        )}
 
         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
       </div>
