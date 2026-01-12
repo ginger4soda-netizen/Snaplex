@@ -56,23 +56,31 @@ export class GeminiProvider implements AIProvider {
     async analyzeImage(base64Image: string, settings: UserSettings): Promise<AnalysisResult> {
         const { ai, modelName } = this.getClient();
 
-        const response = await ai.models.generateContent({
-            model: modelName,
-            contents: {
-                parts: [
-                    { inlineData: { mimeType: "image/jpeg", data: base64Image.split(',')[1] } },
-                    { text: getMasterAnalysisPrompt(settings) },
-                ],
-            },
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: analysisSchema,
-            },
-        });
+        try {
+            const response = await ai.models.generateContent({
+                model: modelName,
+                contents: {
+                    parts: [
+                        { inlineData: { mimeType: "image/jpeg", data: base64Image.split(',')[1] } },
+                        { text: getMasterAnalysisPrompt(settings) },
+                    ],
+                },
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: analysisSchema,
+                },
+            });
 
-        const text = response.text;
-        if (!text) throw new Error("No response from Gemini");
-        return JSON.parse(text) as AnalysisResult;
+            const text = response.text;
+            if (!text) throw new Error("No response from Gemini");
+            return JSON.parse(text) as AnalysisResult;
+
+        } catch (error: any) {
+            if (error.message?.includes("User location") || error.message?.includes("400") || error.status === 400) {
+                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+            }
+            throw error;
+        }
     }
 
     async explainTerm(term: string, language: string): Promise<TermExplanation> {
@@ -90,15 +98,22 @@ Rules:
 Output strictly JSON:
 { "def": "...", "app": "..." }`;
 
-        const response = await ai.models.generateContent({
-            model: modelName,
-            contents: [{ parts: [{ text: prompt }] }],
-            config: { responseMimeType: "application/json" }
-        });
+        try {
+            const response = await ai.models.generateContent({
+                model: modelName,
+                contents: [{ parts: [{ text: prompt }] }],
+                config: { responseMimeType: "application/json" }
+            });
 
-        const text = response.text;
-        if (!text) throw new Error("No response from AI");
-        return JSON.parse(text) as TermExplanation;
+            const text = response.text;
+            if (!text) throw new Error("No response from AI");
+            return JSON.parse(text) as TermExplanation;
+        } catch (error: any) {
+            if (error.message?.includes("User location") || error.message?.includes("400") || error.status === 400) {
+                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+            }
+            throw error;
+        }
     }
 
     async chatStream(
@@ -173,7 +188,15 @@ If the user asks for specific prompts, prompt breakdown, or detailed analysis of
 
         console.time('⏱️ [Chat] 4. sendMessageStream (await)');
         // Send current message (no image needed - it's in history)
-        const resultStream = await chat.sendMessageStream({ message });
+        let resultStream;
+        try {
+            resultStream = await chat.sendMessageStream({ message });
+        } catch (error: any) {
+            if (error.message?.includes("User location") || error.message?.includes("400") || error.status === 400) {
+                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+            }
+            throw error;
+        }
         console.timeEnd('⏱️ [Chat] 4. sendMessageStream (await)');
 
         console.time('⏱️ [Chat] 5. Stream chunks');
@@ -227,44 +250,58 @@ Example: "Rainy Street" -> { "groups": [ ["Rainy", "Wet", "Storm", "Drizzle"], [
         console.timeEnd('⏱️ [Dimension] 2. import prompt');
 
         console.time('⏱️ [Dimension] 3. API call');
-        const response = await ai.models.generateContent({
-            model: modelName,
-            contents: {
-                parts: [
-                    { inlineData: { mimeType: "image/jpeg", data: base64Image.split(',')[1] } },
-                    { text: "Analyze this image according to the system instructions." },
-                ],
-            },
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: promptSegmentSchema,
-                systemInstruction: getDimensionPrompt(dimension, settings)
+        try {
+            const response = await ai.models.generateContent({
+                model: modelName,
+                contents: {
+                    parts: [
+                        { inlineData: { mimeType: "image/jpeg", data: base64Image.split(',')[1] } },
+                        { text: "Analyze this image according to the system instructions." },
+                    ],
+                },
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: promptSegmentSchema,
+                    systemInstruction: getDimensionPrompt(dimension, settings)
+                }
+            });
+            console.timeEnd('⏱️ [Dimension] 3. API call');
+
+            console.time('⏱️ [Dimension] 4. Parse result');
+            const { safeParseJSON } = await import('../../utils/jsonParser');
+            const result = safeParseJSON(response.text || '{"original":"","translated":""}', { original: '', translated: '' });
+            console.timeEnd('⏱️ [Dimension] 4. Parse result');
+            console.timeEnd('⏱️ [Dimension] Total');
+
+            return { original: result.original || '', translated: result.translated || '' };
+        } catch (error: any) {
+            if (error.message?.includes("User location") || error.message?.includes("400") || error.status === 400) {
+                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
             }
-        });
-        console.timeEnd('⏱️ [Dimension] 3. API call');
-
-        console.time('⏱️ [Dimension] 4. Parse result');
-        const { safeParseJSON } = await import('../../utils/jsonParser');
-        const result = safeParseJSON(response.text || '{"original":"","translated":""}', { original: '', translated: '' });
-        console.timeEnd('⏱️ [Dimension] 4. Parse result');
-        console.timeEnd('⏱️ [Dimension] Total');
-
-        return { original: result.original || '', translated: result.translated || '' };
+            throw error;
+        }
     }
 
     async translateText(text: string, language: string): Promise<string> {
         const { getTranslationPrompt } = await import('./masterPrompt');
         const { ai, modelName } = this.getClient();
 
-        const response = await ai.models.generateContent({
-            model: modelName,
-            contents: {
-                parts: [{ text: getTranslationPrompt(text, language) }]
-            },
-            config: { responseMimeType: "application/json" }
-        });
+        try {
+            const response = await ai.models.generateContent({
+                model: modelName,
+                contents: {
+                    parts: [{ text: getTranslationPrompt(text, language) }]
+                },
+                config: { responseMimeType: "application/json" }
+            });
 
-        const result = JSON.parse(response.text || '{"translated":""}');
-        return result.translated || '';
+            const result = JSON.parse(response.text || '{"translated":""}');
+            return result.translated || '';
+        } catch (error: any) {
+            if (error.message?.includes("User location") || error.message?.includes("400") || error.status === 400) {
+                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+            }
+            throw error;
+        }
     }
 }

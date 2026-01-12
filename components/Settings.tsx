@@ -130,6 +130,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                     <div className="space-y-12">
 
                         {/* 1. API Configuration Section */}
+                        {/* 1. API Configuration Section */}
                         <div className="bg-stone-100/50 p-6 rounded-2xl border border-stone-200">
                             <div className="flex items-center gap-2 mb-6">
                                 <span className="text-xl">🔌</span>
@@ -137,56 +138,77 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                             </div>
 
                             <div className="space-y-5">
-                                {/* Provider Selection */}
-                                <div>
-                                    <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Provider</label>
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {(Object.keys(PROVIDER_LABELS) as ProviderType[]).map(p => (
-                                            <button
-                                                key={p}
-                                                onClick={() => handleProviderChange(p)}
-                                                className={`px-3 py-2.5 rounded-xl text-sm font-bold border transition-all ${provider === p
-                                                    ? 'bg-stone-800 text-white border-stone-800 shadow-md'
-                                                    : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
-                                                    }`}
+                                {/* Row 1: Provider & Model on the same line */}
+                                <div className="flex gap-4">
+                                    {/* Provider Selection (Master) */}
+                                    <div className="flex-1">
+                                        <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Provider</label>
+                                        <div className="relative">
+                                            <select
+                                                value={provider}
+                                                onChange={(e) => handleProviderChange(e.target.value as ProviderType)}
+                                                className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-stone-400 appearance-none shadow-sm cursor-pointer hover:border-stone-300 transition-colors"
                                             >
-                                                {PROVIDER_LABELS[p].split(' ')[0]}
-                                            </button>
-                                        ))}
+                                                {(Object.keys(PROVIDER_LABELS) as ProviderType[]).map(p => (
+                                                    <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Model Selection (Dependent) */}
+                                    <div className="flex-1">
+                                        <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Model</label>
+                                        <div className="relative">
+                                            <select
+                                                value={model}
+                                                onChange={(e) => handleModelChange(e.target.value)}
+                                                className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-softblue appearance-none shadow-sm cursor-pointer"
+                                            >
+                                                {PROVIDER_MODELS[provider].map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                                            </select>
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* API Key */}
+                                {/* Row 2: API Key */}
                                 <div>
-                                    <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">{PROVIDER_LABELS[provider]} API Key</label>
+                                    <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">
+                                        {PROVIDER_LABELS[provider].split(' ')[0]} API Key
+                                    </label>
                                     <input
                                         type="password"
                                         value={apiKey}
                                         onChange={(e) => handleApiKeyChange(e.target.value)}
                                         placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
-                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none focus:border-softblue focus:ring-1 focus:ring-softblue shadow-sm"
+                                        className={`w-full bg-white border rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none shadow-sm transition-all focus:ring-1 ${(provider === 'gemini' && apiKey.startsWith('sk-')) || (provider === 'openai' && apiKey.startsWith('AIza'))
+                                            ? 'border-red-300 focus:border-red-500 focus:ring-red-500 bg-red-50'
+                                            : 'border-stone-200 focus:border-softblue focus:ring-softblue'
+                                            }`}
                                     />
+
+                                    {/* Validation Messages */}
+                                    {(provider === 'gemini' && apiKey.startsWith('sk-')) && (
+                                        <p className="mt-2 text-xs text-red-500 font-bold animate-pulse">
+                                            ⚠️ Warning: This looks like an OpenAI key. You have selected Gemini provider.
+                                        </p>
+                                    )}
+                                    {(provider === 'openai' && apiKey.startsWith('AIza')) && (
+                                        <p className="mt-2 text-xs text-red-500 font-bold animate-pulse">
+                                            ⚠️ Warning: This looks like a Gemini key. You have selected OpenAI provider.
+                                        </p>
+                                    )}
+
                                     <div className="mt-2 text-right">
                                         <a href={PROVIDER_KEY_LINKS[provider].url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-softblue hover:underline">
                                             {PROVIDER_KEY_LINKS[provider].label}
                                         </a>
-                                    </div>
-                                </div>
-
-                                {/* Model Selection */}
-                                <div>
-                                    <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Model</label>
-                                    <div className="relative">
-                                        <select
-                                            value={model}
-                                            onChange={(e) => handleModelChange(e.target.value)}
-                                            className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-softblue appearance-none shadow-sm cursor-pointer"
-                                        >
-                                            {PROVIDER_MODELS[provider].map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-                                        </select>
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -270,56 +292,77 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                         </div>
 
                         <div className="space-y-5">
-                            {/* Provider Selection */}
-                            <div>
-                                <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Provider</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {(Object.keys(PROVIDER_LABELS) as ProviderType[]).map(p => (
-                                        <button
-                                            key={p}
-                                            onClick={() => handleProviderChange(p)}
-                                            className={`px-3 py-2.5 rounded-xl text-sm font-bold border transition-all ${provider === p
-                                                ? 'bg-stone-800 text-white border-stone-800 shadow-md'
-                                                : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
-                                                }`}
+                            {/* Row 1: Provider & Model on the same line */}
+                            <div className="flex gap-4">
+                                {/* Provider Selection (Master) */}
+                                <div className="flex-1">
+                                    <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Provider</label>
+                                    <div className="relative">
+                                        <select
+                                            value={provider}
+                                            onChange={(e) => handleProviderChange(e.target.value as ProviderType)}
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-stone-400 appearance-none shadow-sm cursor-pointer hover:border-stone-300 transition-colors"
                                         >
-                                            {PROVIDER_LABELS[p].split(' ')[0]}
-                                        </button>
-                                    ))}
+                                            {(Object.keys(PROVIDER_LABELS) as ProviderType[]).map(p => (
+                                                <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Model Selection (Dependent) */}
+                                <div className="flex-1">
+                                    <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Model</label>
+                                    <div className="relative">
+                                        <select
+                                            value={model}
+                                            onChange={(e) => handleModelChange(e.target.value)}
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-softblue appearance-none shadow-sm cursor-pointer"
+                                        >
+                                            {PROVIDER_MODELS[provider].map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* API Key */}
+                            {/* Row 2: API Key */}
                             <div>
-                                <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">{PROVIDER_LABELS[provider]} API Key</label>
+                                <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">
+                                    {PROVIDER_LABELS[provider].split(' ')[0]} API Key
+                                </label>
                                 <input
                                     type="password"
                                     value={apiKey}
                                     onChange={(e) => handleApiKeyChange(e.target.value)}
                                     placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
-                                    className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none focus:border-softblue focus:ring-1 focus:ring-softblue shadow-sm"
+                                    className={`w-full bg-white border rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none shadow-sm transition-all focus:ring-1 ${(provider === 'gemini' && apiKey.startsWith('sk-')) || (provider === 'openai' && apiKey.startsWith('AIza'))
+                                        ? 'border-red-300 focus:border-red-500 focus:ring-red-500 bg-red-50'
+                                        : 'border-stone-200 focus:border-softblue focus:ring-softblue'
+                                        }`}
                                 />
+
+                                {/* Validation Messages */}
+                                {(provider === 'gemini' && apiKey.startsWith('sk-')) && (
+                                    <p className="mt-2 text-xs text-red-500 font-bold animate-pulse">
+                                        ⚠️ Warning: This looks like an OpenAI key. You have selected Gemini provider.
+                                    </p>
+                                )}
+                                {(provider === 'openai' && apiKey.startsWith('AIza')) && (
+                                    <p className="mt-2 text-xs text-red-500 font-bold animate-pulse">
+                                        ⚠️ Warning: This looks like a Gemini key. You have selected OpenAI provider.
+                                    </p>
+                                )}
+
                                 <div className="mt-2 text-right">
                                     <a href={PROVIDER_KEY_LINKS[provider].url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-softblue hover:underline">
                                         {PROVIDER_KEY_LINKS[provider].label}
                                     </a>
-                                </div>
-                            </div>
-
-                            {/* Model Selection */}
-                            <div>
-                                <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Model</label>
-                                <div className="relative">
-                                    <select
-                                        value={model}
-                                        onChange={(e) => handleModelChange(e.target.value)}
-                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-softblue appearance-none shadow-sm cursor-pointer"
-                                    >
-                                        {PROVIDER_MODELS[provider].map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-                                    </select>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -280,7 +280,7 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
                 <div ref={endRef} className="h-2" />
             </div>
 
-            <div className="shrink-0 bg-white border-t border-stone-100 z-50" onClick={(e) => e.stopPropagation()}>
+            <div className="shrink-0 bg-white border-t border-stone-100 z-50 pb-[env(safe-area-inset-bottom)]" onClick={(e) => e.stopPropagation()}>
                 {deleteMode && (
                     <div className="px-4 py-2 bg-red-50 text-red-600 text-xs text-center font-medium">
                         点击标签上的 − 删除 | 点击空白处退出

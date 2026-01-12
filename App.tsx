@@ -189,11 +189,24 @@ const App: React.FC = () => {
         setAnalysisProgress(0);
       }, 500);
 
-    } catch (error) {
+    } catch (error: any) {
       clearInterval(progressInterval);
-      console.error(error); alert("Analysis failed. Please try again."); setMode('home');
       setLoading(false);
       setAnalysisProgress(0);
+
+      const errMsg = error.message || String(error);
+
+      if (errMsg.includes("MISSING_API_KEY")) {
+        const confirm = window.confirm("⚠️ Missing API Key\n\nYou haven't configured an API Key yet.\nClick OK to go to Settings.");
+        if (confirm) setMode('settings');
+      } else if (errMsg.includes("User location") || errMsg.includes("VPN") || errMsg.includes("区域")) {
+        // Handle region errors (which might be in Chinese as established in previous steps)
+        alert("⚠️ Region Error\n\n" + errMsg);
+      } else {
+        console.error(error);
+        alert(`Analysis failed: ${errMsg.slice(0, 100)}...`);
+        setMode('home');
+      }
     }
   };
 

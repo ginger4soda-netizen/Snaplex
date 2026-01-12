@@ -42,6 +42,9 @@ export class OpenAIProvider implements AIProvider {
 
         if (!response.ok) {
             const error = await response.json();
+            if (response.status === 403 || error.error?.message?.includes("country") || error.error?.message?.includes("region")) {
+                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+            }
             throw new Error(error.error?.message || 'OpenAI API error');
         }
 
@@ -72,7 +75,10 @@ Output JSON: { "def": "...", "app": "..." }`;
             })
         });
 
-        if (!response.ok) throw new Error("OpenAI API error");
+        if (!response.ok) {
+            if (response.status === 403) throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+            throw new Error("OpenAI API error");
+        }
         const data = await response.json();
         return JSON.parse(data.choices?.[0]?.message?.content || '{}') as TermExplanation;
     }
@@ -141,7 +147,10 @@ Output JSON: { "def": "...", "app": "..." }`;
             })
         });
 
-        if (!response.ok) throw new Error("OpenAI stream error");
+        if (!response.ok) {
+            if (response.status === 403) throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+            throw new Error("OpenAI stream error");
+        }
 
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
@@ -226,7 +235,10 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
         });
         console.timeEnd('⏱️ [Dimension] API call');
 
-        if (!response.ok) throw new Error("OpenAI API error");
+        if (!response.ok) {
+            if (response.status === 403) throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+            throw new Error("OpenAI API error");
+        }
         const data = await response.json();
         const { safeParseJSON } = await import('../../utils/jsonParser');
         const result = safeParseJSON(data.choices?.[0]?.message?.content || '{"original":"","translated":""}', { original: '', translated: '' });
@@ -250,7 +262,10 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
             })
         });
 
-        if (!response.ok) throw new Error("OpenAI Translation failed");
+        if (!response.ok) {
+            if (response.status === 403) return "当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。";
+            throw new Error("OpenAI Translation failed");
+        }
         const data = await response.json();
         const result = JSON.parse(data.choices?.[0]?.message?.content || '{"translated":""}');
         return result.translated || '';

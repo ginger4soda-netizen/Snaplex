@@ -130,18 +130,23 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
 
     // Dimension history management
     const [dimensionHistories, setDimensionHistories] = useState<DimensionHistories>(() => {
-        // Initialize with current prompts as first version
+        // Initialize with current prompts as first version - Defensively
         const initial: DimensionHistories = {};
         if (analysis.structuredPrompts) {
             (['subject', 'environment', 'composition', 'lighting', 'mood', 'style'] as DimensionKey[]).forEach(key => {
-                initial[key] = {
-                    versions: [analysis.structuredPrompts[key]],
-                    currentIndex: 0
-                };
+                const prompt = analysis.structuredPrompts?.[key];
+                if (prompt) { // Only add if prompt exists
+                    initial[key] = {
+                        versions: [prompt],
+                        currentIndex: 0
+                    };
+                }
             });
         }
         return initial;
     });
+
+    // ... (Hooks remain the same) ...
 
     // Load persisted histories from IndexedDB
     useEffect(() => {
@@ -174,16 +179,17 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
         try {
             const newPrompt = await regenerateDimension(image, dimensionKey, settings);
             const currentHistory = dimensionHistories[dimensionKey];
-            if (currentHistory) {
-                const newVersions = [...currentHistory.versions, newPrompt];
-                saveHistories({
-                    ...dimensionHistories,
-                    [dimensionKey]: {
-                        versions: newVersions,
-                        currentIndex: newVersions.length - 1
-                    }
-                });
-            }
+
+            // If history doesn't exist yet (first regeneration for this key), create it
+            const newVersions = currentHistory ? [...currentHistory.versions, newPrompt] : [newPrompt];
+
+            saveHistories({
+                ...dimensionHistories,
+                [dimensionKey]: {
+                    versions: newVersions,
+                    currentIndex: newVersions.length - 1
+                }
+            });
         } catch (error) {
             console.error(`Failed to regenerate ${dimensionKey}:`, error);
             alert(`Failed to regenerate ${dimensionKey}`);
@@ -212,14 +218,14 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
     const t = getTranslation(settings.systemLanguage);
     const hasStructuredPrompts = !!analysis.structuredPrompts;
 
-    // Get current content for each dimension
+    // Get current content for each dimension - SAFE ACCESS
     const getCurrentContent = (dimensionKey: DimensionKey): PromptSegment => {
         const history = dimensionHistories[dimensionKey];
         if (history && history.versions.length > 0) {
             return history.versions[history.currentIndex];
         }
-        // Fallback to original
-        return analysis.structuredPrompts?.[dimensionKey] || { original: '', translated: '' };
+        // Fallback to original if available, else empty safe object
+        return analysis.structuredPrompts?.[dimensionKey] || { original: 'N/A', translated: 'N/A' };
     };
 
     const modules = hasStructuredPrompts ? [
@@ -230,7 +236,7 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
         { title: 'Mood', label: t.lblMood, color: 'text-softblue', dimensionKey: 'mood' as DimensionKey, content: getCurrentContent('mood') },
         { title: 'Style', label: t.lblStyle, color: 'text-stone-500', dimensionKey: 'style' as DimensionKey, content: getCurrentContent('style') },
     ] : [
-        { title: 'Description', label: t.lblDescription, color: 'text-softblue', dimensionKey: 'subject' as DimensionKey, content: { original: analysis.description, translated: t.transUnavailable } }
+        { title: 'Description', label: t.lblDescription, color: 'text-softblue', dimensionKey: 'subject' as DimensionKey, content: { original: analysis.description || 'No description available.', translated: t.transUnavailable } }
     ];
 
     const handleGlobalCopy = async () => {
@@ -298,7 +304,7 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
     };
 
     return (
-        <div className={`bg-cream flex flex-col md:flex-row md:h-screen md:overflow-hidden ${showChat ? 'h-[calc(100vh-64px)] overflow-hidden' : 'min-h-screen md:min-h-0'}`}>
+        <div className={`bg-cream flex flex-col md:flex-row md:h-screen md:overflow-hidden ${showChat ? 'h-[100dvh] overflow-hidden' : 'min-h-screen md:min-h-0'}`}>
             <style>{`.perspective-1000 { perspective: 1000px; } .style-preserve-3d { transform-style: preserve-3d; } .rotate-y-180 { transform: rotateY(180deg); } .backface-hidden { backface-visibility: hidden; }`}</style>
 
             {/* Hidden Long Image Template */}

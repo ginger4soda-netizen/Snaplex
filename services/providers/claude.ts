@@ -45,6 +45,9 @@ export class ClaudeProvider implements AIProvider {
 
         if (!response.ok) {
             const error = await response.json();
+            if (response.status === 403 || response.status === 400 || error.error?.message?.includes("region")) {
+                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+            }
             throw new Error(error.error?.message || 'Claude API error');
         }
 
@@ -78,7 +81,10 @@ Output JSON only (no markdown): { "def": "...", "app": "..." }`;
             })
         });
 
-        if (!response.ok) throw new Error("Claude API error");
+        if (!response.ok) {
+            if (response.status === 403 || response.status === 400) throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+            throw new Error("Claude API error");
+        }
         const data = await response.json();
         const text = data.content?.[0]?.text || '{}';
         const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -145,7 +151,10 @@ Output JSON only (no markdown): { "def": "...", "app": "..." }`;
             })
         });
 
-        if (!response.ok) throw new Error("Claude stream error");
+        if (!response.ok) {
+            if (response.status === 403 || response.status === 400) throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+            throw new Error("Claude stream error");
+        }
 
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
@@ -222,7 +231,10 @@ Output JSON only (no markdown): { "groups": [ ["word1", "syn1", "syn2"], ["word2
         });
         console.timeEnd('⏱️ [Dimension] API call');
 
-        if (!response.ok) return { original: '', translated: '' };
+        if (!response.ok) {
+            if (response.status === 403 || response.status === 400) throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+            return { original: '', translated: '' };
+        }
 
         const data = await response.json();
         console.time('⏱️ [Dimension] Parse result');
@@ -247,7 +259,10 @@ Output JSON only (no markdown): { "groups": [ ["word1", "syn1", "syn2"], ["word2
             })
         });
 
-        if (!response.ok) return '';
+        if (!response.ok) {
+            if (response.status === 403 || response.status === 400) return "当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。";
+            return '';
+        }
         const data = await response.json();
         const content = data.content?.[0]?.text || '{"translated":""}';
         // Extract JSON
