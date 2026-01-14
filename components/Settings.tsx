@@ -184,26 +184,16 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                     </label>
                                     <input
                                         type="password"
+                                        id={`api-key-${provider}`}
+                                        name={`snaplex-api-key-${provider}`}
+                                        autoComplete="off"
+                                        data-lpignore="true"
+                                        data-form-type="other"
                                         value={apiKey}
                                         onChange={(e) => handleApiKeyChange(e.target.value)}
                                         placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
-                                        className={`w-full bg-white border rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none shadow-sm transition-all focus:ring-1 ${(provider === 'gemini' && apiKey.startsWith('sk-')) || (provider === 'openai' && apiKey.startsWith('AIza'))
-                                            ? 'border-red-300 focus:border-red-500 focus:ring-red-500 bg-red-50'
-                                            : 'border-stone-200 focus:border-softblue focus:ring-softblue'
-                                            }`}
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none shadow-sm transition-all focus:ring-1 focus:border-softblue focus:ring-softblue"
                                     />
-
-                                    {/* Validation Messages */}
-                                    {(provider === 'gemini' && apiKey.startsWith('sk-')) && (
-                                        <p className="mt-2 text-xs text-red-500 font-bold animate-pulse">
-                                            ⚠️ Warning: This looks like an OpenAI key. You have selected Gemini provider.
-                                        </p>
-                                    )}
-                                    {(provider === 'openai' && apiKey.startsWith('AIza')) && (
-                                        <p className="mt-2 text-xs text-red-500 font-bold animate-pulse">
-                                            ⚠️ Warning: This looks like a Gemini key. You have selected OpenAI provider.
-                                        </p>
-                                    )}
 
                                     <div className="mt-2 text-right">
                                         <a href={PROVIDER_KEY_LINKS[provider].url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-softblue hover:underline">
@@ -338,26 +328,16 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                 </label>
                                 <input
                                     type="password"
+                                    id={`api-key-mobile-${provider}`}
+                                    name={`snaplex-api-key-mobile-${provider}`}
+                                    autoComplete="off"
+                                    data-lpignore="true"
+                                    data-form-type="other"
                                     value={apiKey}
                                     onChange={(e) => handleApiKeyChange(e.target.value)}
                                     placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
-                                    className={`w-full bg-white border rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none shadow-sm transition-all focus:ring-1 ${(provider === 'gemini' && apiKey.startsWith('sk-')) || (provider === 'openai' && apiKey.startsWith('AIza'))
-                                        ? 'border-red-300 focus:border-red-500 focus:ring-red-500 bg-red-50'
-                                        : 'border-stone-200 focus:border-softblue focus:ring-softblue'
-                                        }`}
+                                    className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none shadow-sm transition-all focus:ring-1 focus:border-softblue focus:ring-softblue"
                                 />
-
-                                {/* Validation Messages */}
-                                {(provider === 'gemini' && apiKey.startsWith('sk-')) && (
-                                    <p className="mt-2 text-xs text-red-500 font-bold animate-pulse">
-                                        ⚠️ Warning: This looks like an OpenAI key. You have selected Gemini provider.
-                                    </p>
-                                )}
-                                {(provider === 'openai' && apiKey.startsWith('AIza')) && (
-                                    <p className="mt-2 text-xs text-red-500 font-bold animate-pulse">
-                                        ⚠️ Warning: This looks like a Gemini key. You have selected OpenAI provider.
-                                    </p>
-                                )}
 
                                 <div className="mt-2 text-right">
                                     <a href={PROVIDER_KEY_LINKS[provider].url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-softblue hover:underline">
