@@ -33,12 +33,16 @@ const PromptCard: React.FC<{
     currentIndex: number;
     onRefresh: () => Promise<void>;
     onNavigate: (direction: 'prev' | 'next') => void;
-}> = ({ title, systemLabel, content, color, isGlobalFlipped, dimensionKey, history, currentIndex, onRefresh, onNavigate }) => {
+    settings: UserSettings;
+}> = ({ title, systemLabel, content, color, isGlobalFlipped, dimensionKey, history, currentIndex, onRefresh, onNavigate, settings }) => {
     const [isCopied, setIsCopied] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const handleCopy = async () => {
-        const textToCopy = isGlobalFlipped ? content.translated : content.original;
+        // ✅ Dynamically swap content based on user's cardFrontLanguage setting
+        const displayOriginal = settings.cardFrontLanguage === 'English' ? content.original : content.translated;
+        const displayTranslated = settings.cardFrontLanguage === 'English' ? content.translated : content.original;
+        const textToCopy = isGlobalFlipped ? displayTranslated : displayOriginal;
         const success = await copyToClipboard(textToCopy);
         if (success) {
             setIsCopied(true);
@@ -112,12 +116,21 @@ const PromptCard: React.FC<{
                 </div>
             </div>
             <div className={`relative z-10 bg-white rounded-2xl shadow-sm transition-all duration-500 transform style-preserve-3d ${isGlobalFlipped ? 'rotate-y-180' : ''}`}>
-                <div className={`p-5 flex flex-col backface-hidden ${isGlobalFlipped ? 'hidden' : 'block'}`}>
-                    <div className="leading-relaxed text-stone-700 font-medium text-lg mb-1 relative">{content.original}</div>
-                </div>
-                <div className={`inset-0 bg-stone-50 rounded-2xl p-5 flex flex-col rotate-y-180 backface-hidden ${isGlobalFlipped ? 'block' : 'hidden'}`}>
-                    <div className="leading-relaxed text-stone-800 font-medium text-lg mb-1">{content.translated}</div>
-                </div>
+                {/* ✅ Dynamically swap content display based on cardFrontLanguage */}
+                {(() => {
+                    const displayOriginal = settings.cardFrontLanguage === 'English' ? content.original : content.translated;
+                    const displayTranslated = settings.cardFrontLanguage === 'English' ? content.translated : content.original;
+                    return (
+                        <>
+                            <div className={`p-5 flex flex-col backface-hidden ${isGlobalFlipped ? 'hidden' : 'block'}`}>
+                                <div className="leading-relaxed text-stone-700 font-medium text-lg mb-1 relative">{displayOriginal}</div>
+                            </div>
+                            <div className={`inset-0 bg-stone-50 rounded-2xl p-5 flex flex-col rotate-y-180 backface-hidden ${isGlobalFlipped ? 'block' : 'hidden'}`}>
+                                <div className="leading-relaxed text-stone-800 font-medium text-lg mb-1">{displayTranslated}</div>
+                            </div>
+                        </>
+                    );
+                })()}
             </div>
         </div>
     );
@@ -178,23 +191,36 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
     const handleRegenerateDimension = useCallback(async (dimensionKey: DimensionKey) => {
         try {
             const newPrompt = await regenerateDimension(image, dimensionKey, settings);
-            const currentHistory = dimensionHistories[dimensionKey];
 
-            // If history doesn't exist yet (first regeneration for this key), create it
-            const newVersions = currentHistory ? [...currentHistory.versions, newPrompt] : [newPrompt];
+            // ✅ Use functional setState to avoid race conditions during concurrent refreshes
+            setDimensionHistories(prev => {
+                const currentHistory = prev[dimensionKey];
+                const newVersions = currentHistory
+                    ? [...currentHistory.versions, newPrompt]
+                    : [newPrompt];
 
-            saveHistories({
-                ...dimensionHistories,
-                [dimensionKey]: {
-                    versions: newVersions,
-                    currentIndex: newVersions.length - 1
+                const updated = {
+                    ...prev,
+                    [dimensionKey]: {
+                        versions: newVersions,
+                        currentIndex: newVersions.length - 1
+                    }
+                };
+
+                // ✅ Persist to IndexedDB asynchronously
+                if (historyItemId) {
+                    set(`dim_history_${historyItemId}`, updated).catch(e =>
+                        console.error('Failed to save dimension histories:', e)
+                    );
                 }
+
+                return updated;
             });
         } catch (error) {
             console.error(`Failed to regenerate ${dimensionKey}:`, error);
             alert(`Failed to regenerate ${dimensionKey}`);
         }
-    }, [image, settings, dimensionHistories, saveHistories]);
+    }, [image, settings, historyItemId]);
 
     // Navigate history for a dimension
     const handleNavigateHistory = useCallback((dimensionKey: DimensionKey, direction: 'prev' | 'next') => {
@@ -379,6 +405,7 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
                                     currentIndex={dimensionHistories[mod.dimensionKey]?.currentIndex || 0}
                                     onRefresh={() => handleRegenerateDimension(mod.dimensionKey)}
                                     onNavigate={(direction) => handleNavigateHistory(mod.dimensionKey, direction)}
+                                    settings={settings}
                                 />
                             </div>
                         ))}
