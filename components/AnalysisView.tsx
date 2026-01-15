@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey, DimensionHistories } from '../types';
 import { get, set } from 'idb-keyval';
 import ChatBot from './ChatBot';
 import { getTranslation } from '../translations';
 import { copyToClipboard } from '../utils/clipboard';
 import { regenerateDimension, translateText } from '../services/geminiService';
+import { getCorrectDisplayOrder } from '../utils/languageDetect';
 
 interface Props {
     image: string;
@@ -33,12 +34,22 @@ const PromptCard: React.FC<{
     currentIndex: number;
     onRefresh: () => Promise<void>;
     onNavigate: (direction: 'prev' | 'next') => void;
-}> = ({ title, systemLabel, content, color, isGlobalFlipped, dimensionKey, history, currentIndex, onRefresh, onNavigate }) => {
+    settings: UserSettings;
+}> = ({ title, systemLabel, content, color, isGlobalFlipped, dimensionKey, history, currentIndex, onRefresh, onNavigate, settings }) => {
     const [isCopied, setIsCopied] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
+    // Auto-correct language order based on detection
+    const displayContent = useMemo(() => {
+        return getCorrectDisplayOrder(
+            content.original,
+            content.translated,
+            settings.cardFrontLanguage || 'English'
+        );
+    }, [content.original, content.translated, settings.cardFrontLanguage]);
+
     const handleCopy = async () => {
-        const textToCopy = isGlobalFlipped ? content.translated : content.original;
+        const textToCopy = isGlobalFlipped ? displayContent.back : displayContent.front;
         const success = await copyToClipboard(textToCopy);
         if (success) {
             setIsCopied(true);
@@ -113,10 +124,10 @@ const PromptCard: React.FC<{
             </div>
             <div className={`relative z-10 bg-white rounded-2xl shadow-sm transition-all duration-500 transform style-preserve-3d ${isGlobalFlipped ? 'rotate-y-180' : ''}`}>
                 <div className={`p-5 flex flex-col backface-hidden ${isGlobalFlipped ? 'hidden' : 'block'}`}>
-                    <div className="leading-relaxed text-stone-700 font-medium text-lg mb-1 relative">{content.original}</div>
+                    <div className="leading-relaxed text-stone-700 font-medium text-lg mb-1 relative">{displayContent.front}</div>
                 </div>
                 <div className={`inset-0 bg-stone-50 rounded-2xl p-5 flex flex-col rotate-y-180 backface-hidden ${isGlobalFlipped ? 'block' : 'hidden'}`}>
-                    <div className="leading-relaxed text-stone-800 font-medium text-lg mb-1">{content.translated}</div>
+                    <div className="leading-relaxed text-stone-800 font-medium text-lg mb-1">{displayContent.back}</div>
                 </div>
             </div>
         </div>
@@ -392,6 +403,7 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
                                     currentIndex={dimensionHistories[mod.dimensionKey]?.currentIndex || 0}
                                     onRefresh={() => handleRegenerateDimension(mod.dimensionKey)}
                                     onNavigate={(direction) => handleNavigateHistory(mod.dimensionKey, direction)}
+                                    settings={settings}
                                 />
                             </div>
                         ))}
