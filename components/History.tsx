@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { HistoryItem } from '../types';
 import { searchHistory } from '../services/geminiService';
 import { getTranslation } from '../translations';
+import { getCorrectDisplayOrder } from '../utils/languageDetect';
 
 interface Props {
     items: HistoryItem[];
@@ -90,11 +91,16 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
         const selectedItems = items.filter(item => selectedIds.has(item.id));
         const idsToMark = Array.from(selectedIds);
 
-        // Import language detection utility
-        const { getCorrectDisplayOrder } = require('../utils/languageDetect');
-
         // Get user settings for language mapping (fallback to default)
         const userFrontLanguage = systemLanguage?.includes('中文') ? 'Chinese' : 'English';
+
+        // Helper to safely get dimension content
+        const getDimension = (dimension: any): { front: string; back: string } => {
+            if (!dimension) return { front: 'N/A', back: 'N/A' };
+            const orig = dimension.original || 'N/A';
+            const trans = dimension.translated || 'N/A';
+            return getCorrectDisplayOrder(orig, trans, userFrontLanguage);
+        };
 
         let tableContent = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -126,25 +132,13 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
             let frontText = "", backText = "";
 
             if (sp) {
-                // Helper to safely get dimension content with language detection
-                const getDimension = (dimension: any, label: string): { front: string; back: string } => {
-                    if (!dimension) return { front: 'N/A', back: 'N/A' };
-
-                    const { front, back } = getCorrectDisplayOrder(
-                        dimension.original || 'N/A',
-                        dimension.translated || 'N/A',
-                        userFrontLanguage
-                    );
-                    return { front, back };
-                };
-
                 // Safely extract all dimensions with language detection
-                const subject = getDimension(sp.subject, 'SUBJECT');
-                const environment = getDimension(sp.environment, 'ENVIRONMENT');
-                const composition = getDimension(sp.composition, 'COMPOSITION');
-                const lighting = getDimension(sp.lighting, 'LIGHTING');
-                const mood = getDimension(sp.mood, 'MOOD');
-                const style = getDimension(sp.style, 'STYLE');
+                const subject = getDimension(sp.subject);
+                const environment = getDimension(sp.environment);
+                const composition = getDimension(sp.composition);
+                const lighting = getDimension(sp.lighting);
+                const mood = getDimension(sp.mood);
+                const style = getDimension(sp.style);
 
                 frontText = `[SUBJECT]:<br>${subject.front}<br><br>[ENVIRONMENT]:<br>${environment.front}<br><br>[COMPOSITION]:<br>${composition.front}<br><br>[LIGHTING]:<br>${lighting.front}<br><br>[MOOD]:<br>${mood.front}<br><br>[STYLE]:<br>${style.front}`;
                 backText = `[SUBJECT]:<br>${subject.back}<br><br>[ENVIRONMENT]:<br>${environment.back}<br><br>[COMPOSITION]:<br>${composition.back}<br><br>[LIGHTING]:<br>${lighting.back}<br><br>[MOOD]:<br>${mood.back}<br><br>[STYLE]:<br>${style.back}`;
