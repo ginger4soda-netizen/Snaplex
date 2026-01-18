@@ -84,13 +84,18 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
         }
     };
 
-    // ✅ 核心修复：优化 Excel 导出逻辑
+    // ✅ Export with safe property access and language detection
     const handleExport = () => {
         if (selectedIds.size === 0) return;
         const selectedItems = items.filter(item => selectedIds.has(item.id));
         const idsToMark = Array.from(selectedIds);
 
-        // 1. 定义样式：移除 td 的 height 限制，增加 vertical-align: top 和 white-space: pre-wrap
+        // Import language detection utility
+        const { getCorrectDisplayOrder } = require('../utils/languageDetect');
+
+        // Get user settings for language mapping (fallback to default)
+        const userFrontLanguage = systemLanguage?.includes('中文') ? 'Chinese' : 'English';
+
         let tableContent = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
@@ -101,7 +106,7 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
                 th { background-color: #f0f0f0; border: 1px solid #999; padding: 10px; text-align: left; }
                 td { border: 1px solid #999; padding: 10px; vertical-align: top; }
                 .img-cell { width: 160px; text-align: center; }
-                .text-cell { width: 400px; white-space: pre-wrap; } /* 关键：强制换行且定宽 */
+                .text-cell { width: 400px; white-space: pre-wrap; }
             </style>
         </head>
         <body>
@@ -120,16 +125,34 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
             const sp = item.analysis.structuredPrompts;
             let frontText = "", backText = "";
 
-            // 使用 HTML <br> 换行，确保 Excel 能识别
             if (sp) {
-                frontText = `[SUBJECT]:<br>${sp.subject.original}<br><br>[ENVIRONMENT]:<br>${sp.environment.original}<br><br>[COMPOSITION]:<br>${sp.composition.original}<br><br>[LIGHTING]:<br>${sp.lighting.original}<br><br>[MOOD]:<br>${sp.mood.original}<br><br>[STYLE]:<br>${sp.style.original}`;
-                backText = `[SUBJECT]:<br>${sp.subject.translated}<br><br>[ENVIRONMENT]:<br>${sp.environment.translated}<br><br>[COMPOSITION]:<br>${sp.composition.translated}<br><br>[LIGHTING]:<br>${sp.lighting.translated}<br><br>[MOOD]:<br>${sp.mood.translated}<br><br>[STYLE]:<br>${sp.style.translated}`;
+                // Helper to safely get dimension content with language detection
+                const getDimension = (dimension: any, label: string): { front: string; back: string } => {
+                    if (!dimension) return { front: 'N/A', back: 'N/A' };
+
+                    const { front, back } = getCorrectDisplayOrder(
+                        dimension.original || 'N/A',
+                        dimension.translated || 'N/A',
+                        userFrontLanguage
+                    );
+                    return { front, back };
+                };
+
+                // Safely extract all dimensions with language detection
+                const subject = getDimension(sp.subject, 'SUBJECT');
+                const environment = getDimension(sp.environment, 'ENVIRONMENT');
+                const composition = getDimension(sp.composition, 'COMPOSITION');
+                const lighting = getDimension(sp.lighting, 'LIGHTING');
+                const mood = getDimension(sp.mood, 'MOOD');
+                const style = getDimension(sp.style, 'STYLE');
+
+                frontText = `[SUBJECT]:<br>${subject.front}<br><br>[ENVIRONMENT]:<br>${environment.front}<br><br>[COMPOSITION]:<br>${composition.front}<br><br>[LIGHTING]:<br>${lighting.front}<br><br>[MOOD]:<br>${mood.front}<br><br>[STYLE]:<br>${style.front}`;
+                backText = `[SUBJECT]:<br>${subject.back}<br><br>[ENVIRONMENT]:<br>${environment.back}<br><br>[COMPOSITION]:<br>${composition.back}<br><br>[LIGHTING]:<br>${lighting.back}<br><br>[MOOD]:<br>${mood.back}<br><br>[STYLE]:<br>${style.back}`;
             } else {
                 frontText = item.analysis.description || "";
                 backText = "N/A";
             }
 
-            // 2. 构建行：图片单元格不设高度，文字单元格应用 .text-cell 样式
             tableContent += `
             <tr>
                 <td class="img-cell">
