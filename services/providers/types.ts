@@ -109,3 +109,41 @@ export const getCurrentModel = (): string => {
     // Default to first model of current provider
     return PROVIDER_MODELS[provider][0]?.id || 'gemini-2.5-flash';
 };
+
+// API Key format validation patterns
+const KEY_PATTERNS: Record<ProviderType, RegExp> = {
+    gemini: /^AIza[a-zA-Z0-9_-]{35}$/,
+    openai: /^sk-[a-zA-Z0-9]{48,}$/,
+    claude: /^sk-ant-[a-zA-Z0-9_-]+$/,
+    siliconflow: /^sk-[a-zA-Z0-9]+$/,
+};
+
+/**
+ * Validate API key format for a given provider.
+ * Returns true if format is valid, false otherwise.
+ */
+export const validateKeyFormat = (provider: ProviderType, key: string): boolean => {
+    if (!key || key.trim() === '') return false;
+    const pattern = KEY_PATTERNS[provider];
+    return pattern ? pattern.test(key.trim()) : true;
+};
+
+/**
+ * Get a user-friendly error message for invalid API key format.
+ */
+export const getKeyFormatError = (provider: ProviderType): string => {
+    const providerNames = {
+        gemini: 'Google Gemini',
+        openai: 'OpenAI',
+        claude: 'Anthropic Claude',
+        siliconflow: 'SiliconFlow'
+    };
+    const expectedPrefixes = {
+        gemini: 'AIza',
+        openai: 'sk-',
+        claude: 'sk-ant-',
+        siliconflow: 'sk-'
+    };
+    return `❌ API Key 格式错误！您选择了 ${providerNames[provider]}，但 Key 格式不正确。${providerNames[provider]} 的 Key 应以 "${expectedPrefixes[provider]}" 开头。请检查设置页。`;
+};
+

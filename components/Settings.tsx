@@ -182,8 +182,27 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                     <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">
                                         {PROVIDER_LABELS[provider].split(' ')[0]} API Key
                                     </label>
+
+                                    {/* Honeypot fields (hidden) to prevent browser password save prompts */}
+                                    <input
+                                        type="text"
+                                        name="username"
+                                        autoComplete="username"
+                                        style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
+                                        tabIndex={-1}
+                                        aria-hidden="true"
+                                    />
                                     <input
                                         type="password"
+                                        autoComplete="new-password"
+                                        style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
+                                        tabIndex={-1}
+                                        aria-hidden="true"
+                                    />
+
+                                    {/* Real API Key field (styled as password but type=text) */}
+                                    <input
+                                        type="text"
                                         id={`api-key-${provider}`}
                                         name={`snaplex-api-key-${provider}`}
                                         autoComplete="off"
@@ -193,6 +212,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                         onChange={(e) => handleApiKeyChange(e.target.value)}
                                         placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
                                         className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none shadow-sm transition-all focus:ring-1 focus:border-softblue focus:ring-softblue"
+                                        style={{ WebkitTextSecurity: 'disc' } as any}
                                     />
 
                                     <div className="mt-2 text-right">
@@ -326,8 +346,27 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                 <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">
                                     {PROVIDER_LABELS[provider].split(' ')[0]} API Key
                                 </label>
+
+                                {/* Honeypot fields (hidden) to prevent browser password save prompts */}
+                                <input
+                                    type="text"
+                                    name="username"
+                                    autoComplete="username"
+                                    style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
+                                    tabIndex={-1}
+                                    aria-hidden="true"
+                                />
                                 <input
                                     type="password"
+                                    autoComplete="new-password"
+                                    style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
+                                    tabIndex={-1}
+                                    aria-hidden="true"
+                                />
+
+                                {/* Real API Key field (styled as password but type=text) */}
+                                <input
+                                    type="text"
                                     id={`api-key-mobile-${provider}`}
                                     name={`snaplex-api-key-mobile-${provider}`}
                                     autoComplete="off"
@@ -337,6 +376,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                     onChange={(e) => handleApiKeyChange(e.target.value)}
                                     placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
                                     className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none shadow-sm transition-all focus:ring-1 focus:border-softblue focus:ring-softblue"
+                                    style={{ WebkitTextSecurity: 'disc' } as any}
                                 />
 
                                 <div className="mt-2 text-right">
