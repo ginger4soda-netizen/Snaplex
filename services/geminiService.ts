@@ -28,6 +28,29 @@ export const analyzeImage = async (
 export const searchHistory = async (query: string, history: HistoryItem[]): Promise<string[]> => {
   if (!query.trim() || !history.length) return [];
 
+  // ✅ Safe helper function to extract searchable text from item
+  const extractItemText = (item: HistoryItem): string => {
+    const sp = item.analysis.structuredPrompts;
+    const dimensions = [
+      sp?.subject?.original || '',
+      sp?.subject?.translated || '',
+      sp?.environment?.original || '',
+      sp?.environment?.translated || '',
+      sp?.composition?.original || '',
+      sp?.composition?.translated || '',
+      sp?.lighting?.original || '',
+      sp?.lighting?.translated || '',
+      sp?.mood?.original || '',
+      sp?.mood?.translated || '',
+      sp?.style?.original || '',
+      sp?.style?.translated || '',
+    ].filter(Boolean); // Remove empty strings
+
+    return (
+      (item.analysis.description || "") + " " + dimensions.join(" ")
+    ).toLowerCase();
+  };
+
   try {
     const provider = getProvider();
     const conceptGroups = await provider.expandSearchQuery(query);
@@ -36,18 +59,7 @@ export const searchHistory = async (query: string, history: HistoryItem[]): Prom
 
     // Local Filtering with Expanded Logic
     return history.filter(item => {
-      const sp = item.analysis.structuredPrompts;
-      const itemText = (
-        (item.analysis.description || "") + " " +
-        (sp ? [
-          sp.subject.original, sp.subject.translated,
-          sp.environment.original, sp.environment.translated,
-          sp.composition.original, sp.composition.translated,
-          sp.lighting.original, sp.lighting.translated,
-          sp.mood.original, sp.mood.translated,
-          sp.style.original, sp.style.translated
-        ].join(" ") : "")
-      ).toLowerCase();
+      const itemText = extractItemText(item);
 
       // Logic: Match ALL concept groups (AND), within each group match ANY synonym (OR)
       return conceptGroups.every(group => {
@@ -61,19 +73,7 @@ export const searchHistory = async (query: string, history: HistoryItem[]): Prom
     // Fallback: Strict local keyword matching
     const terms = query.toLowerCase().split(/\s+/).filter(t => t);
     return history.filter(item => {
-      const sp = item.analysis.structuredPrompts;
-      const itemText = (
-        (item.analysis.description || "") + " " +
-        (sp ? [
-          sp.subject.original, sp.subject.translated,
-          sp.environment.original, sp.environment.translated,
-          sp.composition.original, sp.composition.translated,
-          sp.lighting.original, sp.lighting.translated,
-          sp.mood.original, sp.mood.translated,
-          sp.style.original, sp.style.translated
-        ].join(" ") : "")
-      ).toLowerCase();
-
+      const itemText = extractItemText(item);
       return terms.every(term => itemText.includes(term));
     }).map(h => h.id);
   }
