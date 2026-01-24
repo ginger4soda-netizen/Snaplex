@@ -253,20 +253,21 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
     };
 
     const modules = hasStructuredPrompts ? [
-        { title: 'Subject', label: t.lblSubject, color: 'text-coral', dimensionKey: 'subject' as DimensionKey, content: getCurrentContent('subject') },
-        { title: 'Environment', label: t.lblEnvironment, color: 'text-mint', dimensionKey: 'environment' as DimensionKey, content: getCurrentContent('environment') },
-        { title: 'Composition', label: t.lblComposition, color: 'text-softblue', dimensionKey: 'composition' as DimensionKey, content: getCurrentContent('composition') },
-        { title: 'Lighting', label: t.lblLighting, color: 'text-sunny', dimensionKey: 'lighting' as DimensionKey, content: getCurrentContent('lighting') },
-        { title: 'Mood', label: t.lblMood, color: 'text-softblue', dimensionKey: 'mood' as DimensionKey, content: getCurrentContent('mood') },
-        { title: 'Style', label: t.lblStyle, color: 'text-stone-500', dimensionKey: 'style' as DimensionKey, content: getCurrentContent('style') },
+        { title: 'Subject', label: t.lblSubject, color: 'text-coral', dimensionKey: 'subject' as DimensionKey, content: getCurrentContent('subject'), correctedContent: getCorrectDisplayOrder(getCurrentContent('subject').original, getCurrentContent('subject').translated, settings.cardFrontLanguage || 'English') },
+        { title: 'Environment', label: t.lblEnvironment, color: 'text-mint', dimensionKey: 'environment' as DimensionKey, content: getCurrentContent('environment'), correctedContent: getCorrectDisplayOrder(getCurrentContent('environment').original, getCurrentContent('environment').translated, settings.cardFrontLanguage || 'English') },
+        { title: 'Composition', label: t.lblComposition, color: 'text-softblue', dimensionKey: 'composition' as DimensionKey, content: getCurrentContent('composition'), correctedContent: getCorrectDisplayOrder(getCurrentContent('composition').original, getCurrentContent('composition').translated, settings.cardFrontLanguage || 'English') },
+        { title: 'Lighting', label: t.lblLighting, color: 'text-sunny', dimensionKey: 'lighting' as DimensionKey, content: getCurrentContent('lighting'), correctedContent: getCorrectDisplayOrder(getCurrentContent('lighting').original, getCurrentContent('lighting').translated, settings.cardFrontLanguage || 'English') },
+        { title: 'Mood', label: t.lblMood, color: 'text-softblue', dimensionKey: 'mood' as DimensionKey, content: getCurrentContent('mood'), correctedContent: getCorrectDisplayOrder(getCurrentContent('mood').original, getCurrentContent('mood').translated, settings.cardFrontLanguage || 'English') },
+        { title: 'Style', label: t.lblStyle, color: 'text-stone-500', dimensionKey: 'style' as DimensionKey, content: getCurrentContent('style'), correctedContent: getCorrectDisplayOrder(getCurrentContent('style').original, getCurrentContent('style').translated, settings.cardFrontLanguage || 'English') },
     ] : [
-        { title: 'Description', label: t.lblDescription, color: 'text-softblue', dimensionKey: 'subject' as DimensionKey, content: { original: analysis.description || 'No description available.', translated: t.transUnavailable } }
+        { title: 'Description', label: t.lblDescription, color: 'text-softblue', dimensionKey: 'subject' as DimensionKey, content: { original: analysis.description || 'No description available.', translated: t.transUnavailable }, correctedContent: { front: analysis.description || 'No description available.', back: t.transUnavailable, wasSwapped: false } }
     ];
 
     const handleGlobalCopy = async () => {
         const allowed = settings.copyIncludedModules || ["Subject", "Environment", "Composition", "Lighting", "Mood", "Style"];
         const text = modules.filter(m => allowed.includes(m.title)).map(m => {
-            const contentToUse = isGlobalFlipped ? m.content.translated : m.content.original;
+            // ✅ Use language-corrected content
+            const contentToUse = isGlobalFlipped ? m.correctedContent.back : m.correctedContent.front;
             return `[${m.title}]\n${contentToUse}`;
         }).join('\n\n');
 
@@ -342,7 +343,8 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
                         <div key={i} className="py-1 text-center">
                             <div className={`text-sm font-black uppercase tracking-[0.2em] mb-3 ${mod.color}`}>{mod.label}</div>
                             {/* Slightly smaller text (text-base), more line height (leading-relaxed) */}
-                            <div className="text-base font-medium leading-relaxed text-stone-700 max-w-lg mx-auto">{isGlobalFlipped ? mod.content.translated : mod.content.original}</div>
+                            {/* ✅ Use language-corrected content */}
+                            <div className="text-base font-medium leading-relaxed text-stone-700 max-w-lg mx-auto">{isGlobalFlipped ? mod.correctedContent.back : mod.correctedContent.front}</div>
                         </div>
                     ))}
                 </div>
