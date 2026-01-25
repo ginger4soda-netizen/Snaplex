@@ -3,6 +3,7 @@ import { getTranslation } from '../translations';
 import BentoBox from './BentoBox';
 import CrabProgressBar from './CrabProgressBar';
 import AnimatedText from './AnimatedText';
+import DocReader from './DocReader';
 
 interface Props {
   onImageUpload: (files: File[]) => void;
@@ -10,11 +11,13 @@ interface Props {
   isAnalyzing?: boolean;
   analysisProgress?: number;
   onLanguageChange?: (lang: string) => void;
+  onOpenSettings: () => void;
 }
 
-const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = false, analysisProgress = 0, onLanguageChange }) => {
+const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = false, analysisProgress = 0, onLanguageChange, onOpenSettings }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isDocOpen, setIsDocOpen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showSubtitle, setShowSubtitle] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -422,9 +425,13 @@ const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = fa
 
         {/* FOOTER (Full Width) */}
         <div className="col-span-12 flex flex-col gap-2 mt-6">
-          <p className="text-center text-stone-500 font-medium text-sm">
-            {t.homeInstruction}
-          </p>
+          <button
+            onClick={() => setIsDocOpen(true)}
+            className="mx-auto flex items-center gap-2 px-4 py-1.5 rounded-full bg-stone-200/50 hover:bg-stone-200 text-stone-500 hover:text-stone-800 transition-all font-bold text-xs tracking-wide group mb-2"
+          >
+            <svg className="w-4 h-4 text-stone-400 group-hover:text-softblue transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+            <span>{systemLanguage?.includes('Chinese') ? 'Snaplex 使用指南' : 'Snaplex User Guide'}</span>
+          </button>
           <div className="w-full h-14 bg-stone-900 rounded-xl flex items-center justify-between px-6 text-cream shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
             <>
               <span className="font-mono text-xs tracking-wide opacity-50">SNAPLEX v9.5</span>
@@ -456,6 +463,13 @@ const Home: React.FC<Props> = ({ onImageUpload, systemLanguage, isAnalyzing = fa
       </div>
 
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
+
+      <DocReader
+        isOpen={isDocOpen}
+        onClose={() => setIsDocOpen(false)}
+        systemLanguage={systemLanguage}
+        onOpenSettings={onOpenSettings}
+      />
     </>
   );
 };

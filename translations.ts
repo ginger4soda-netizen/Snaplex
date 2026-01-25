@@ -156,6 +156,115 @@ export const translations = {
     loaderDone: "Decoding Complete",
     btnView: "View Result",
     miningTags: ["Subject", "Environment", "Composition", "Lighting", "Mood", "Style", "Inspiration Site", "Text & Font", "Material & Texture", "Camera & Lens"],
+
+    // Documentation
+    doc: {
+      intro: {
+        title: "Welcome to Snaplex",
+        greeting: "Thank you for your interest in Snaplex!",
+        desc: "This is a free, open-source AI image analysis tool that runs entirely in your browser. It helps creators batch reverse-engineer image prompts, extract structured prompts, dive deeper into image details, and build personal visual prompt libraries.",
+        personal: "Snaplex is a small tool I independently developed to solve some of my own troubles in the AI image generation process. I believe that accurate and effective prompts are valuable assets in collaboration with AI. I also hope that visual inspiration in life can be more easily applied and migrated. All features are built based on my understanding and value judgment of this matter. It's still being continuously improved, and I hope it brings you value. Thank you for your trust and support! Welcome to use it and give feedback, stay tuned~ 🙏",
+        github: "GitHub Project: https://github.com/ginger4soda-netizen/Snaplex (If you find it useful, please give me a ⭐️)"
+      },
+      important: {
+        title: "⚠️ Must Read Before Use",
+        apiKey: {
+          title: "1. You Need Your Own AI API Key",
+          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\n• More Privacy: Images and data don't pass through third-party servers\n• More Transparency: You directly control AI service usage and costs\n• Configuration Required: You need to register with AI providers and obtain keys",
+          tipTitle: "💡 AI Model Provider Guide",
+          tipDesc: "Different models produce prompts of varying quality. Please compare and judge after use, and combine with free plans as needed~",
+          table: [
+            ["Provider", "Free Tier", "Best For"],
+            ["Google", "Very limited daily quota (5/min, 20/day)", "Users who already have cards linked in Google AI Studio"],
+            ["SiliconFlow", "GLM model free but slow; Qwen model fast with minimal token usage (20M tokens on signup = essentially free)", "Domestic users who want free usage"],
+            ["OpenAI", "Pay-per-use", "Those who want GPT model and willing to pay for API"],
+            ["Anthropic", "Pay-per-use", "Those who want Claude model and willing to pay for API"]
+          ]
+        },
+        storage: {
+          title: "2. Data Stored Locally in Your Browser",
+          desc: "All images, analysis results, and chat history are saved in your browser's IndexedDB (storage limit depends on your browser and device). This means I cannot access any of your data, and even if the server goes down, your history is unaffected.",
+          warning: "⚠️ Clearing browser cache = Losing ALL history",
+          scenariosTitle: "Common triggering scenarios:",
+          scenario1: "Manually clearing browser data",
+          scenario2: "Using 'Private/Incognito Mode' (data cleared when window closes)",
+          scenario3: "Browser updates or system reinstallation",
+          scenario4: "Switching devices or browsers",
+          backupTitle: "💾 Important: Back up regularly!",
+          backupDesc: "Current version supports data export:",
+          backupStep1: "1. Go to the Library page",
+          backupStep2: "2. Click the Select button",
+          backupStep3: "3. Select All or Select New (unexported) images and prompts",
+          backupStep4: "4. Click Export button (Note: the button next to Export is Delete—don't click it by mistake!)",
+          exportNote: "The exported form contains 3 columns: Column 1 is the image thumbnail, Column 2 is the front-side language prompt, Column 3 is the back-side language prompt."
+        },
+        hosting: {
+          title: "3. Free Hosting, Occasionally Unavailable",
+          desc: "Snaplex is deployed on free servers to remain completely free and open-source. Under normal circumstances, it's stable most of the time. In extreme cases (traffic surge), there may be brief access slowdowns or rate limiting due to free server bandwidth limits (100GB/month). I'll monitor traffic and provide backup links if necessary. You can also deploy it to your own server and run locally."
+        }
+      },
+      quickstart: {
+        title: "👉 Quick Start",
+        stepsTitle: "4 Steps for First-Time Use",
+        step1: {
+          title: "Step 1",
+          desc: "Go to Settings page, select the model provider and corresponding model, get your own API key and fill it in. The API key will be saved in masked form in your local browser (saved by default once filled). No need to repeat this operation afterwards."
+        },
+        step2: {
+          title: "Step 2",
+          desc: "Set system language and card front/back languages. Each image will get prompts in two languages based on current settings (supports 7 languages)."
+        },
+        step3: {
+          title: "Step 3",
+          desc: "Return to home page, drag or click to upload images to the yellow panel (you can upload multiple images at once) → Wait for AI to analyze → View structured prompts"
+        },
+        step4: {
+          title: "Step 4",
+          desc: "Copy the dimension prompts you want to reference, or one-click copy multiple dimension prompts. You can select the one-click copy range in Settings."
+        },
+        devNote: {
+          title: "Developer Note",
+          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\n\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\n\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
+        },
+        advanced: {
+          title: "Explore Advanced Features",
+          refresh: "Refresh Button: Regenerate prompts for a specific dimension",
+          chat: "Chat Mode: Deeply inquire about visual details, explore tag usage, add your own preset tags",
+          history: "History: Search past inspirations, extract prompt corpus",
+          printer: "Term Printer: Mine professional terminology"
+        }
+      },
+      practices: {
+        title: "✨ Best Practices",
+        backup: "Back up regularly",
+        testKey: "Test API Key: Verify configuration with a simple image first",
+        search: "Use Search: Library history supports fuzzy search",
+        batch: "Batch Operations: Upload multiple images simultaneously"
+      },
+      faq: {
+        title: "❓ FAQ",
+        q1: "Is Snaplex free? Where might I need to pay?",
+        a1: "The tool itself is free, but if you use paid API services, you pay the API fees directly to the model providers—I cannot profit from this (so I specifically integrated free APIs so you can use it completely free). My intention is just to share a small tool I developed, to verify whether I can make something valuable to others starting from my own needs.",
+        q2: "Analysis failed or error. What's the cause? How to fix?",
+        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
+        q3: "How to switch language?",
+        a3: "The purple panel on home page allows quick switching of interface language. For prompt card front/back languages, go to Settings page (supports Chinese/English/Japanese and 7 languages total).",
+        q4: "Multiple dimension prompts failed to parse, showing 'N/A'?",
+        a4: "Sometimes the model is lazy and doesn't return all field information. Just click the refresh button above the card that's missing prompts.",
+        q5: "Will version updates cause previously queried data to disappear?",
+        a5: "No, version updates won't clear your queried images and prompts, but system upgrades on your own device will. Please carefully read point 2 of Must Read Before Use regarding data storage and security.",
+        q6: "What does Style Preference in settings do?",
+        a6: "This is an entry I reserved for ideas not yet implemented. Currently, selecting different style preferences only affects the terminology preference of output prompts, but this module hasn't been extensively tested yet. Just select the default Standard style for now.",
+        q7: "How to use preset tags in chat mode?",
+        a7: "Click ➕ to customize your frequently used preset tags (such as useful image reverse-engineering instructions, prompts for extracting specific dimensions, etc.). All tags can be edited (right-click), deleted (long-press to activate delete state), and reordered (drag tags to your desired position, put frequently used ones at the front). After setting up tags, clicking a tag will send the corresponding question or instruction and get AI's answer based on the current image."
+      },
+      feedback: {
+        title: "✉️ Feedback Channels",
+        github: "GitHub Issues: Technical issues and feature suggestions",
+        social: "Social Media: Share your usage experience, problems encountered, and useful prompts you reverse-engineered",
+        meta: "Version: v9.5 | Updated: January 2026 | License: AGPL-3.0"
+      }
+    },
   },
 
   Chinese: {
@@ -294,6 +403,115 @@ export const translations = {
     loaderDone: "解码完成",
     btnView: "查看结果",
     miningTags: ["主体", "环境", "构图", "光影", "氛围", "风格", "灵感网站", "文字&字体", "材质&纹理", "相机/镜头"],
+
+    // Documentation
+    doc: {
+      intro: {
+        title: "欢迎使用 Snaplex",
+        greeting: "感谢您对 Snaplex 的关注！",
+        desc: "这是一个开源免费的、完全在浏览器中运行的 AI 图片分析工具，旨在帮助创作者批量反推图片提示词、提取结构化提示词、深入挖掘图片的更多信息、建立个人视觉提示词库。",
+        personal: "Snaplex 是我为了解决自己在AI生图过程中的一些麻烦独立开发的小工具，我相信准确有效的提示词是与AI协作过程中相当有价值的资产，我也希望生活中的视觉灵感能更方便地应用和迁移，以及在用AI生图的时候不仅知其然，还能知其所以然，所有的功能构建都是基于我对这件事的理解和价值判断。它还在持续完善中，希望它能为您带来价值。感谢您的信任与支持！也欢迎您使用并反馈，持续关注~🙏",
+        github: "Github项目页面：https://github.com/ginger4soda-netizen/Snaplex（如果对您有用，欢迎给我一颗小⭐️）"
+      },
+      important: {
+        title: "⚠️ 使用前必读",
+        apiKey: {
+          title: "1. 您需要自己的 AI API Key",
+          desc: "Snaplex 不是传统的 SaaS 服务，它是一个工具箱，需要您提供自己的 AI api key。因为Snaplex 直接从您的浏览器调用 AI 服务（如Gemini、OpenAI等），我不提供中转服务器，这意味着：\n• 更隐私：图片和数据不经过第三方服务器\n• 更透明：您直接控制 AI 服务的使用和费用\n• 需配置：您需要在 AI 提供商注册并获取密钥",
+          tipTitle: "💡 AI模型提供商说明",
+          tipDesc: "不同模型反推的提示词质量有差异，请在使用后自己对比判断，结合免费方案按需使用~",
+          table: [
+            ["提供商 Provider", "免费额度 Free Tier", "适合场景 Best For"],
+            ["Google", "每天免费额度非常有限（每分钟5次，每天20次）", "已经在google ai studio绑过卡"],
+            ["SiliconFlow", "GLM模型免费使用但速度较慢（因为是thinking模型），qwen模型速度快，消耗少量token（因为注册就送2000w token，所以也相当于是免费）", "国内用户，想免费使用"],
+            ["OpenAI", "按量计费", "想用gpt模型反推且愿意为api付费"],
+            ["Anthropic", "按量计费", "想用claude模型反推且愿意为api付费"]
+          ]
+        },
+        storage: {
+          title: "2. 数据存储在您的浏览器本地",
+          desc: "所有图片、分析结果、聊天记录都保存在您的浏览器 IndexedDB 中（存储容量上限由浏览器和设备决定），这意味着我无法访问您的任何数据，即使服务器宕机，您的历史记录也不受影响。但这也意味着...",
+          warning: "⚠️ 清除浏览器缓存 = 丢失所有历史记录",
+          scenariosTitle: "常见触发场景：",
+          scenario1: "手动清除浏览器数据",
+          scenario2: "使用'隐私模式/无痕模式'（关闭窗口即清空）",
+          scenario3: "浏览器更新或系统重装",
+          scenario4: "切换设备或浏览器",
+          backupTitle: "💾 重要建议：定期备份！",
+          backupDesc: "当前版本已支持数据导出功能：",
+          backupStep1: "1. 进入 图库 (LIBRARY) 页面",
+          backupStep2: "2. 点击 选择 (Select) 按钮",
+          backupStep3: "3. 全选(Select All) 或 选择未导出(Select New) 的图片和提示词",
+          backupStep4: "4. 点击 导出表单 (Export) 按钮（注意导出边上的按钮是删除，不要误删了！）",
+          exportNote: "导出的表单包含3列，第一列是图片缩略图，第二列是卡片正面语言提示词，第三列是卡片背面语言提示词。"
+        },
+        hosting: {
+          title: "3. 免费托管，可能偶尔不可用",
+          desc: "Snaplex 部署在免费服务器上，以保持完全免费开源。正常情况下，大部分时间稳定可用。极端情况下（流量激增），可能出现短暂访问缓慢或限流，这是由于免费服务器的带宽限制（每月 100GB）。我会监控流量，必要时提供备用链接，您也可以自行部署到您的服务器，本地运行。"
+        }
+      },
+      quickstart: {
+        title: "👉 快速开始使用",
+        stepsTitle: "初次使用的4个步骤",
+        step1: {
+          title: "Step 1",
+          desc: "前往设置页面，选择模型提供商和对应模型，获取自己的api key并填入，api key会以掩码的形式保存在你当前设备的本地浏览器中（填写默认保存），之后无需重复操作。"
+        },
+        step2: {
+          title: "Step 2",
+          desc: "设置系统语言和卡片正反面语言，每张图片都会同时得到当前设置状态下的两种语言提示词（支持7种语言）。"
+        },
+        step3: {
+          title: "Step 3",
+          desc: "回到首页，往黄色面板拖拽或点击上传图片（可以一次上传多张图片）→ 等待AI解析图片 → 查看结构化提示词"
+        },
+        step4: {
+          title: "Step 4",
+          desc: "复制想参考的维度提示词使用，或一键复制多个维度提示词使用。可在设置中选择一键复制的提示词范围。"
+        },
+        devNote: {
+          title: "开发者说明",
+          desc: "每张图片都有6个维度提示词：主体、环境、构图、光影/色彩、情绪/氛围、美学风格\n\n这是因为任何AI生图模型在高级提示词案例中都演示了，包含这些维度的提示词会大大提高AI生图质量。\n\n我在系统中设置的反推指令目的是让模型尽量准确且包含细节地还原上传图片的这些维度，但不同模型对反推指令的遵循度有差异，我花了很多时间测试不同模型反推出的提示词质量，现在能做到即使是免费的模型反推出的质量也不会太差，但还是存在有时会识别不准（比如俯拍镜头视角识别为平视），在使用的时候建议审查AI给出的结果，修改不准确的地方。这也是与AI协作的重要素养之一：有能力审核并修正AI给出的结果。"
+        },
+        advanced: {
+          title: "探索高级功能",
+          refresh: "刷新按钮：重新生成某个维度提示词",
+          chat: "聊天模式：深入询问视觉细节，探索标签的使用方法，增加自己的预设标签",
+          history: "历史记录：搜索过往灵感，提取提示词语料",
+          printer: "词库打印机：挖掘专业术语"
+        }
+      },
+      practices: {
+        title: "✨ 最佳实践",
+        backup: "定期导出备份",
+        testKey: "测试 API Key：先用简单图片验证配置正确",
+        search: "善用搜索：图库页面历史记录支持模糊搜索",
+        batch: "批量操作：可同时上传多张图片"
+      },
+      faq: {
+        title: "❓ 常见问题",
+        q1: "Snaplex是免费的吗？有可能在哪里需要付费？",
+        a1: "工具本身是免费的，但如果要使用付费的api服务，用户得自己支付api的费用，这个费用是直接付给模型厂商的，我无法从中获得收益（所以我特意接入了免费的api，让您可以在完全免费的模式下使用）。我的本意只是分享一个自己开发的小工具，验证我是否能从自己的需求出发做出对别人也有价值的产品，看自己能vibe coding到什么程度。",
+        q2: "分析失败或报错是什么原因？如何解决？",
+        a2: "检查网络连接、API Key 填写是否正确、API Key 有效性、AI 提供商区域限制。\\n• 如果是VPN问题，请更换VPN节点后重试。VPN节点需要干净且在AI 提供商的可访问区域。\\n• 如果是api key触达免费使用限额，可以更换成免费的ai模型提供商（siliconflow），或者开通高级模型的付费api。\\n• 检查api key是否填写错误或是否对应错模型提供商，比如多了空格，或把google的api填写到了openai的下方。",
+        q3: "如何切换语言？",
+        a3: "首页紫色面板可快速切换界面语言，提示词卡片正反面语言请到设置页面选择（支持中/英/日等7种语言）。",
+        q4: "多个维度提示词解析失败，出现'N/A'？",
+        a4: "有时模型偷懒未返回所有字段信息就会出现这种情况，点击未出现提示词的卡片上方的刷新按钮就可以了。",
+        q5: "版本更新会导致之前查询过的数据消失吗？",
+        a5: "不会，更新版本不会清除你查询过的图片和提示词，但您自己设备上的系统升级会。关于数据的存储和安全问题请仔细阅读使用前必读第二点。",
+        q6: "设置页的风格偏好有什么用？",
+        a6: "这是我为还没实现的想法预留的入口，目前选择不同风格偏好只会影响输出提示词的术语偏好，但这个模块的表现还没经过大量测试，目前直接选默认的标准风格就可以。",
+        q7: "对话模式下的预设标签如何使用？",
+        a7: "点击➕号可以个性化定制自己常用的预设标签（比如好用的反推图片指令、提取特定维度的提示词等），所有标签都可以编辑（鼠标右键）、删除（长按标签会激活删除状态）、排序（按住标签拖拽到你想要的位置，把常用标签拖放到前面）。设置好标签后，点击标签就会发送出对应的问题或指令，得到AI基于当前这张图片的回答。"
+      },
+      feedback: {
+        title: "✉️ 反馈渠道",
+        github: "GitHub Issues: 技术问题和功能建议",
+        social: "社交媒体: 分享您的使用体验、遇到的问题、反推出的好用的提示词",
+        meta: "版本: v9.5 | 更新日期: 2026年1月 | License: AGPL-3.0"
+      }
+    },
   },
 
   Spanish: {
@@ -360,6 +578,115 @@ export const translations = {
     loaderTitle: "Decodificación Visual...", loaderSubtitle: "Aprende estilos mientras esperas.",
     loaderDone: "Decodificación Completa", btnView: "Ver Resultado",
     miningTags: ["Sujeto", "Entorno", "Composición", "Iluminación", "Ánimo", "Estilo", "Sitio de inspiración", "Texto y Fuente", "Material y Textura", "Cámara y Lente"],
+
+    // Documentation
+    doc: {
+      intro: {
+        title: "Welcome to Snaplex",
+        greeting: "Thank you for your interest in Snaplex!",
+        desc: "This is a free, open-source AI image analysis tool that runs entirely in your browser. It helps creators batch reverse-engineer image prompts, extract structured prompts, dive deeper into image details, and build personal visual prompt libraries.",
+        personal: "Snaplex is a small tool I independently developed to solve some of my own troubles in the AI image generation process. I believe that accurate and effective prompts are valuable assets in collaboration with AI. I also hope that visual inspiration in life can be more easily applied and migrated. All features are built based on my understanding and value judgment of this matter. It's still being continuously improved, and I hope it brings you value. Thank you for your trust and support! Welcome to use it and give feedback, stay tuned~ 🙏",
+        github: "GitHub Project: https://github.com/ginger4soda-netizen/Snaplex (If you find it useful, please give me a ⭐️)"
+      },
+      important: {
+        title: "⚠️ Must Read Before Use",
+        apiKey: {
+          title: "1. You Need Your Own AI API Key",
+          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\\n• More Privacy: Images and data don't pass through third-party servers\\n• More Transparency: You directly control AI service usage and costs\\n• Configuration Required: You need to register with AI providers and obtain keys",
+          tipTitle: "💡 AI Model Provider Guide",
+          tipDesc: "Different models produce prompts of varying quality. Please compare and judge after use, and combine with free plans as needed~",
+          table: [
+            ["Provider", "Free Tier", "Best For"],
+            ["Google", "Very limited daily quota (5/min, 20/day)", "Users who already have cards linked in Google AI Studio"],
+            ["SiliconFlow", "GLM model free but slow; Qwen model fast with minimal token usage (20M tokens on signup = essentially free)", "Domestic users who want free usage"],
+            ["OpenAI", "Pay-per-use", "Those who want GPT model and willing to pay for API"],
+            ["Anthropic", "Pay-per-use", "Those who want Claude model and willing to pay for API"]
+          ]
+        },
+        storage: {
+          title: "2. Data Stored Locally in Your Browser",
+          desc: "All images, analysis results, and chat history are saved in your browser's IndexedDB (storage limit depends on your browser and device). This means I cannot access any of your data, and even if the server goes down, your history is unaffected.",
+          warning: "⚠️ Clearing browser cache = Losing ALL history",
+          scenariosTitle: "Common triggering scenarios:",
+          scenario1: "Manually clearing browser data",
+          scenario2: "Using 'Private/Incognito Mode' (data cleared when window closes)",
+          scenario3: "Browser updates or system reinstallation",
+          scenario4: "Switching devices or browsers",
+          backupTitle: "💾 Important: Back up regularly!",
+          backupDesc: "Current version supports data export:",
+          backupStep1: "1. Go to the Library page",
+          backupStep2: "2. Click the Select button",
+          backupStep3: "3. Select All or Select New (unexported) images and prompts",
+          backupStep4: "4. Click Export button (Note: the button next to Export is Delete—don't click it by mistake!)",
+          exportNote: "The exported form contains 3 columns: Column 1 is the image thumbnail, Column 2 is the front-side language prompt, Column 3 is the back-side language prompt."
+        },
+        hosting: {
+          title: "3. Free Hosting, Occasionally Unavailable",
+          desc: "Snaplex is deployed on free servers to remain completely free and open-source. Under normal circumstances, it's stable most of the time. In extreme cases (traffic surge), there may be brief access slowdowns or rate limiting due to free server bandwidth limits (100GB/month). I'll monitor traffic and provide backup links if necessary. You can also deploy it to your own server and run locally."
+        }
+      },
+      quickstart: {
+        title: "👉 Quick Start",
+        stepsTitle: "4 Steps for First-Time Use",
+        step1: {
+          title: "Step 1",
+          desc: "Go to Settings page, select the model provider and corresponding model, get your own API key and fill it in. The API key will be saved in masked form in your local browser (saved by default once filled). No need to repeat this operation afterwards."
+        },
+        step2: {
+          title: "Step 2",
+          desc: "Set system language and card front/back languages. Each image will get prompts in two languages based on current settings (supports 7 languages)."
+        },
+        step3: {
+          title: "Step 3",
+          desc: "Return to home page, drag or click to upload images to the yellow panel (you can upload multiple images at once) → Wait for AI to analyze → View structured prompts"
+        },
+        step4: {
+          title: "Step 4",
+          desc: "Copy the dimension prompts you want to reference, or one-click copy multiple dimension prompts. You can select the one-click copy range in Settings."
+        },
+        devNote: {
+          title: "Developer Note",
+          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\\n\\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\\n\\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
+        },
+        advanced: {
+          title: "Explore Advanced Features",
+          refresh: "Refresh Button: Regenerate prompts for a specific dimension",
+          chat: "Chat Mode: Deeply inquire about visual details, explore tag usage, add your own preset tags",
+          history: "History: Search past inspirations, extract prompt corpus",
+          printer: "Term Printer: Mine professional terminology"
+        }
+      },
+      practices: {
+        title: "✨ Best Practices",
+        backup: "Back up regularly",
+        testKey: "Test API Key: Verify configuration with a simple image first",
+        search: "Use Search: Library history supports fuzzy search",
+        batch: "Batch Operations: Upload multiple images simultaneously"
+      },
+      faq: {
+        title: "❓ FAQ",
+        q1: "Is Snaplex free? Where might I need to pay?",
+        a1: "The tool itself is free, but if you use paid API services, you pay the API fees directly to the model providers—I cannot profit from this (so I specifically integrated free APIs so you can use it completely free). My intention is just to share a small tool I developed, to verify whether I can make something valuable to others starting from my own needs.",
+        q2: "Analysis failed or error. What's the cause? How to fix?",
+        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
+        q3: "How to switch language?",
+        a3: "The purple panel on home page allows quick switching of interface language. For prompt card front/back languages, go to Settings page (supports Chinese/English/Japanese and 7 languages total).",
+        q4: "Multiple dimension prompts failed to parse, showing 'N/A'?",
+        a4: "Sometimes the model is lazy and doesn't return all field information. Just click the refresh button above the card that's missing prompts.",
+        q5: "Will version updates cause previously queried data to disappear?",
+        a5: "No, version updates won't clear your queried images and prompts, but system upgrades on your own device will. Please carefully read point 2 of Must Read Before Use regarding data storage and security.",
+        q6: "What does Style Preference in settings do?",
+        a6: "This is an entry I reserved for ideas not yet implemented. Currently, selecting different style preferences only affects the terminology preference of output prompts, but this module hasn't been extensively tested yet. Just select the default Standard style for now.",
+        q7: "How to use preset tags in chat mode?",
+        a7: "Click ➕ to customize your frequently used preset tags (such as useful image reverse-engineering instructions, prompts for extracting specific dimensions, etc.). All tags can be edited (right-click), deleted (long-press to activate delete state), and reordered (drag tags to your desired position, put frequently used ones at the front). After setting up tags, clicking a tag will send the corresponding question or instruction and get AI's answer based on the current image."
+      },
+      feedback: {
+        title: "✉️ Feedback Channels",
+        github: "GitHub Issues: Technical issues and feature suggestions",
+        social: "Social Media: Share your usage experience, problems encountered, and useful prompts you reverse-engineered",
+        meta: "Version: v9.5 | Updated: January 2026 | License: AGPL-3.0"
+      }
+    },
   },
 
   Japanese: {
@@ -426,6 +753,115 @@ export const translations = {
     loaderTitle: "視覚的解読中...", loaderSubtitle: "待機中にスタイルを学ぶ",
     loaderDone: "解読完了", btnView: "結果を見る",
     miningTags: ["主題", "環境", "構図", "照明", "ムード", "スタイル", "インスピレーション", "テキスト＆フォント", "素材＆テクスチャ", "カメラ＆レンズ"],
+
+    // Documentation
+    doc: {
+      intro: {
+        title: "Welcome to Snaplex",
+        greeting: "Thank you for your interest in Snaplex!",
+        desc: "This is a free, open-source AI image analysis tool that runs entirely in your browser. It helps creators batch reverse-engineer image prompts, extract structured prompts, dive deeper into image details, and build personal visual prompt libraries.",
+        personal: "Snaplex is a small tool I independently developed to solve some of my own troubles in the AI image generation process. I believe that accurate and effective prompts are valuable assets in collaboration with AI. I also hope that visual inspiration in life can be more easily applied and migrated. All features are built based on my understanding and value judgment of this matter. It's still being continuously improved, and I hope it brings you value. Thank you for your trust and support! Welcome to use it and give feedback, stay tuned~ 🙏",
+        github: "GitHub Project: https://github.com/ginger4soda-netizen/Snaplex (If you find it useful, please give me a ⭐️)"
+      },
+      important: {
+        title: "⚠️ Must Read Before Use",
+        apiKey: {
+          title: "1. You Need Your Own AI API Key",
+          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\\n• More Privacy: Images and data don't pass through third-party servers\\n• More Transparency: You directly control AI service usage and costs\\n• Configuration Required: You need to register with AI providers and obtain keys",
+          tipTitle: "💡 AI Model Provider Guide",
+          tipDesc: "Different models produce prompts of varying quality. Please compare and judge after use, and combine with free plans as needed~",
+          table: [
+            ["Provider", "Free Tier", "Best For"],
+            ["Google", "Very limited daily quota (5/min, 20/day)", "Users who already have cards linked in Google AI Studio"],
+            ["SiliconFlow", "GLM model free but slow; Qwen model fast with minimal token usage (20M tokens on signup = essentially free)", "Domestic users who want free usage"],
+            ["OpenAI", "Pay-per-use", "Those who want GPT model and willing to pay for API"],
+            ["Anthropic", "Pay-per-use", "Those who want Claude model and willing to pay for API"]
+          ]
+        },
+        storage: {
+          title: "2. Data Stored Locally in Your Browser",
+          desc: "All images, analysis results, and chat history are saved in your browser's IndexedDB (storage limit depends on your browser and device). This means I cannot access any of your data, and even if the server goes down, your history is unaffected.",
+          warning: "⚠️ Clearing browser cache = Losing ALL history",
+          scenariosTitle: "Common triggering scenarios:",
+          scenario1: "Manually clearing browser data",
+          scenario2: "Using 'Private/Incognito Mode' (data cleared when window closes)",
+          scenario3: "Browser updates or system reinstallation",
+          scenario4: "Switching devices or browsers",
+          backupTitle: "💾 Important: Back up regularly!",
+          backupDesc: "Current version supports data export:",
+          backupStep1: "1. Go to the Library page",
+          backupStep2: "2. Click the Select button",
+          backupStep3: "3. Select All or Select New (unexported) images and prompts",
+          backupStep4: "4. Click Export button (Note: the button next to Export is Delete—don't click it by mistake!)",
+          exportNote: "The exported form contains 3 columns: Column 1 is the image thumbnail, Column 2 is the front-side language prompt, Column 3 is the back-side language prompt."
+        },
+        hosting: {
+          title: "3. Free Hosting, Occasionally Unavailable",
+          desc: "Snaplex is deployed on free servers to remain completely free and open-source. Under normal circumstances, it's stable most of the time. In extreme cases (traffic surge), there may be brief access slowdowns or rate limiting due to free server bandwidth limits (100GB/month). I'll monitor traffic and provide backup links if necessary. You can also deploy it to your own server and run locally."
+        }
+      },
+      quickstart: {
+        title: "👉 Quick Start",
+        stepsTitle: "4 Steps for First-Time Use",
+        step1: {
+          title: "Step 1",
+          desc: "Go to Settings page, select the model provider and corresponding model, get your own API key and fill it in. The API key will be saved in masked form in your local browser (saved by default once filled). No need to repeat this operation afterwards."
+        },
+        step2: {
+          title: "Step 2",
+          desc: "Set system language and card front/back languages. Each image will get prompts in two languages based on current settings (supports 7 languages)."
+        },
+        step3: {
+          title: "Step 3",
+          desc: "Return to home page, drag or click to upload images to the yellow panel (you can upload multiple images at once) → Wait for AI to analyze → View structured prompts"
+        },
+        step4: {
+          title: "Step 4",
+          desc: "Copy the dimension prompts you want to reference, or one-click copy multiple dimension prompts. You can select the one-click copy range in Settings."
+        },
+        devNote: {
+          title: "Developer Note",
+          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\\n\\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\\n\\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
+        },
+        advanced: {
+          title: "Explore Advanced Features",
+          refresh: "Refresh Button: Regenerate prompts for a specific dimension",
+          chat: "Chat Mode: Deeply inquire about visual details, explore tag usage, add your own preset tags",
+          history: "History: Search past inspirations, extract prompt corpus",
+          printer: "Term Printer: Mine professional terminology"
+        }
+      },
+      practices: {
+        title: "✨ Best Practices",
+        backup: "Back up regularly",
+        testKey: "Test API Key: Verify configuration with a simple image first",
+        search: "Use Search: Library history supports fuzzy search",
+        batch: "Batch Operations: Upload multiple images simultaneously"
+      },
+      faq: {
+        title: "❓ FAQ",
+        q1: "Is Snaplex free? Where might I need to pay?",
+        a1: "The tool itself is free, but if you use paid API services, you pay the API fees directly to the model providers—I cannot profit from this (so I specifically integrated free APIs so you can use it completely free). My intention is just to share a small tool I developed, to verify whether I can make something valuable to others starting from my own needs.",
+        q2: "Analysis failed or error. What's the cause? How to fix?",
+        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
+        q3: "How to switch language?",
+        a3: "The purple panel on home page allows quick switching of interface language. For prompt card front/back languages, go to Settings page (supports Chinese/English/Japanese and 7 languages total).",
+        q4: "Multiple dimension prompts failed to parse, showing 'N/A'?",
+        a4: "Sometimes the model is lazy and doesn't return all field information. Just click the refresh button above the card that's missing prompts.",
+        q5: "Will version updates cause previously queried data to disappear?",
+        a5: "No, version updates won't clear your queried images and prompts, but system upgrades on your own device will. Please carefully read point 2 of Must Read Before Use regarding data storage and security.",
+        q6: "What does Style Preference in settings do?",
+        a6: "This is an entry I reserved for ideas not yet implemented. Currently, selecting different style preferences only affects the terminology preference of output prompts, but this module hasn't been extensively tested yet. Just select the default Standard style for now.",
+        q7: "How to use preset tags in chat mode?",
+        a7: "Click ➕ to customize your frequently used preset tags (such as useful image reverse-engineering instructions, prompts for extracting specific dimensions, etc.). All tags can be edited (right-click), deleted (long-press to activate delete state), and reordered (drag tags to your desired position, put frequently used ones at the front). After setting up tags, clicking a tag will send the corresponding question or instruction and get AI's answer based on the current image."
+      },
+      feedback: {
+        title: "✉️ Feedback Channels",
+        github: "GitHub Issues: Technical issues and feature suggestions",
+        social: "Social Media: Share your usage experience, problems encountered, and useful prompts you reverse-engineered",
+        meta: "Version: v9.5 | Updated: January 2026 | License: AGPL-3.0"
+      }
+    },
   },
 
   French: {
@@ -492,6 +928,115 @@ export const translations = {
     loaderTitle: "Décodage Visuel...", loaderSubtitle: "Apprenez des styles en attendant.",
     loaderDone: "Décodage Terminé", btnView: "Voir le Résultat",
     miningTags: ["Sujet", "Environnement", "Composition", "Éclairage", "Ambiance", "Style", "Site d'inspiration", "Texte et Police", "Matériau et Texture", "Caméra et Objectif"],
+
+    // Documentation
+    doc: {
+      intro: {
+        title: "Welcome to Snaplex",
+        greeting: "Thank you for your interest in Snaplex!",
+        desc: "This is a free, open-source AI image analysis tool that runs entirely in your browser. It helps creators batch reverse-engineer image prompts, extract structured prompts, dive deeper into image details, and build personal visual prompt libraries.",
+        personal: "Snaplex is a small tool I independently developed to solve some of my own troubles in the AI image generation process. I believe that accurate and effective prompts are valuable assets in collaboration with AI. I also hope that visual inspiration in life can be more easily applied and migrated. All features are built based on my understanding and value judgment of this matter. It's still being continuously improved, and I hope it brings you value. Thank you for your trust and support! Welcome to use it and give feedback, stay tuned~ 🙏",
+        github: "GitHub Project: https://github.com/ginger4soda-netizen/Snaplex (If you find it useful, please give me a ⭐️)"
+      },
+      important: {
+        title: "⚠️ Must Read Before Use",
+        apiKey: {
+          title: "1. You Need Your Own AI API Key",
+          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\\n• More Privacy: Images and data don't pass through third-party servers\\n• More Transparency: You directly control AI service usage and costs\\n• Configuration Required: You need to register with AI providers and obtain keys",
+          tipTitle: "💡 AI Model Provider Guide",
+          tipDesc: "Different models produce prompts of varying quality. Please compare and judge after use, and combine with free plans as needed~",
+          table: [
+            ["Provider", "Free Tier", "Best For"],
+            ["Google", "Very limited daily quota (5/min, 20/day)", "Users who already have cards linked in Google AI Studio"],
+            ["SiliconFlow", "GLM model free but slow; Qwen model fast with minimal token usage (20M tokens on signup = essentially free)", "Domestic users who want free usage"],
+            ["OpenAI", "Pay-per-use", "Those who want GPT model and willing to pay for API"],
+            ["Anthropic", "Pay-per-use", "Those who want Claude model and willing to pay for API"]
+          ]
+        },
+        storage: {
+          title: "2. Data Stored Locally in Your Browser",
+          desc: "All images, analysis results, and chat history are saved in your browser's IndexedDB (storage limit depends on your browser and device). This means I cannot access any of your data, and even if the server goes down, your history is unaffected.",
+          warning: "⚠️ Clearing browser cache = Losing ALL history",
+          scenariosTitle: "Common triggering scenarios:",
+          scenario1: "Manually clearing browser data",
+          scenario2: "Using 'Private/Incognito Mode' (data cleared when window closes)",
+          scenario3: "Browser updates or system reinstallation",
+          scenario4: "Switching devices or browsers",
+          backupTitle: "💾 Important: Back up regularly!",
+          backupDesc: "Current version supports data export:",
+          backupStep1: "1. Go to the Library page",
+          backupStep2: "2. Click the Select button",
+          backupStep3: "3. Select All or Select New (unexported) images and prompts",
+          backupStep4: "4. Click Export button (Note: the button next to Export is Delete—don't click it by mistake!)",
+          exportNote: "The exported form contains 3 columns: Column 1 is the image thumbnail, Column 2 is the front-side language prompt, Column 3 is the back-side language prompt."
+        },
+        hosting: {
+          title: "3. Free Hosting, Occasionally Unavailable",
+          desc: "Snaplex is deployed on free servers to remain completely free and open-source. Under normal circumstances, it's stable most of the time. In extreme cases (traffic surge), there may be brief access slowdowns or rate limiting due to free server bandwidth limits (100GB/month). I'll monitor traffic and provide backup links if necessary. You can also deploy it to your own server and run locally."
+        }
+      },
+      quickstart: {
+        title: "👉 Quick Start",
+        stepsTitle: "4 Steps for First-Time Use",
+        step1: {
+          title: "Step 1",
+          desc: "Go to Settings page, select the model provider and corresponding model, get your own API key and fill it in. The API key will be saved in masked form in your local browser (saved by default once filled). No need to repeat this operation afterwards."
+        },
+        step2: {
+          title: "Step 2",
+          desc: "Set system language and card front/back languages. Each image will get prompts in two languages based on current settings (supports 7 languages)."
+        },
+        step3: {
+          title: "Step 3",
+          desc: "Return to home page, drag or click to upload images to the yellow panel (you can upload multiple images at once) → Wait for AI to analyze → View structured prompts"
+        },
+        step4: {
+          title: "Step 4",
+          desc: "Copy the dimension prompts you want to reference, or one-click copy multiple dimension prompts. You can select the one-click copy range in Settings."
+        },
+        devNote: {
+          title: "Developer Note",
+          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\\n\\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\\n\\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
+        },
+        advanced: {
+          title: "Explore Advanced Features",
+          refresh: "Refresh Button: Regenerate prompts for a specific dimension",
+          chat: "Chat Mode: Deeply inquire about visual details, explore tag usage, add your own preset tags",
+          history: "History: Search past inspirations, extract prompt corpus",
+          printer: "Term Printer: Mine professional terminology"
+        }
+      },
+      practices: {
+        title: "✨ Best Practices",
+        backup: "Back up regularly",
+        testKey: "Test API Key: Verify configuration with a simple image first",
+        search: "Use Search: Library history supports fuzzy search",
+        batch: "Batch Operations: Upload multiple images simultaneously"
+      },
+      faq: {
+        title: "❓ FAQ",
+        q1: "Is Snaplex free? Where might I need to pay?",
+        a1: "The tool itself is free, but if you use paid API services, you pay the API fees directly to the model providers—I cannot profit from this (so I specifically integrated free APIs so you can use it completely free). My intention is just to share a small tool I developed, to verify whether I can make something valuable to others starting from my own needs.",
+        q2: "Analysis failed or error. What's the cause? How to fix?",
+        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
+        q3: "How to switch language?",
+        a3: "The purple panel on home page allows quick switching of interface language. For prompt card front/back languages, go to Settings page (supports Chinese/English/Japanese and 7 languages total).",
+        q4: "Multiple dimension prompts failed to parse, showing 'N/A'?",
+        a4: "Sometimes the model is lazy and doesn't return all field information. Just click the refresh button above the card that's missing prompts.",
+        q5: "Will version updates cause previously queried data to disappear?",
+        a5: "No, version updates won't clear your queried images and prompts, but system upgrades on your own device will. Please carefully read point 2 of Must Read Before Use regarding data storage and security.",
+        q6: "What does Style Preference in settings do?",
+        a6: "This is an entry I reserved for ideas not yet implemented. Currently, selecting different style preferences only affects the terminology preference of output prompts, but this module hasn't been extensively tested yet. Just select the default Standard style for now.",
+        q7: "How to use preset tags in chat mode?",
+        a7: "Click ➕ to customize your frequently used preset tags (such as useful image reverse-engineering instructions, prompts for extracting specific dimensions, etc.). All tags can be edited (right-click), deleted (long-press to activate delete state), and reordered (drag tags to your desired position, put frequently used ones at the front). After setting up tags, clicking a tag will send the corresponding question or instruction and get AI's answer based on the current image."
+      },
+      feedback: {
+        title: "✉️ Feedback Channels",
+        github: "GitHub Issues: Technical issues and feature suggestions",
+        social: "Social Media: Share your usage experience, problems encountered, and useful prompts you reverse-engineered",
+        meta: "Version: v9.5 | Updated: January 2026 | License: AGPL-3.0"
+      }
+    },
   },
 
   German: {
@@ -557,6 +1102,115 @@ export const translations = {
     loaderTitle: "Visuelle Dekodierung...", loaderSubtitle: "Lerne Stile beim Warten.",
     loaderDone: "Dekodierung Abgeschlossen", btnView: "Ergebnis Ansehen",
     miningTags: ["Subjekt", "Umgebung", "Komposition", "Beleuchtung", "Stimmung", "Stil", "Inspirationsseite", "Text & Schrift", "Material & Textur", "Kamera & Objektiv"],
+
+    // Documentation
+    doc: {
+      intro: {
+        title: "Welcome to Snaplex",
+        greeting: "Thank you for your interest in Snaplex!",
+        desc: "This is a free, open-source AI image analysis tool that runs entirely in your browser. It helps creators batch reverse-engineer image prompts, extract structured prompts, dive deeper into image details, and build personal visual prompt libraries.",
+        personal: "Snaplex is a small tool I independently developed to solve some of my own troubles in the AI image generation process. I believe that accurate and effective prompts are valuable assets in collaboration with AI. I also hope that visual inspiration in life can be more easily applied and migrated. All features are built based on my understanding and value judgment of this matter. It's still being continuously improved, and I hope it brings you value. Thank you for your trust and support! Welcome to use it and give feedback, stay tuned~ 🙏",
+        github: "GitHub Project: https://github.com/ginger4soda-netizen/Snaplex (If you find it useful, please give me a ⭐️)"
+      },
+      important: {
+        title: "⚠️ Must Read Before Use",
+        apiKey: {
+          title: "1. You Need Your Own AI API Key",
+          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\\n• More Privacy: Images and data don't pass through third-party servers\\n• More Transparency: You directly control AI service usage and costs\\n• Configuration Required: You need to register with AI providers and obtain keys",
+          tipTitle: "💡 AI Model Provider Guide",
+          tipDesc: "Different models produce prompts of varying quality. Please compare and judge after use, and combine with free plans as needed~",
+          table: [
+            ["Provider", "Free Tier", "Best For"],
+            ["Google", "Very limited daily quota (5/min, 20/day)", "Users who already have cards linked in Google AI Studio"],
+            ["SiliconFlow", "GLM model free but slow; Qwen model fast with minimal token usage (20M tokens on signup = essentially free)", "Domestic users who want free usage"],
+            ["OpenAI", "Pay-per-use", "Those who want GPT model and willing to pay for API"],
+            ["Anthropic", "Pay-per-use", "Those who want Claude model and willing to pay for API"]
+          ]
+        },
+        storage: {
+          title: "2. Data Stored Locally in Your Browser",
+          desc: "All images, analysis results, and chat history are saved in your browser's IndexedDB (storage limit depends on your browser and device). This means I cannot access any of your data, and even if the server goes down, your history is unaffected.",
+          warning: "⚠️ Clearing browser cache = Losing ALL history",
+          scenariosTitle: "Common triggering scenarios:",
+          scenario1: "Manually clearing browser data",
+          scenario2: "Using 'Private/Incognito Mode' (data cleared when window closes)",
+          scenario3: "Browser updates or system reinstallation",
+          scenario4: "Switching devices or browsers",
+          backupTitle: "💾 Important: Back up regularly!",
+          backupDesc: "Current version supports data export:",
+          backupStep1: "1. Go to the Library page",
+          backupStep2: "2. Click the Select button",
+          backupStep3: "3. Select All or Select New (unexported) images and prompts",
+          backupStep4: "4. Click Export button (Note: the button next to Export is Delete—don't click it by mistake!)",
+          exportNote: "The exported form contains 3 columns: Column 1 is the image thumbnail, Column 2 is the front-side language prompt, Column 3 is the back-side language prompt."
+        },
+        hosting: {
+          title: "3. Free Hosting, Occasionally Unavailable",
+          desc: "Snaplex is deployed on free servers to remain completely free and open-source. Under normal circumstances, it's stable most of the time. In extreme cases (traffic surge), there may be brief access slowdowns or rate limiting due to free server bandwidth limits (100GB/month). I'll monitor traffic and provide backup links if necessary. You can also deploy it to your own server and run locally."
+        }
+      },
+      quickstart: {
+        title: "👉 Quick Start",
+        stepsTitle: "4 Steps for First-Time Use",
+        step1: {
+          title: "Step 1",
+          desc: "Go to Settings page, select the model provider and corresponding model, get your own API key and fill it in. The API key will be saved in masked form in your local browser (saved by default once filled). No need to repeat this operation afterwards."
+        },
+        step2: {
+          title: "Step 2",
+          desc: "Set system language and card front/back languages. Each image will get prompts in two languages based on current settings (supports 7 languages)."
+        },
+        step3: {
+          title: "Step 3",
+          desc: "Return to home page, drag or click to upload images to the yellow panel (you can upload multiple images at once) → Wait for AI to analyze → View structured prompts"
+        },
+        step4: {
+          title: "Step 4",
+          desc: "Copy the dimension prompts you want to reference, or one-click copy multiple dimension prompts. You can select the one-click copy range in Settings."
+        },
+        devNote: {
+          title: "Developer Note",
+          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\\n\\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\\n\\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
+        },
+        advanced: {
+          title: "Explore Advanced Features",
+          refresh: "Refresh Button: Regenerate prompts for a specific dimension",
+          chat: "Chat Mode: Deeply inquire about visual details, explore tag usage, add your own preset tags",
+          history: "History: Search past inspirations, extract prompt corpus",
+          printer: "Term Printer: Mine professional terminology"
+        }
+      },
+      practices: {
+        title: "✨ Best Practices",
+        backup: "Back up regularly",
+        testKey: "Test API Key: Verify configuration with a simple image first",
+        search: "Use Search: Library history supports fuzzy search",
+        batch: "Batch Operations: Upload multiple images simultaneously"
+      },
+      faq: {
+        title: "❓ FAQ",
+        q1: "Is Snaplex free? Where might I need to pay?",
+        a1: "The tool itself is free, but if you use paid API services, you pay the API fees directly to the model providers—I cannot profit from this (so I specifically integrated free APIs so you can use it completely free). My intention is just to share a small tool I developed, to verify whether I can make something valuable to others starting from my own needs.",
+        q2: "Analysis failed or error. What's the cause? How to fix?",
+        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
+        q3: "How to switch language?",
+        a3: "The purple panel on home page allows quick switching of interface language. For prompt card front/back languages, go to Settings page (supports Chinese/English/Japanese and 7 languages total).",
+        q4: "Multiple dimension prompts failed to parse, showing 'N/A'?",
+        a4: "Sometimes the model is lazy and doesn't return all field information. Just click the refresh button above the card that's missing prompts.",
+        q5: "Will version updates cause previously queried data to disappear?",
+        a5: "No, version updates won't clear your queried images and prompts, but system upgrades on your own device will. Please carefully read point 2 of Must Read Before Use regarding data storage and security.",
+        q6: "What does Style Preference in settings do?",
+        a6: "This is an entry I reserved for ideas not yet implemented. Currently, selecting different style preferences only affects the terminology preference of output prompts, but this module hasn't been extensively tested yet. Just select the default Standard style for now.",
+        q7: "How to use preset tags in chat mode?",
+        a7: "Click ➕ to customize your frequently used preset tags (such as useful image reverse-engineering instructions, prompts for extracting specific dimensions, etc.). All tags can be edited (right-click), deleted (long-press to activate delete state), and reordered (drag tags to your desired position, put frequently used ones at the front). After setting up tags, clicking a tag will send the corresponding question or instruction and get AI's answer based on the current image."
+      },
+      feedback: {
+        title: "✉️ Feedback Channels",
+        github: "GitHub Issues: Technical issues and feature suggestions",
+        social: "Social Media: Share your usage experience, problems encountered, and useful prompts you reverse-engineered",
+        meta: "Version: v9.5 | Updated: January 2026 | License: AGPL-3.0"
+      }
+    },
   },
 
   Korean: {
@@ -622,6 +1276,115 @@ export const translations = {
     loaderTitle: "시각적 해독 중...", loaderSubtitle: "기다리는 동안 스타일 배우기",
     loaderDone: "해독 완료", btnView: "결과 보기",
     miningTags: ["주제", "환경", "구도", "조명", "무드", "스타일", "영감 사이트", "텍스트 & 폰트", "재질 & 텍스처", "카메라 & 렌즈"],
+
+    // Documentation
+    doc: {
+      intro: {
+        title: "Welcome to Snaplex",
+        greeting: "Thank you for your interest in Snaplex!",
+        desc: "This is a free, open-source AI image analysis tool that runs entirely in your browser. It helps creators batch reverse-engineer image prompts, extract structured prompts, dive deeper into image details, and build personal visual prompt libraries.",
+        personal: "Snaplex is a small tool I independently developed to solve some of my own troubles in the AI image generation process. I believe that accurate and effective prompts are valuable assets in collaboration with AI. I also hope that visual inspiration in life can be more easily applied and migrated. All features are built based on my understanding and value judgment of this matter. It's still being continuously improved, and I hope it brings you value. Thank you for your trust and support! Welcome to use it and give feedback, stay tuned~ 🙏",
+        github: "GitHub Project: https://github.com/ginger4soda-netizen/Snaplex (If you find it useful, please give me a ⭐️)"
+      },
+      important: {
+        title: "⚠️ Must Read Before Use",
+        apiKey: {
+          title: "1. You Need Your Own AI API Key",
+          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\\n• More Privacy: Images and data don't pass through third-party servers\\n• More Transparency: You directly control AI service usage and costs\\n• Configuration Required: You need to register with AI providers and obtain keys",
+          tipTitle: "💡 AI Model Provider Guide",
+          tipDesc: "Different models produce prompts of varying quality. Please compare and judge after use, and combine with free plans as needed~",
+          table: [
+            ["Provider", "Free Tier", "Best For"],
+            ["Google", "Very limited daily quota (5/min, 20/day)", "Users who already have cards linked in Google AI Studio"],
+            ["SiliconFlow", "GLM model free but slow; Qwen model fast with minimal token usage (20M tokens on signup = essentially free)", "Domestic users who want free usage"],
+            ["OpenAI", "Pay-per-use", "Those who want GPT model and willing to pay for API"],
+            ["Anthropic", "Pay-per-use", "Those who want Claude model and willing to pay for API"]
+          ]
+        },
+        storage: {
+          title: "2. Data Stored Locally in Your Browser",
+          desc: "All images, analysis results, and chat history are saved in your browser's IndexedDB (storage limit depends on your browser and device). This means I cannot access any of your data, and even if the server goes down, your history is unaffected.",
+          warning: "⚠️ Clearing browser cache = Losing ALL history",
+          scenariosTitle: "Common triggering scenarios:",
+          scenario1: "Manually clearing browser data",
+          scenario2: "Using 'Private/Incognito Mode' (data cleared when window closes)",
+          scenario3: "Browser updates or system reinstallation",
+          scenario4: "Switching devices or browsers",
+          backupTitle: "💾 Important: Back up regularly!",
+          backupDesc: "Current version supports data export:",
+          backupStep1: "1. Go to the Library page",
+          backupStep2: "2. Click the Select button",
+          backupStep3: "3. Select All or Select New (unexported) images and prompts",
+          backupStep4: "4. Click Export button (Note: the button next to Export is Delete—don't click it by mistake!)",
+          exportNote: "The exported form contains 3 columns: Column 1 is the image thumbnail, Column 2 is the front-side language prompt, Column 3 is the back-side language prompt."
+        },
+        hosting: {
+          title: "3. Free Hosting, Occasionally Unavailable",
+          desc: "Snaplex is deployed on free servers to remain completely free and open-source. Under normal circumstances, it's stable most of the time. In extreme cases (traffic surge), there may be brief access slowdowns or rate limiting due to free server bandwidth limits (100GB/month). I'll monitor traffic and provide backup links if necessary. You can also deploy it to your own server and run locally."
+        }
+      },
+      quickstart: {
+        title: "👉 Quick Start",
+        stepsTitle: "4 Steps for First-Time Use",
+        step1: {
+          title: "Step 1",
+          desc: "Go to Settings page, select the model provider and corresponding model, get your own API key and fill it in. The API key will be saved in masked form in your local browser (saved by default once filled). No need to repeat this operation afterwards."
+        },
+        step2: {
+          title: "Step 2",
+          desc: "Set system language and card front/back languages. Each image will get prompts in two languages based on current settings (supports 7 languages)."
+        },
+        step3: {
+          title: "Step 3",
+          desc: "Return to home page, drag or click to upload images to the yellow panel (you can upload multiple images at once) → Wait for AI to analyze → View structured prompts"
+        },
+        step4: {
+          title: "Step 4",
+          desc: "Copy the dimension prompts you want to reference, or one-click copy multiple dimension prompts. You can select the one-click copy range in Settings."
+        },
+        devNote: {
+          title: "Developer Note",
+          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\\n\\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\\n\\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
+        },
+        advanced: {
+          title: "Explore Advanced Features",
+          refresh: "Refresh Button: Regenerate prompts for a specific dimension",
+          chat: "Chat Mode: Deeply inquire about visual details, explore tag usage, add your own preset tags",
+          history: "History: Search past inspirations, extract prompt corpus",
+          printer: "Term Printer: Mine professional terminology"
+        }
+      },
+      practices: {
+        title: "✨ Best Practices",
+        backup: "Back up regularly",
+        testKey: "Test API Key: Verify configuration with a simple image first",
+        search: "Use Search: Library history supports fuzzy search",
+        batch: "Batch Operations: Upload multiple images simultaneously"
+      },
+      faq: {
+        title: "❓ FAQ",
+        q1: "Is Snaplex free? Where might I need to pay?",
+        a1: "The tool itself is free, but if you use paid API services, you pay the API fees directly to the model providers—I cannot profit from this (so I specifically integrated free APIs so you can use it completely free). My intention is just to share a small tool I developed, to verify whether I can make something valuable to others starting from my own needs.",
+        q2: "Analysis failed or error. What's the cause? How to fix?",
+        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
+        q3: "How to switch language?",
+        a3: "The purple panel on home page allows quick switching of interface language. For prompt card front/back languages, go to Settings page (supports Chinese/English/Japanese and 7 languages total).",
+        q4: "Multiple dimension prompts failed to parse, showing 'N/A'?",
+        a4: "Sometimes the model is lazy and doesn't return all field information. Just click the refresh button above the card that's missing prompts.",
+        q5: "Will version updates cause previously queried data to disappear?",
+        a5: "No, version updates won't clear your queried images and prompts, but system upgrades on your own device will. Please carefully read point 2 of Must Read Before Use regarding data storage and security.",
+        q6: "What does Style Preference in settings do?",
+        a6: "This is an entry I reserved for ideas not yet implemented. Currently, selecting different style preferences only affects the terminology preference of output prompts, but this module hasn't been extensively tested yet. Just select the default Standard style for now.",
+        q7: "How to use preset tags in chat mode?",
+        a7: "Click ➕ to customize your frequently used preset tags (such as useful image reverse-engineering instructions, prompts for extracting specific dimensions, etc.). All tags can be edited (right-click), deleted (long-press to activate delete state), and reordered (drag tags to your desired position, put frequently used ones at the front). After setting up tags, clicking a tag will send the corresponding question or instruction and get AI's answer based on the current image."
+      },
+      feedback: {
+        title: "✉️ Feedback Channels",
+        github: "GitHub Issues: Technical issues and feature suggestions",
+        social: "Social Media: Share your usage experience, problems encountered, and useful prompts you reverse-engineered",
+        meta: "Version: v9.5 | Updated: January 2026 | License: AGPL-3.0"
+      }
+    },
   }
 };
 

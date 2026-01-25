@@ -236,6 +236,7 @@ const App: React.FC = () => {
             isAnalyzing={loading}
             analysisProgress={analysisProgress}
             onLanguageChange={(lang) => handleSaveSettings({ ...settings, systemLanguage: lang })}
+            onOpenSettings={() => setMode('settings')}
           />
         )}
 
