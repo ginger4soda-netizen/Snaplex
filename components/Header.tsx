@@ -90,7 +90,7 @@ const Header: React.FC<HeaderProps> = ({ currentMode, setMode }) => {
                     {/* Center: Logo / SNAPLEX */}
                     <button
                         onClick={() => setMode('home')}
-                        className={`px-10 py-2.5 bg-white hover:bg-cream transition-colors border-x border-transparent`}
+                        className={`px-6 py-2.5 bg-white hover:bg-cream transition-colors border-x border-transparent`}
                     >
                         <span className={`text-xl font-normal transition-colors ${getTextColor('home', 'text-softblue')}`} style={{ fontFamily: "'Archivo Black', sans-serif" }}>
                             Snaplex
