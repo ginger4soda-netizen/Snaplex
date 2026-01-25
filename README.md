@@ -87,6 +87,70 @@ Snaplex uses **Client-Side Storage** for API keys. You do **not** need to set up
 -   **State/Storage**: IndexedDB (idb-keyval)
 -   **Markdown**: React Markdown
 
-## License
+## License & Business Model
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Snaplex 采用 **双重授权模式 (Dual Licensing)**，旨在平衡开源社区的繁荣与项目的可持续发展。
+
+### 🔓 对于开源社区/个人用户
+
+**核心代码** 基于 **GNU Affero通用公共许可证 v3 (AGPL-3.0)** 开源：
+
+```
+Copyright (c) 2025-present Snaplex Contributors
+Licensed under AGPL-3.0
+```
+
+**您可以自由地：**
+- ✅ 使用、修改、分发本软件
+- ✅ 用于个人学习、研究或商业项目
+
+**但您必须遵守：**
+- ⚠️ **强制开源义务**：如果您修改代码后提供网络服务（如 SaaS）或分发修改版本，**必须以 AGPL-3.0 协议公开您的全部源代码**
+- ⚠️ **传染性条款**：任何与 Snaplex 核心代码链接或集成的软件，也必须遵循 AGPL-3.0
+
+> [!IMPORTANT]
+> **AGPL-3.0 != 禁止商业使用**  
+> 该协议禁止的是**闭源商业化**（即使用我们的代码构建闭源产品），而非商业使用本身。
+> 如果您需要将 Snaplex 集成到闭源产品中，请查看下方的商业授权选项。
+
+### 💼 对于企业/商业客户
+
+如果您的业务场景包括：
+- 🏢 将 Snaplex 集成到专有/闭源软件产品中
+- 🔒 不希望公开您的源代码或商业逻辑
+- 🚀 需要技术支持、定制开发或 SLA 保障
+
+您需要购买 **商业授权 (Commercial License)**，它将授予您：
+- ✅ **豁免 AGPL-3.0 的开源义务**
+- ✅ 保留代码私有的权利
+- ✅ 企业级技术支持与优先更新
+- ✅ 法律合规保障
+
+**商业授权咨询：**  
+📧 Email: ginger4soda@gmail.com
+
+---
+
+### 🤝 贡献者须知
+
+**重要：代码版权协议 (CLA)**
+
+为了维持双重授权模式的法律有效性，所有外部贡献者在提交代码前必须签署 **贡献者许可协议 (Contributor License Agreement, CLA)**。
+
+> [!CAUTION]
+> **为什么需要 CLA？**  
+> 双重授权要求项目拥有代码的完整版权。CLA 确保您授权项目维护者：
+> 1. 将您的贡献以 AGPL-3.0 开源
+> 2. 将您的贡献纳入商业授权版本
+>
+> **不签署 CLA 的后果：** 您的 Pull Request 将无法被合并。
+
+CLA 文档与签署流程请参阅：[CLA.md](./CLA.md)
+
+---
+
+### 📖 完整条款
+
+- AGPL-3.0 许可证全文：[LICENSE](./LICENSE)
+- 商业授权示例协议：联系商务团队获取
+- 贡献者许可协议：[CLA.md](./CLA.md)
