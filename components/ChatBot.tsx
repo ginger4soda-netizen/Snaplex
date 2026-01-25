@@ -257,10 +257,10 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
 
     return (
         <div className="flex flex-col h-full bg-cream overflow-hidden" onClick={deleteMode ? handleExitDeleteMode : undefined}>
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth pb-10">
+            <div className="flex-1 overflow-y-auto px-6 pt-12 pb-10 space-y-6 scroll-smooth">
                 {messages.map((msg, index) => (
                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-[fadeIn_0.3s_ease-out]`}>
-                        <div className={`relative max-w-[90%] p-4 rounded-2xl shadow-sm text-[15px] leading-relaxed group ${msg.role === 'user' ? 'bg-stone-800 text-white rounded-tr-none' : 'bg-white text-stone-800 rounded-tl-none border border-stone-100 pb-8'}`}>
+                        <div className={`relative max-w-[90%] px-5 py-3.5 rounded-2xl shadow-sm text-[15px] leading-relaxed group ${msg.role === 'user' ? 'bg-stone-800 text-white rounded-tr-none' : `bg-white text-stone-800 rounded-tl-none border border-stone-100 ${index > 0 ? 'pb-8' : ''}`}`}>
                             <MarkdownRenderer>{msg.text}</MarkdownRenderer>
                             {msg.role === 'model' && loading && msg.id === messages[messages.length - 1].id && msg.text === '' && (
                                 <span className="inline-flex gap-1 ml-1">
