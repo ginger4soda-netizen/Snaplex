@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
+    "@sentry/react": "^10.36.0",
+    "@vercel/analytics": "^1.6.1",
     "html2canvas": "^1.4.1",
     "idb-keyval": "^6.2.2",
     "react": "^19.2.0",

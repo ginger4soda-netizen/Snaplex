@@ -2,6 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css'; // Import Tailwind Styles
 import App from './App';
+import { initObservability } from './observability';
+
+// 🔭 Initialize Observability (Vercel Analytics + Sentry + Performance)
+initObservability();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

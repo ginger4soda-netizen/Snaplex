@@ -5,7 +5,8 @@
 // The actual implementations are in ./providers/
 
 import { AnalysisResult, UserSettings, ChatMessage, HistoryItem, DimensionKey, PromptSegment } from "../types";
-import { getProvider, TermExplanation } from "./providers";
+import { getProvider, TermExplanation, getCurrentProvider, getCurrentModel } from "./providers";
+import { trackError, trackApiStatus, trackPerformance } from "../observability";
 
 // Re-export types for backward compatibility
 export type { TermExplanation } from "./providers";
@@ -16,10 +17,38 @@ export const analyzeImage = async (
   base64Image: string,
   settings: UserSettings
 ): Promise<AnalysisResult> => {
+  const providerName = getCurrentProvider();
+  const modelName = getCurrentModel();
+
+  // 🔭 Start performance tracking
+  trackPerformance.analysisStart();
+
   try {
     const provider = getProvider();
-    return await provider.analyzeImage(base64Image, settings);
+    const result = await provider.analyzeImage(base64Image, settings);
+
+    // 🔭 Track success
+    trackApiStatus(providerName, modelName, 'success');
+    trackPerformance.analysisEnd(modelName, providerName);
+
+    return result;
   } catch (error) {
+    // 🔭 Track failure
+    const err = error as Error;
+    const httpStatus = (err as any).status || (err as any).statusCode;
+
+    trackApiStatus(providerName, modelName, 'error', httpStatus);
+    trackPerformance.analysisEnd(modelName, providerName);
+
+    trackError(err, {
+      provider: providerName,
+      model_name: modelName,
+      api_status: 'error',
+      error_type: err.name || 'AnalysisError',
+      http_status: httpStatus,
+      image_count: 1,
+    });
+
     console.error("Analysis failed:", error);
     throw error;
   }
@@ -86,10 +115,40 @@ export const sendChatMessageStream = async (
   onUpdate: (text: string) => void,
   settings?: UserSettings
 ): Promise<void> => {
+  const providerName = getCurrentProvider();
+  const modelName = getCurrentModel();
+  let firstToken = true;
+
+  // 🔭 Start chat performance tracking
+  trackPerformance.chatMessageStart();
+
   try {
     const provider = getProvider();
-    await provider.chatStream(history, message, image, onUpdate, settings);
+    await provider.chatStream(history, message, image, (text) => {
+      // 🔭 Track time to first token
+      if (firstToken && text.length > 0) {
+        trackPerformance.chatFirstToken();
+        firstToken = false;
+      }
+      onUpdate(text);
+    }, settings);
+
+    // 🔭 Track chat completion
+    trackPerformance.chatMessageEnd();
+    trackApiStatus(providerName, modelName, 'success');
+
   } catch (e: any) {
+    trackPerformance.chatMessageEnd();
+    trackApiStatus(providerName, modelName, 'error', e.status);
+
+    trackError(e, {
+      provider: providerName,
+      model_name: modelName,
+      api_status: 'error',
+      error_type: 'ChatStreamError',
+      prompt_length: message.length,
+    });
+
     console.error("Chat Stream Error:", e);
     if (e.message === "MISSING_API_KEY") {
       onUpdate("Please set your API Key in Settings.");
@@ -105,20 +164,65 @@ export const regenerateDimension = async (
   dimension: DimensionKey,
   settings: UserSettings
 ): Promise<PromptSegment> => {
+  const providerName = getCurrentProvider();
+  const modelName = getCurrentModel();
+
+  // 🔭 Track dimension refresh performance
+  trackPerformance.dimensionRefreshStart(dimension);
+
   try {
     const provider = getProvider();
-    return await provider.regenerateDimension(base64Image, dimension, settings);
+    const result = await provider.regenerateDimension(base64Image, dimension, settings);
+
+    trackPerformance.dimensionRefreshEnd(dimension, modelName);
+    trackApiStatus(providerName, modelName, 'success');
+
+    return result;
   } catch (error) {
+    const err = error as Error;
+    trackPerformance.dimensionRefreshEnd(dimension, modelName);
+    trackApiStatus(providerName, modelName, 'error');
+
+    trackError(err, {
+      provider: providerName,
+      model_name: modelName,
+      api_status: 'error',
+      error_type: 'DimensionRefreshError',
+      dimension: dimension,
+    });
+
     console.error(`Regeneration failed for ${dimension}:`, error);
     throw error;
   }
 };
 
 export const explainVisualTerm = async (term: string, language: string): Promise<TermExplanation> => {
+  const providerName = getCurrentProvider();
+  const modelName = getCurrentModel();
+
+  // 🔭 Track term explanation performance
+  trackPerformance.termExplainStart();
+
   try {
     const provider = getProvider();
-    return await provider.explainTerm(term, language);
+    const result = await provider.explainTerm(term, language);
+
+    trackPerformance.termExplainEnd(term);
+    trackApiStatus(providerName, modelName, 'success');
+
+    return result;
   } catch (error) {
+    trackPerformance.termExplainEnd(term);
+    trackApiStatus(providerName, modelName, 'error');
+
+    const err = error as Error;
+    trackError(err, {
+      provider: providerName,
+      model_name: modelName,
+      api_status: 'error',
+      error_type: 'TermExplainError',
+    });
+
     console.error("Explain term failed:", error);
     const errorMessage = (error as any).message || String(error);
 
