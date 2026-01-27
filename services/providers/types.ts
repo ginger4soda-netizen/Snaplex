@@ -52,7 +52,7 @@ export interface ModelDefinition {
 export const PROVIDER_MODELS: Record<ProviderType, ModelDefinition[]> = {
     gemini: [
         { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recommended)', supportsVision: true },
-        { id: 'gemini-3.0-flash', label: 'Gemini 3.0 Flash (Experimental)', supportsVision: true },
+        { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview (Experimental)', supportsVision: true },
     ],
     openai: [
         { id: 'gpt-4o', label: 'GPT-4o (Recommended)', supportsVision: true },
@@ -66,8 +66,9 @@ export const PROVIDER_MODELS: Record<ProviderType, ModelDefinition[]> = {
     ],
     siliconflow: [
         { id: 'THUDM/GLM-4.1V-9B-Thinking', label: 'GLM-4.1V 9B Thinking (Free)', supportsVision: true },
+        { id: 'zai-org/GLM-4.5V', label: 'GLM-4.5V (Paid)', supportsVision: true },
         { id: 'Pro/Qwen/Qwen2.5-VL-7B-Instruct', label: 'Qwen2.5-VL 7B (Pro)', supportsVision: true },
-        { id: 'Qwen/Qwen3-VL-8B-Instruct', label: 'Qwen3-VL 8B', supportsVision: true },
+        { id: 'Qwen/Qwen2.5-VL-32B-Instruct', label: 'Qwen2.5-VL 32B', supportsVision: true },
     ],
 
 };
