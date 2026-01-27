@@ -32,7 +32,7 @@ const PROVIDER_KEY_LINKS: Record<ProviderType, { url: string; label: string }> =
     gemini: { url: 'https://aistudio.google.com/app/apikey', label: 'GET FREE KEY →' },
     openai: { url: 'https://platform.openai.com/api-keys', label: 'GET API KEY →' },
     claude: { url: 'https://console.anthropic.com/settings/keys', label: 'GET API KEY →' },
-    siliconflow: { url: 'https://cloud.siliconflow.cn/account/ak', label: 'GET API KEY →' },
+    siliconflow: { url: 'https://cloud.siliconflow.cn/i/CKcgddfo', label: 'GET API KEY →' },
 };
 
 const STORED_MODULE_KEYS = ["Subject", "Environment", "Composition", "Lighting", "Mood", "Style"];

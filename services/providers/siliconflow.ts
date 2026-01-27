@@ -215,6 +215,15 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
         const modelName = getCurrentModel();
         console.log('⏱️ [Dimension] Using model:', modelName);
 
+        // Determine format instruction based on dimension type
+        const isTagBased = ['composition', 'lighting', 'mood', 'style'].includes(dimension);
+        const formatInstruction = isTagBased
+            ? "Return a comprehensive list of comma-separated TAGS (no sentences)."
+            : "Return detailed, descriptive SENTENCES (at least 3 sentences).";
+
+        // Construct robust user prompt to force adherence
+        const userPrompt = `Analyze the [${dimension}] of this image. ${formatInstruction} Output STRICT JSON.`;
+
         console.time('⏱️ [Dimension] 2. API call');
         const response = await fetch(SILICONFLOW_API_URL, {
             method: 'POST',
@@ -230,7 +239,7 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
                         role: 'user',
                         content: [
                             { type: 'image_url', image_url: { url: imageData } },
-                            { type: 'text', text: "Analyze this image according to the instructions. Remember: TAGS for Style/Composition/Lighting/Mood. SENTENCES for Subject/Environment. Output STRICT JSON." }
+                            { type: 'text', text: userPrompt }
                         ]
                     }
                 ],
