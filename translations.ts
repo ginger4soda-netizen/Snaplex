@@ -493,7 +493,7 @@ export const translations = {
         q1: "Snaplex是免费的吗？有可能在哪里需要付费？",
         a1: "工具本身是免费的，但如果要使用付费的api服务，用户得自己支付api的费用，这个费用是直接付给模型厂商的，我无法从中获得收益（所以我特意接入了免费的api，让您可以在完全免费的模式下使用）。我的本意只是分享一个自己开发的小工具，验证我是否能从自己的需求出发做出对别人也有价值的产品，看自己能vibe coding到什么程度。",
         q2: "分析失败或报错是什么原因？如何解决？",
-        a2: "检查网络连接、API Key 填写是否正确、API Key 有效性、AI 提供商区域限制。\\n• 如果是VPN问题，请更换VPN节点后重试。VPN节点需要干净且在AI 提供商的可访问区域。\\n• 如果是api key触达免费使用限额，可以更换成免费的ai模型提供商（siliconflow），或者开通高级模型的付费api。\\n• 检查api key是否填写错误或是否对应错模型提供商，比如多了空格，或把google的api填写到了openai的下方。",
+        a2: "检查网络连接、API Key 填写是否正确、API Key 有效性、AI 提供商区域限制。\n• 如果是VPN问题，请更换VPN节点后重试。VPN节点需要干净且在AI 提供商的可访问区域。\n• 如果是api key触达免费使用限额，可以更换成免费的ai模型提供商（siliconflow），或者开通高级模型的付费api。\n• 检查api key是否填写错误或是否对应错模型提供商，比如多了空格，或把google的api填写到了openai的下方。",
         q3: "如何切换语言？",
         a3: "首页紫色面板可快速切换界面语言，提示词卡片正反面语言请到设置页面选择（支持中/英/日等7种语言）。",
         q4: "多个维度提示词解析失败，出现'N/A'？",
@@ -592,7 +592,7 @@ export const translations = {
         title: "⚠️ Must Read Before Use",
         apiKey: {
           title: "1. You Need Your Own AI API Key",
-          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\\n• More Privacy: Images and data don't pass through third-party servers\\n• More Transparency: You directly control AI service usage and costs\\n• Configuration Required: You need to register with AI providers and obtain keys",
+          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\n• More Privacy: Images and data don't pass through third-party servers\n• More Transparency: You directly control AI service usage and costs\n• Configuration Required: You need to register with AI providers and obtain keys",
           tipTitle: "💡 AI Model Provider Guide",
           tipDesc: "Different models produce prompts of varying quality. Please compare and judge after use, and combine with free plans as needed~",
           table: [
@@ -646,7 +646,7 @@ export const translations = {
         },
         devNote: {
           title: "Developer Note",
-          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\\n\\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\\n\\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
+          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\n\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\n\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
         },
         advanced: {
           title: "Explore Advanced Features",
@@ -668,7 +668,7 @@ export const translations = {
         q1: "Is Snaplex free? Where might I need to pay?",
         a1: "The tool itself is free, but if you use paid API services, you pay the API fees directly to the model providers—I cannot profit from this (so I specifically integrated free APIs so you can use it completely free). My intention is just to share a small tool I developed, to verify whether I can make something valuable to others starting from my own needs.",
         q2: "Analysis failed or error. What's the cause? How to fix?",
-        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
+        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
         q3: "How to switch language?",
         a3: "The purple panel on home page allows quick switching of interface language. For prompt card front/back languages, go to Settings page (supports Chinese/English/Japanese and 7 languages total).",
         q4: "Multiple dimension prompts failed to parse, showing 'N/A'?",
@@ -767,7 +767,7 @@ export const translations = {
         title: "⚠️ Must Read Before Use",
         apiKey: {
           title: "1. You Need Your Own AI API Key",
-          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\\n• More Privacy: Images and data don't pass through third-party servers\\n• More Transparency: You directly control AI service usage and costs\\n• Configuration Required: You need to register with AI providers and obtain keys",
+          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\n• More Privacy: Images and data don't pass through third-party servers\n• More Transparency: You directly control AI service usage and costs\n• Configuration Required: You need to register with AI providers and obtain keys",
           tipTitle: "💡 AI Model Provider Guide",
           tipDesc: "Different models produce prompts of varying quality. Please compare and judge after use, and combine with free plans as needed~",
           table: [
@@ -821,7 +821,7 @@ export const translations = {
         },
         devNote: {
           title: "Developer Note",
-          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\\n\\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\\n\\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
+          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\n\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\n\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
         },
         advanced: {
           title: "Explore Advanced Features",
@@ -843,7 +843,7 @@ export const translations = {
         q1: "Is Snaplex free? Where might I need to pay?",
         a1: "The tool itself is free, but if you use paid API services, you pay the API fees directly to the model providers—I cannot profit from this (so I specifically integrated free APIs so you can use it completely free). My intention is just to share a small tool I developed, to verify whether I can make something valuable to others starting from my own needs.",
         q2: "Analysis failed or error. What's the cause? How to fix?",
-        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
+        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
         q3: "How to switch language?",
         a3: "The purple panel on home page allows quick switching of interface language. For prompt card front/back languages, go to Settings page (supports Chinese/English/Japanese and 7 languages total).",
         q4: "Multiple dimension prompts failed to parse, showing 'N/A'?",
@@ -942,7 +942,7 @@ export const translations = {
         title: "⚠️ Must Read Before Use",
         apiKey: {
           title: "1. You Need Your Own AI API Key",
-          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\\n• More Privacy: Images and data don't pass through third-party servers\\n• More Transparency: You directly control AI service usage and costs\\n• Configuration Required: You need to register with AI providers and obtain keys",
+          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\n• More Privacy: Images and data don't pass through third-party servers\n• More Transparency: You directly control AI service usage and costs\n• Configuration Required: You need to register with AI providers and obtain keys",
           tipTitle: "💡 AI Model Provider Guide",
           tipDesc: "Different models produce prompts of varying quality. Please compare and judge after use, and combine with free plans as needed~",
           table: [
@@ -996,7 +996,7 @@ export const translations = {
         },
         devNote: {
           title: "Developer Note",
-          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\\n\\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\\n\\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
+          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\n\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\n\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
         },
         advanced: {
           title: "Explore Advanced Features",
@@ -1018,7 +1018,7 @@ export const translations = {
         q1: "Is Snaplex free? Where might I need to pay?",
         a1: "The tool itself is free, but if you use paid API services, you pay the API fees directly to the model providers—I cannot profit from this (so I specifically integrated free APIs so you can use it completely free). My intention is just to share a small tool I developed, to verify whether I can make something valuable to others starting from my own needs.",
         q2: "Analysis failed or error. What's the cause? How to fix?",
-        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
+        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
         q3: "How to switch language?",
         a3: "The purple panel on home page allows quick switching of interface language. For prompt card front/back languages, go to Settings page (supports Chinese/English/Japanese and 7 languages total).",
         q4: "Multiple dimension prompts failed to parse, showing 'N/A'?",
@@ -1116,7 +1116,7 @@ export const translations = {
         title: "⚠️ Must Read Before Use",
         apiKey: {
           title: "1. You Need Your Own AI API Key",
-          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\\n• More Privacy: Images and data don't pass through third-party servers\\n• More Transparency: You directly control AI service usage and costs\\n• Configuration Required: You need to register with AI providers and obtain keys",
+          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\n• More Privacy: Images and data don't pass through third-party servers\n• More Transparency: You directly control AI service usage and costs\n• Configuration Required: You need to register with AI providers and obtain keys",
           tipTitle: "💡 AI Model Provider Guide",
           tipDesc: "Different models produce prompts of varying quality. Please compare and judge after use, and combine with free plans as needed~",
           table: [
@@ -1170,7 +1170,7 @@ export const translations = {
         },
         devNote: {
           title: "Developer Note",
-          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\\n\\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\\n\\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
+          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\n\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\n\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
         },
         advanced: {
           title: "Explore Advanced Features",
@@ -1192,7 +1192,7 @@ export const translations = {
         q1: "Is Snaplex free? Where might I need to pay?",
         a1: "The tool itself is free, but if you use paid API services, you pay the API fees directly to the model providers—I cannot profit from this (so I specifically integrated free APIs so you can use it completely free). My intention is just to share a small tool I developed, to verify whether I can make something valuable to others starting from my own needs.",
         q2: "Analysis failed or error. What's the cause? How to fix?",
-        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
+        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
         q3: "How to switch language?",
         a3: "The purple panel on home page allows quick switching of interface language. For prompt card front/back languages, go to Settings page (supports Chinese/English/Japanese and 7 languages total).",
         q4: "Multiple dimension prompts failed to parse, showing 'N/A'?",
@@ -1290,7 +1290,7 @@ export const translations = {
         title: "⚠️ Must Read Before Use",
         apiKey: {
           title: "1. You Need Your Own AI API Key",
-          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\\n• More Privacy: Images and data don't pass through third-party servers\\n• More Transparency: You directly control AI service usage and costs\\n• Configuration Required: You need to register with AI providers and obtain keys",
+          desc: "Snaplex is not a traditional SaaS service—it's a toolbox that requires your own AI API key. Because Snaplex calls AI services directly from your browser (like Gemini, OpenAI, etc.), I don't provide a relay server. This means:\n• More Privacy: Images and data don't pass through third-party servers\n• More Transparency: You directly control AI service usage and costs\n• Configuration Required: You need to register with AI providers and obtain keys",
           tipTitle: "💡 AI Model Provider Guide",
           tipDesc: "Different models produce prompts of varying quality. Please compare and judge after use, and combine with free plans as needed~",
           table: [
@@ -1344,7 +1344,7 @@ export const translations = {
         },
         devNote: {
           title: "Developer Note",
-          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\\n\\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\\n\\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
+          desc: "Each image has 6 dimension prompts: Subject, Environment, Composition, Lighting/Color, Mood/Atmosphere, Aesthetic Style.\n\nThis is because all AI image generation models demonstrate in advanced prompt cases that prompts containing these dimensions greatly improve AI image quality.\n\nThe reverse-engineering instructions I set in the system aim to make the model accurately restore these dimensions of the uploaded image with details. However, different models have varying adherence to instructions. I spent a lot of time testing prompt quality from different models. Now even free models produce decent quality, but there are still occasional inaccuracies (e.g., overhead shots recognized as eye-level). When using, it's recommended to review AI results and correct inaccuracies. This is also an important skill in collaborating with AI: the ability to review and correct AI outputs."
         },
         advanced: {
           title: "Explore Advanced Features",
@@ -1366,7 +1366,7 @@ export const translations = {
         q1: "Is Snaplex free? Where might I need to pay?",
         a1: "The tool itself is free, but if you use paid API services, you pay the API fees directly to the model providers—I cannot profit from this (so I specifically integrated free APIs so you can use it completely free). My intention is just to share a small tool I developed, to verify whether I can make something valuable to others starting from my own needs.",
         q2: "Analysis failed or error. What's the cause? How to fix?",
-        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
+        a2: "Check network connection, whether API Key is correctly filled, API Key validity, AI provider regional restrictions.\n• If it's a VPN issue, try switching VPN nodes. VPN nodes need to be clean and in the AI provider's accessible region.\n• If API key hit free usage limit, switch to a free AI model provider (SiliconFlow), or subscribe to paid API for advanced models.\n• Check if API key is entered incorrectly or mismatched with provider, such as extra spaces, or Google API entered under OpenAI.",
         q3: "How to switch language?",
         a3: "The purple panel on home page allows quick switching of interface language. For prompt card front/back languages, go to Settings page (supports Chinese/English/Japanese and 7 languages total).",
         q4: "Multiple dimension prompts failed to parse, showing 'N/A'?",
