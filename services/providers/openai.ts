@@ -1,6 +1,7 @@
 import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey } from '../../types';
 import { AIProvider, TermExplanation, getApiKey, getCurrentModel } from './types';
 import { getMasterAnalysisPrompt } from './masterPrompt';
+import { safeParseJSON } from '../../utils/jsonParser';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
@@ -8,9 +9,12 @@ export class OpenAIProvider implements AIProvider {
 
     readonly name = 'openai';
 
-    private getHeaders() {
+    private getHeaders(): HeadersInit {
         const apiKey = getApiKey('openai');
-        if (!apiKey) throw new Error("MISSING_API_KEY");
+        // Defensive validation to prevent TypeError in fetch
+        if (!apiKey || typeof apiKey !== 'string' || apiKey.trim() === '') {
+            throw new Error("MISSING_API_KEY");
+        }
         return {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`
@@ -51,7 +55,7 @@ export class OpenAIProvider implements AIProvider {
         const data = await response.json();
         const text = data.choices?.[0]?.message?.content;
         if (!text) throw new Error("No response from OpenAI");
-        return JSON.parse(text) as AnalysisResult;
+        return safeParseJSON(text, {} as AnalysisResult);
     }
 
     async explainTerm(term: string, language: string): Promise<TermExplanation> {
@@ -76,11 +80,12 @@ Output JSON: { "def": "...", "app": "..." }`;
         });
 
         if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
             if (response.status === 403) throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
-            throw new Error("OpenAI API error");
+            throw new Error(errorData.error?.message || `OpenAI API error (${response.status})`);
         }
         const data = await response.json();
-        return JSON.parse(data.choices?.[0]?.message?.content || '{}') as TermExplanation;
+        return safeParseJSON(data.choices?.[0]?.message?.content || '{}', { def: '', app: '' } as TermExplanation);
     }
 
     async chatStream(
@@ -148,8 +153,9 @@ Output JSON: { "def": "...", "app": "..." }`;
         });
 
         if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
             if (response.status === 403) throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
-            throw new Error("OpenAI stream error");
+            throw new Error(errorData.error?.message || `OpenAI stream error (${response.status})`);
         }
 
         const reader = response.body?.getReader();
@@ -200,7 +206,7 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
 
         if (!response.ok) return [];
         const data = await response.json();
-        const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
+        const parsed = safeParseJSON(data.choices?.[0]?.message?.content || '{}', { groups: [] });
         return parsed.groups || [];
     }
 
@@ -267,7 +273,7 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
             throw new Error("OpenAI Translation failed");
         }
         const data = await response.json();
-        const result = JSON.parse(data.choices?.[0]?.message?.content || '{"translated":""}');
+        const result = safeParseJSON(data.choices?.[0]?.message?.content || '{"translated":""}', { translated: '' });
         return result.translated || '';
     }
 }

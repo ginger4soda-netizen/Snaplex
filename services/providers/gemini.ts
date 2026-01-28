@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey } from '../../types';
 import { AIProvider, TermExplanation, getApiKey, getCurrentModel } from './types';
 import { getMasterAnalysisPrompt } from './masterPrompt';
+import { safeParseJSON } from '../../utils/jsonParser';
 
 // --- Schemas ---
 // Schema for initial analysis (requires both original and translated)
@@ -73,7 +74,7 @@ export class GeminiProvider implements AIProvider {
 
             const text = response.text;
             if (!text) throw new Error("No response from Gemini");
-            return JSON.parse(text) as AnalysisResult;
+            return safeParseJSON(text, {} as AnalysisResult);
 
         } catch (error: any) {
             if (error.message?.includes("User location") || error.message?.includes("400") || error.status === 400) {
@@ -107,7 +108,7 @@ Output strictly JSON:
 
             const text = response.text;
             if (!text) throw new Error("No response from AI");
-            return JSON.parse(text) as TermExplanation;
+            return safeParseJSON(text, { def: '', app: '' } as TermExplanation);
         } catch (error: any) {
             if (error.message?.includes("User location") || error.message?.includes("400") || error.status === 400) {
                 throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
@@ -235,7 +236,7 @@ Example: "Rainy Street" -> { "groups": [ ["Rainy", "Wet", "Storm", "Drizzle"], [
             config: { responseMimeType: "application/json" }
         });
 
-        const data = JSON.parse(response.text || "{}");
+        const data = safeParseJSON(response.text || "{}", { groups: [] });
         return data.groups || [];
     }
 
@@ -295,7 +296,7 @@ Example: "Rainy Street" -> { "groups": [ ["Rainy", "Wet", "Storm", "Drizzle"], [
                 config: { responseMimeType: "application/json" }
             });
 
-            const result = JSON.parse(response.text || '{"translated":""}');
+            const result = safeParseJSON(response.text || '{"translated":""}', { translated: '' });
             return result.translated || '';
         } catch (error: any) {
             if (error.message?.includes("User location") || error.message?.includes("400") || error.status === 400) {

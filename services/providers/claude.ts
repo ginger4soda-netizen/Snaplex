@@ -1,6 +1,7 @@
 import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey } from '../../types';
 import { AIProvider, TermExplanation, getApiKey, getCurrentModel } from './types';
 import { getMasterAnalysisPrompt } from './masterPrompt';
+import { safeParseJSON } from '../../utils/jsonParser';
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 
@@ -8,9 +9,12 @@ export class ClaudeProvider implements AIProvider {
 
     readonly name = 'claude';
 
-    private getHeaders() {
+    private getHeaders(): HeadersInit {
         const apiKey = getApiKey('claude');
-        if (!apiKey) throw new Error("MISSING_API_KEY");
+        // Defensive validation to prevent TypeError in fetch
+        if (!apiKey || typeof apiKey !== 'string' || apiKey.trim() === '') {
+            throw new Error("MISSING_API_KEY");
+        }
         return {
             'Content-Type': 'application/json',
             'x-api-key': apiKey,
@@ -55,10 +59,10 @@ export class ClaudeProvider implements AIProvider {
         const text = data.content?.[0]?.text;
         if (!text) throw new Error("No response from Claude");
 
-        // Claude may wrap JSON in markdown, so extract it
+        // Claude may wrap JSON in markdown, so extract it and parse safely
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error("Invalid JSON response from Claude");
-        return JSON.parse(jsonMatch[0]) as AnalysisResult;
+        return safeParseJSON(jsonMatch[0], {} as AnalysisResult);
     }
 
     async explainTerm(term: string, language: string): Promise<TermExplanation> {
@@ -82,13 +86,14 @@ Output JSON only (no markdown): { "def": "...", "app": "..." }`;
         });
 
         if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
             if (response.status === 403 || response.status === 400) throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
-            throw new Error("Claude API error");
+            throw new Error(errorData.error?.message || `Claude API error (${response.status})`);
         }
         const data = await response.json();
         const text = data.content?.[0]?.text || '{}';
         const jsonMatch = text.match(/\{[\s\S]*\}/);
-        return JSON.parse(jsonMatch?.[0] || '{}') as TermExplanation;
+        return safeParseJSON(jsonMatch?.[0] || '{}', { def: '', app: '' } as TermExplanation);
     }
 
     async chatStream(
@@ -152,8 +157,9 @@ Output JSON only (no markdown): { "def": "...", "app": "..." }`;
         });
 
         if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
             if (response.status === 403 || response.status === 400) throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
-            throw new Error("Claude stream error");
+            throw new Error(errorData.error?.message || `Claude stream error (${response.status})`);
         }
 
         const reader = response.body?.getReader();
@@ -202,7 +208,7 @@ Output JSON only (no markdown): { "groups": [ ["word1", "syn1", "syn2"], ["word2
         const data = await response.json();
         const text = data.content?.[0]?.text || '{}';
         const jsonMatch = text.match(/\{[\s\S]*\}/);
-        const parsed = JSON.parse(data.content?.[0]?.text || '{}');
+        const parsed = safeParseJSON(jsonMatch?.[0] || '{}', { groups: [] });
         return parsed.groups || [];
     }
 
@@ -265,10 +271,10 @@ Output JSON only (no markdown): { "groups": [ ["word1", "syn1", "syn2"], ["word2
         }
         const data = await response.json();
         const content = data.content?.[0]?.text || '{"translated":""}';
-        // Extract JSON
+        // Extract JSON and parse safely
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         const jsonStr = jsonMatch?.[0] || '{"translated":""}';
-        const result = JSON.parse(jsonStr);
+        const result = safeParseJSON(jsonStr, { translated: '' });
         return result.translated || '';
     }
 }

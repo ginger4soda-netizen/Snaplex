@@ -1,6 +1,7 @@
 import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey } from '../../types';
 import { AIProvider, TermExplanation, getApiKey, getCurrentModel } from './types';
 import { getMasterAnalysisPrompt } from './masterPrompt';
+import { safeParseJSON } from '../../utils/jsonParser';
 
 // SiliconFlow uses OpenAI-compatible API
 const SILICONFLOW_API_URL = 'https://api.siliconflow.cn/v1/chat/completions';
@@ -8,9 +9,12 @@ const SILICONFLOW_API_URL = 'https://api.siliconflow.cn/v1/chat/completions';
 export class SiliconFlowProvider implements AIProvider {
     readonly name = 'siliconflow';
 
-    private getHeaders() {
+    private getHeaders(): HeadersInit {
         const apiKey = getApiKey('siliconflow');
-        if (!apiKey) throw new Error("MISSING_API_KEY");
+        // Defensive validation to prevent TypeError in fetch
+        if (!apiKey || typeof apiKey !== 'string' || apiKey.trim() === '') {
+            throw new Error("MISSING_API_KEY");
+        }
         return {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`
@@ -52,10 +56,10 @@ export class SiliconFlowProvider implements AIProvider {
         const text = data.choices?.[0]?.message?.content;
         if (!text) throw new Error("No response from SiliconFlow");
 
-        // Extract JSON if wrapped in markdown
+        // Extract JSON if wrapped in markdown and parse safely
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error("Invalid JSON response");
-        return JSON.parse(jsonMatch[0]) as AnalysisResult;
+        return safeParseJSON(jsonMatch[0], {} as AnalysisResult);
     }
 
     async explainTerm(term: string, language: string): Promise<TermExplanation> {
@@ -78,11 +82,15 @@ Output JSON: { "def": "...", "app": "..." }`;
             })
         });
 
-        if (!response.ok) throw new Error("SiliconFlow API error");
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMsg = errorData.error?.message || errorData.message || `SiliconFlow API error (${response.status})`;
+            throw new Error(errorMsg);
+        }
         const data = await response.json();
         const text = data.choices?.[0]?.message?.content || '{}';
         const jsonMatch = text.match(/\{[\s\S]*\}/);
-        return JSON.parse(jsonMatch?.[0] || '{}') as TermExplanation;
+        return safeParseJSON(jsonMatch?.[0] || '{}', { def: '', app: '' } as TermExplanation);
     }
 
     async chatStream(
@@ -149,7 +157,11 @@ Output JSON: { "def": "...", "app": "..." }`;
             })
         });
 
-        if (!response.ok) throw new Error("SiliconFlow stream error");
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMsg = errorData.error?.message || errorData.message || `SiliconFlow stream error (${response.status})`;
+            throw new Error(errorMsg);
+        }
 
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
@@ -200,7 +212,7 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
         const data = await response.json();
         const text = data.choices?.[0]?.message?.content || '{}';
         const jsonMatch = text.match(/\{[\s\S]*\}/);
-        const parsed = JSON.parse(jsonMatch?.[0] || '{}');
+        const parsed = safeParseJSON(jsonMatch?.[0] || '{}', { groups: [] });
         return parsed.groups || [];
     }
 
@@ -248,7 +260,11 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
         });
         console.timeEnd('⏱️ [Dimension] 2. API call');
 
-        if (!response.ok) throw new Error("SiliconFlow API error");
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMsg = errorData.error?.message || errorData.message || `SiliconFlow API error (${response.status})`;
+            throw new Error(errorMsg);
+        }
 
         console.time('⏱️ [Dimension] 3. Parse response');
         const data = await response.json();
@@ -286,11 +302,7 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
         // Robust JSON parsing
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         const jsonStr = jsonMatch?.[0] || '{"translated":""}';
-        try {
-            const result = JSON.parse(jsonStr);
-            return result.translated || '';
-        } catch {
-            return '';
-        }
+        const result = safeParseJSON(jsonStr, { translated: '' });
+        return result.translated || '';
     }
 }

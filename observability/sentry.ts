@@ -116,6 +116,12 @@ export const initSentry = () => {
             'Non-Error promise rejection captured',
             'Load failed', // 常见的资源加载失败
             'cancelled', // 用户取消操作
+            // Dynamic import failures (network/CDN issues, not code bugs)
+            'Failed to fetch dynamically imported module',
+            'Importing a module script failed',
+            'ChunkLoadError',
+            // MISSING_API_KEY is expected user state, not an error
+            'MISSING_API_KEY',
         ],
     });
 
