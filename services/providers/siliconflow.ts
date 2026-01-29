@@ -48,8 +48,23 @@ export class SiliconFlowProvider implements AIProvider {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || 'SiliconFlow API error');
+            const errorData = await response.json().catch(() => ({}));
+            const errorMsg = errorData.error?.message || errorData.message || '';
+
+            // Handle 403 Forbidden - usually region/VPN issue for SiliconFlow
+            if (response.status === 403) {
+                throw new Error("当前网络环境无法访问 SiliconFlow API。请检查您的网络连接或尝试更换网络环境。");
+            }
+            // Handle 401 Unauthorized - API key issue
+            if (response.status === 401) {
+                throw new Error("SiliconFlow API Key 无效或已过期，请在设置中检查您的 API Key。");
+            }
+            // Handle 429 Rate limit
+            if (response.status === 429) {
+                throw new Error("SiliconFlow API 调用次数超限，请稍后重试或升级账户。");
+            }
+
+            throw new Error(errorMsg || `SiliconFlow API error (${response.status})`);
         }
 
         const data = await response.json();
@@ -84,8 +99,18 @@ Output JSON: { "def": "...", "app": "..." }`;
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            const errorMsg = errorData.error?.message || errorData.message || `SiliconFlow API error (${response.status})`;
-            throw new Error(errorMsg);
+            const errorMsg = errorData.error?.message || errorData.message || '';
+
+            if (response.status === 403) {
+                throw new Error("当前网络环境无法访问 SiliconFlow API。请检查您的网络连接或尝试更换网络环境。");
+            }
+            if (response.status === 401) {
+                throw new Error("SiliconFlow API Key 无效或已过期，请在设置中检查您的 API Key。");
+            }
+            if (response.status === 429) {
+                throw new Error("SiliconFlow API 调用次数超限，请稍后重试或升级账户。");
+            }
+            throw new Error(errorMsg || `SiliconFlow API error (${response.status})`);
         }
         const data = await response.json();
         const text = data.choices?.[0]?.message?.content || '{}';
@@ -159,8 +184,18 @@ Output JSON: { "def": "...", "app": "..." }`;
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            const errorMsg = errorData.error?.message || errorData.message || `SiliconFlow stream error (${response.status})`;
-            throw new Error(errorMsg);
+            const errorMsg = errorData.error?.message || errorData.message || '';
+
+            if (response.status === 403) {
+                throw new Error("当前网络环境无法访问 SiliconFlow API。请检查您的网络连接或尝试更换网络环境。");
+            }
+            if (response.status === 401) {
+                throw new Error("SiliconFlow API Key 无效或已过期，请在设置中检查您的 API Key。");
+            }
+            if (response.status === 429) {
+                throw new Error("SiliconFlow API 调用次数超限，请稍后重试或升级账户。");
+            }
+            throw new Error(errorMsg || `SiliconFlow stream error (${response.status})`);
         }
 
         const reader = response.body?.getReader();
@@ -262,8 +297,18 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            const errorMsg = errorData.error?.message || errorData.message || `SiliconFlow API error (${response.status})`;
-            throw new Error(errorMsg);
+            const errorMsg = errorData.error?.message || errorData.message || '';
+
+            if (response.status === 403) {
+                throw new Error("当前网络环境无法访问 SiliconFlow API。请检查您的网络连接或尝试更换网络环境。");
+            }
+            if (response.status === 401) {
+                throw new Error("SiliconFlow API Key 无效或已过期，请在设置中检查您的 API Key。");
+            }
+            if (response.status === 429) {
+                throw new Error("SiliconFlow API 调用次数超限，请稍后重试或升级账户。");
+            }
+            throw new Error(errorMsg || `SiliconFlow API error (${response.status})`);
         }
 
         console.time('⏱️ [Dimension] 3. Parse response');
