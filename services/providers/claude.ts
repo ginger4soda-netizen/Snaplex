@@ -2,6 +2,7 @@ import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey 
 import { AIProvider, TermExplanation, getApiKey, getCurrentModel } from './types';
 import { getMasterAnalysisPrompt } from './masterPrompt';
 import { safeParseJSON } from '../../utils/jsonParser';
+import { getApiError, getGenericApiError } from '../../utils/apiErrorMessages';
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 
@@ -52,15 +53,15 @@ export class ClaudeProvider implements AIProvider {
             const errorMsg = errorData.error?.message || '';
 
             if (response.status === 403 || response.status === 400 || errorMsg.includes("region")) {
-                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+                throw new Error(getApiError('regionRestricted'));
             }
             if (response.status === 401) {
-                throw new Error("Claude API Key 无效或已过期，请在设置中检查您的 API Key。");
+                throw new Error(getApiError('invalidApiKey'));
             }
             if (response.status === 429 || errorMsg.includes("rate") || errorMsg.includes("limit")) {
-                throw new Error("Claude API 调用次数超限，请稍后重试或升级账户。");
+                throw new Error(getApiError('rateLimitExceeded'));
             }
-            throw new Error(errorMsg || `Claude API error (${response.status})`);
+            throw new Error(errorMsg || getGenericApiError('Claude', response.status));
         }
 
         const data = await response.json();
@@ -98,15 +99,15 @@ Output JSON only (no markdown): { "def": "...", "app": "..." }`;
             const errorMsg = errorData.error?.message || '';
 
             if (response.status === 403 || response.status === 400) {
-                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+                throw new Error(getApiError('regionRestricted'));
             }
             if (response.status === 401) {
-                throw new Error("Claude API Key 无效或已过期，请在设置中检查您的 API Key。");
+                throw new Error(getApiError('invalidApiKey'));
             }
             if (response.status === 429 || errorMsg.includes("rate") || errorMsg.includes("limit")) {
-                throw new Error("Claude API 调用次数超限，请稍后重试或升级账户。");
+                throw new Error(getApiError('rateLimitExceeded'));
             }
-            throw new Error(errorMsg || `Claude API error (${response.status})`);
+            throw new Error(errorMsg || getGenericApiError('Claude', response.status));
         }
         const data = await response.json();
         const text = data.content?.[0]?.text || '{}';

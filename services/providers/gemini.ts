@@ -3,6 +3,7 @@ import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey 
 import { AIProvider, TermExplanation, getApiKey, getCurrentModel } from './types';
 import { getMasterAnalysisPrompt } from './masterPrompt';
 import { safeParseJSON } from '../../utils/jsonParser';
+import { getApiError } from '../../utils/apiErrorMessages';
 
 // --- Schemas ---
 // Schema for initial analysis (requires both original and translated)
@@ -79,15 +80,15 @@ export class GeminiProvider implements AIProvider {
         } catch (error: any) {
             // Handle 429 Rate Limit
             if (error.status === 429 || error.message?.includes("quota") || error.message?.includes("rate") || error.message?.includes("配额")) {
-                throw new Error("Gemini API 调用次数超限或配额不足，请稍后重试。");
+                throw new Error(getApiError('rateLimitExceeded'));
             }
             // Handle 401 Unauthorized
             if (error.status === 401 || error.message?.includes("API key")) {
-                throw new Error("Gemini API Key 无效，请在设置中检查您的 API Key。");
+                throw new Error(getApiError('invalidApiKey'));
             }
             // Handle region restrictions
             if (error.message?.includes("User location") || error.message?.includes("400") || error.status === 400) {
-                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+                throw new Error(getApiError('regionRestricted'));
             }
             throw error;
         }
@@ -120,13 +121,13 @@ Output strictly JSON:
             return safeParseJSON(text, { def: '', app: '' } as TermExplanation);
         } catch (error: any) {
             if (error.status === 429 || error.message?.includes("quota") || error.message?.includes("rate") || error.message?.includes("配额")) {
-                throw new Error("Gemini API 调用次数超限或配额不足，请稍后重试。");
+                throw new Error(getApiError('rateLimitExceeded'));
             }
             if (error.status === 401 || error.message?.includes("API key")) {
-                throw new Error("Gemini API Key 无效，请在设置中检查您的 API Key。");
+                throw new Error(getApiError('invalidApiKey'));
             }
             if (error.message?.includes("User location") || error.message?.includes("400") || error.status === 400) {
-                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+                throw new Error(getApiError('regionRestricted'));
             }
             throw error;
         }

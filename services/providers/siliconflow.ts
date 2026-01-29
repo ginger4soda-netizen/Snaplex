@@ -2,6 +2,7 @@ import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey 
 import { AIProvider, TermExplanation, getApiKey, getCurrentModel } from './types';
 import { getMasterAnalysisPrompt } from './masterPrompt';
 import { safeParseJSON } from '../../utils/jsonParser';
+import { getApiError, getGenericApiError } from '../../utils/apiErrorMessages';
 
 // SiliconFlow uses OpenAI-compatible API
 const SILICONFLOW_API_URL = 'https://api.siliconflow.cn/v1/chat/completions';
@@ -53,18 +54,18 @@ export class SiliconFlowProvider implements AIProvider {
 
             // Handle 403 Forbidden - usually region/VPN issue for SiliconFlow
             if (response.status === 403) {
-                throw new Error("当前网络环境无法访问 SiliconFlow API。请检查您的网络连接或尝试更换网络环境。");
+                throw new Error(getApiError('regionRestricted'));
             }
             // Handle 401 Unauthorized - API key issue
             if (response.status === 401) {
-                throw new Error("SiliconFlow API Key 无效或已过期，请在设置中检查您的 API Key。");
+                throw new Error(getApiError('invalidApiKey'));
             }
             // Handle 429 Rate limit
             if (response.status === 429) {
-                throw new Error("SiliconFlow API 调用次数超限，请稍后重试或升级账户。");
+                throw new Error(getApiError('rateLimitExceeded'));
             }
 
-            throw new Error(errorMsg || `SiliconFlow API error (${response.status})`);
+            throw new Error(errorMsg || getGenericApiError('SiliconFlow', response.status));
         }
 
         const data = await response.json();
@@ -102,15 +103,15 @@ Output JSON: { "def": "...", "app": "..." }`;
             const errorMsg = errorData.error?.message || errorData.message || '';
 
             if (response.status === 403) {
-                throw new Error("当前网络环境无法访问 SiliconFlow API。请检查您的网络连接或尝试更换网络环境。");
+                throw new Error(getApiError('regionRestricted'));
             }
             if (response.status === 401) {
-                throw new Error("SiliconFlow API Key 无效或已过期，请在设置中检查您的 API Key。");
+                throw new Error(getApiError('invalidApiKey'));
             }
             if (response.status === 429) {
-                throw new Error("SiliconFlow API 调用次数超限，请稍后重试或升级账户。");
+                throw new Error(getApiError('rateLimitExceeded'));
             }
-            throw new Error(errorMsg || `SiliconFlow API error (${response.status})`);
+            throw new Error(errorMsg || getGenericApiError('SiliconFlow', response.status));
         }
         const data = await response.json();
         const text = data.choices?.[0]?.message?.content || '{}';
@@ -187,15 +188,15 @@ Output JSON: { "def": "...", "app": "..." }`;
             const errorMsg = errorData.error?.message || errorData.message || '';
 
             if (response.status === 403) {
-                throw new Error("当前网络环境无法访问 SiliconFlow API。请检查您的网络连接或尝试更换网络环境。");
+                throw new Error(getApiError('regionRestricted'));
             }
             if (response.status === 401) {
-                throw new Error("SiliconFlow API Key 无效或已过期，请在设置中检查您的 API Key。");
+                throw new Error(getApiError('invalidApiKey'));
             }
             if (response.status === 429) {
-                throw new Error("SiliconFlow API 调用次数超限，请稍后重试或升级账户。");
+                throw new Error(getApiError('rateLimitExceeded'));
             }
-            throw new Error(errorMsg || `SiliconFlow stream error (${response.status})`);
+            throw new Error(errorMsg || getGenericApiError('SiliconFlow', response.status));
         }
 
         const reader = response.body?.getReader();
@@ -300,15 +301,15 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
             const errorMsg = errorData.error?.message || errorData.message || '';
 
             if (response.status === 403) {
-                throw new Error("当前网络环境无法访问 SiliconFlow API。请检查您的网络连接或尝试更换网络环境。");
+                throw new Error(getApiError('regionRestricted'));
             }
             if (response.status === 401) {
-                throw new Error("SiliconFlow API Key 无效或已过期，请在设置中检查您的 API Key。");
+                throw new Error(getApiError('invalidApiKey'));
             }
             if (response.status === 429) {
-                throw new Error("SiliconFlow API 调用次数超限，请稍后重试或升级账户。");
+                throw new Error(getApiError('rateLimitExceeded'));
             }
-            throw new Error(errorMsg || `SiliconFlow API error (${response.status})`);
+            throw new Error(errorMsg || getGenericApiError('SiliconFlow', response.status));
         }
 
         console.time('⏱️ [Dimension] 3. Parse response');

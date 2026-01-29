@@ -2,6 +2,7 @@ import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey 
 import { AIProvider, TermExplanation, getApiKey, getCurrentModel } from './types';
 import { getMasterAnalysisPrompt } from './masterPrompt';
 import { safeParseJSON } from '../../utils/jsonParser';
+import { getApiError, getGenericApiError } from '../../utils/apiErrorMessages';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
@@ -49,15 +50,15 @@ export class OpenAIProvider implements AIProvider {
             const errorMsg = errorData.error?.message || '';
 
             if (response.status === 403 || errorMsg.includes("country") || errorMsg.includes("region")) {
-                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+                throw new Error(getApiError('regionRestricted'));
             }
             if (response.status === 401) {
-                throw new Error("OpenAI API Key 无效或已过期，请在设置中检查您的 API Key。");
+                throw new Error(getApiError('invalidApiKey'));
             }
             if (response.status === 429 || errorMsg.includes("Rate limit") || errorMsg.includes("quota")) {
-                throw new Error("OpenAI API 调用次数超限或配额不足，请稍后重试或检查您的账户余额。");
+                throw new Error(getApiError('rateLimitExceeded'));
             }
-            throw new Error(errorMsg || `OpenAI API error (${response.status})`);
+            throw new Error(errorMsg || getGenericApiError('OpenAI', response.status));
         }
 
         const data = await response.json();
@@ -92,15 +93,15 @@ Output JSON: { "def": "...", "app": "..." }`;
             const errorMsg = errorData.error?.message || '';
 
             if (response.status === 403) {
-                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+                throw new Error(getApiError('regionRestricted'));
             }
             if (response.status === 401) {
-                throw new Error("OpenAI API Key 无效或已过期，请在设置中检查您的 API Key。");
+                throw new Error(getApiError('invalidApiKey'));
             }
             if (response.status === 429 || errorMsg.includes("Rate limit") || errorMsg.includes("quota")) {
-                throw new Error("OpenAI API 调用次数超限或配额不足，请稍后重试或检查您的账户余额。");
+                throw new Error(getApiError('rateLimitExceeded'));
             }
-            throw new Error(errorMsg || `OpenAI API error (${response.status})`);
+            throw new Error(errorMsg || getGenericApiError('OpenAI', response.status));
         }
         const data = await response.json();
         return safeParseJSON(data.choices?.[0]?.message?.content || '{}', { def: '', app: '' } as TermExplanation);
