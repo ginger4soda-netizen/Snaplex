@@ -45,11 +45,19 @@ export class OpenAIProvider implements AIProvider {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            if (response.status === 403 || error.error?.message?.includes("country") || error.error?.message?.includes("region")) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMsg = errorData.error?.message || '';
+
+            if (response.status === 403 || errorMsg.includes("country") || errorMsg.includes("region")) {
                 throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
             }
-            throw new Error(error.error?.message || 'OpenAI API error');
+            if (response.status === 401) {
+                throw new Error("OpenAI API Key 无效或已过期，请在设置中检查您的 API Key。");
+            }
+            if (response.status === 429 || errorMsg.includes("Rate limit") || errorMsg.includes("quota")) {
+                throw new Error("OpenAI API 调用次数超限或配额不足，请稍后重试或检查您的账户余额。");
+            }
+            throw new Error(errorMsg || `OpenAI API error (${response.status})`);
         }
 
         const data = await response.json();
@@ -81,8 +89,18 @@ Output JSON: { "def": "...", "app": "..." }`;
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            if (response.status === 403) throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
-            throw new Error(errorData.error?.message || `OpenAI API error (${response.status})`);
+            const errorMsg = errorData.error?.message || '';
+
+            if (response.status === 403) {
+                throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
+            }
+            if (response.status === 401) {
+                throw new Error("OpenAI API Key 无效或已过期，请在设置中检查您的 API Key。");
+            }
+            if (response.status === 429 || errorMsg.includes("Rate limit") || errorMsg.includes("quota")) {
+                throw new Error("OpenAI API 调用次数超限或配额不足，请稍后重试或检查您的账户余额。");
+            }
+            throw new Error(errorMsg || `OpenAI API error (${response.status})`);
         }
         const data = await response.json();
         return safeParseJSON(data.choices?.[0]?.message?.content || '{}', { def: '', app: '' } as TermExplanation);
