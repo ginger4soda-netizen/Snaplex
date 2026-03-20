@@ -140,10 +140,7 @@ Output strictly JSON:
         onUpdate: (text: string) => void,
         settings?: UserSettings
     ): Promise<void> {
-        console.time('⏱️ [Chat] Total');
-        console.time('⏱️ [Chat] 1. getClient');
         const { ai, modelName } = this.getClient();
-        console.timeEnd('⏱️ [Chat] 1. getClient');
 
         const systemInstruction = `You are an AI assistant analyzing an image.
 If the user asks for specific prompts, prompt breakdown, or detailed analysis of the image:
@@ -153,7 +150,6 @@ If the user asks for specific prompts, prompt breakdown, or detailed analysis of
 4. Do **NOT** use markdown bolding (**) for the core prompt content.
 5. Be direct and technical.`;
 
-        console.time('⏱️ [Chat] 2. Build history');
         // Build history with image in FIRST user message only
         const historyParts: any[] = [];
         let imageIncluded = false;
@@ -191,19 +187,14 @@ If the user asks for specific prompts, prompt breakdown, or detailed analysis of
                 parts: [{ text: 'I can see the image. How can I help you analyze it?' }]
             });
         }
-        console.timeEnd('⏱️ [Chat] 2. Build history');
-        console.log('⏱️ [Chat] History length:', historyParts.length, 'Image included:', imageIncluded);
 
-        console.time('⏱️ [Chat] 3. Create chat session');
         // Create chat session with history
         const chat = ai.chats.create({
             model: modelName,
             history: historyParts,
             config: { systemInstruction }
         });
-        console.timeEnd('⏱️ [Chat] 3. Create chat session');
 
-        console.time('⏱️ [Chat] 4. sendMessageStream (await)');
         // Send current message (no image needed - it's in history)
         let resultStream;
         try {
@@ -214,22 +205,15 @@ If the user asks for specific prompts, prompt breakdown, or detailed analysis of
             }
             throw error;
         }
-        console.timeEnd('⏱️ [Chat] 4. sendMessageStream (await)');
 
-        console.time('⏱️ [Chat] 5. Stream chunks');
         let accumulatedText = "";
-        let chunkCount = 0;
         for await (const chunk of resultStream) {
             const chunkText = chunk.text;
             if (chunkText) {
-                chunkCount++;
                 accumulatedText += chunkText;
                 onUpdate(accumulatedText);
             }
         }
-        console.timeEnd('⏱️ [Chat] 5. Stream chunks');
-        console.log('⏱️ [Chat] Received', chunkCount, 'chunks');
-        console.timeEnd('⏱️ [Chat] Total');
     }
 
     async expandSearchQuery(query: string): Promise<string[][]> {
@@ -257,16 +241,10 @@ Example: "Rainy Street" -> { "groups": [ ["Rainy", "Wet", "Storm", "Drizzle"], [
     }
 
     async regenerateDimension(base64Image: string, dimension: DimensionKey, settings: UserSettings): Promise<PromptSegment> {
-        console.time('⏱️ [Dimension] Total');
-        console.time('⏱️ [Dimension] 1. getClient');
         const { ai, modelName } = this.getClient();
-        console.timeEnd('⏱️ [Dimension] 1. getClient');
 
-        console.time('⏱️ [Dimension] 2. import prompt');
         const { getDimensionPrompt } = await import('./masterPrompt');
-        console.timeEnd('⏱️ [Dimension] 2. import prompt');
 
-        console.time('⏱️ [Dimension] 3. API call');
         try {
             const response = await ai.models.generateContent({
                 model: modelName,
@@ -282,13 +260,9 @@ Example: "Rainy Street" -> { "groups": [ ["Rainy", "Wet", "Storm", "Drizzle"], [
                     systemInstruction: getDimensionPrompt(dimension, settings)
                 }
             });
-            console.timeEnd('⏱️ [Dimension] 3. API call');
 
-            console.time('⏱️ [Dimension] 4. Parse result');
             const { safeParseJSON } = await import('../../utils/jsonParser');
             const result = safeParseJSON(response.text || '{"original":"","translated":""}', { original: '', translated: '' });
-            console.timeEnd('⏱️ [Dimension] 4. Parse result');
-            console.timeEnd('⏱️ [Dimension] Total');
 
             return { original: result.original || '', translated: result.translated || '' };
         } catch (error: any) {

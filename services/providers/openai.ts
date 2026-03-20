@@ -6,6 +6,12 @@ import { getApiError, getGenericApiError } from '../../utils/apiErrorMessages';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
+// Ensure correct MIME type in data URL
+function normalizeImageDataUrl(base64Image: string): string {
+    if (base64Image.startsWith('data:')) return base64Image;
+    return `data:image/jpeg;base64,${base64Image}`;
+}
+
 export class OpenAIProvider implements AIProvider {
 
     readonly name = 'openai';
@@ -24,7 +30,7 @@ export class OpenAIProvider implements AIProvider {
 
     async analyzeImage(base64Image: string, settings: UserSettings): Promise<AnalysisResult> {
         const modelName = getCurrentModel();
-        const imageData = base64Image.includes(',') ? base64Image : `data:image/jpeg;base64,${base64Image}`;
+        const imageData = normalizeImageDataUrl(base64Image);
 
         const response = await fetch(OPENAI_API_URL, {
             method: 'POST',
@@ -125,7 +131,7 @@ Output JSON: { "def": "...", "app": "..." }`;
 
         // Build history with image in FIRST user message only
         let imageIncluded = false;
-        const imageData = image?.includes(',') ? image : (image ? `data:image/jpeg;base64,${image}` : undefined);
+        const imageData = image ? normalizeImageDataUrl(image) : undefined;
 
         for (const h of history) {
             if (h.role === 'user' && imageData && !imageIncluded) {
@@ -230,12 +236,10 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
     }
 
     async regenerateDimension(base64Image: string, dimension: DimensionKey, settings: UserSettings): Promise<PromptSegment> {
-        console.time('⏱️ [Dimension] Total');
         const { getDimensionPrompt } = await import('./masterPrompt');
-        const imageData = base64Image.includes(',') ? base64Image : `data:image/jpeg;base64,${base64Image}`;
+        const imageData = normalizeImageDataUrl(base64Image);
         const modelName = getCurrentModel();
 
-        console.time('⏱️ [Dimension] API call');
         const response = await fetch(OPENAI_API_URL, {
             method: 'POST',
             headers: this.getHeaders(),
@@ -258,7 +262,6 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
                 max_tokens: 500
             })
         });
-        console.timeEnd('⏱️ [Dimension] API call');
 
         if (!response.ok) {
             if (response.status === 403) throw new Error("当前 VPN 节点所在的区域不支持当前模型。请尝试切换节点重试。");
@@ -267,7 +270,6 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
         const data = await response.json();
         const { safeParseJSON } = await import('../../utils/jsonParser');
         const result = safeParseJSON(data.choices?.[0]?.message?.content || '{"original":"","translated":""}', { original: '', translated: '' });
-        console.timeEnd('⏱️ [Dimension] Total');
 
         return { original: result.original || '', translated: result.translated || '' };
     }

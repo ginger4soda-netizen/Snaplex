@@ -252,16 +252,29 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
         return analysis.structuredPrompts?.[dimensionKey] || { original: 'N/A', translated: 'N/A' };
     };
 
-    const modules = hasStructuredPrompts ? [
-        { title: 'Subject', label: t.lblSubject, color: 'text-coral', dimensionKey: 'subject' as DimensionKey, content: getCurrentContent('subject'), correctedContent: getCorrectDisplayOrder(getCurrentContent('subject').original, getCurrentContent('subject').translated, settings.cardFrontLanguage || 'English') },
-        { title: 'Environment', label: t.lblEnvironment, color: 'text-mint', dimensionKey: 'environment' as DimensionKey, content: getCurrentContent('environment'), correctedContent: getCorrectDisplayOrder(getCurrentContent('environment').original, getCurrentContent('environment').translated, settings.cardFrontLanguage || 'English') },
-        { title: 'Composition', label: t.lblComposition, color: 'text-softblue', dimensionKey: 'composition' as DimensionKey, content: getCurrentContent('composition'), correctedContent: getCorrectDisplayOrder(getCurrentContent('composition').original, getCurrentContent('composition').translated, settings.cardFrontLanguage || 'English') },
-        { title: 'Lighting', label: t.lblLighting, color: 'text-sunny', dimensionKey: 'lighting' as DimensionKey, content: getCurrentContent('lighting'), correctedContent: getCorrectDisplayOrder(getCurrentContent('lighting').original, getCurrentContent('lighting').translated, settings.cardFrontLanguage || 'English') },
-        { title: 'Mood', label: t.lblMood, color: 'text-softblue', dimensionKey: 'mood' as DimensionKey, content: getCurrentContent('mood'), correctedContent: getCorrectDisplayOrder(getCurrentContent('mood').original, getCurrentContent('mood').translated, settings.cardFrontLanguage || 'English') },
-        { title: 'Style', label: t.lblStyle, color: 'text-stone-500', dimensionKey: 'style' as DimensionKey, content: getCurrentContent('style'), correctedContent: getCorrectDisplayOrder(getCurrentContent('style').original, getCurrentContent('style').translated, settings.cardFrontLanguage || 'English') },
-    ] : [
-        { title: 'Description', label: t.lblDescription, color: 'text-softblue', dimensionKey: 'subject' as DimensionKey, content: { original: analysis.description || 'No description available.', translated: t.transUnavailable }, correctedContent: { front: analysis.description || 'No description available.', back: t.transUnavailable, wasSwapped: false } }
-    ];
+    const modules = React.useMemo(() => {
+        if (!hasStructuredPrompts) {
+            return [{ title: 'Description', label: t.lblDescription, color: 'text-softblue', dimensionKey: 'subject' as DimensionKey, content: { original: analysis.description || 'No description available.', translated: t.transUnavailable }, correctedContent: { front: analysis.description || 'No description available.', back: t.transUnavailable, wasSwapped: false } }];
+        }
+
+        const dimensions: { title: string; label: string; color: string; dimensionKey: DimensionKey }[] = [
+            { title: 'Subject', label: t.lblSubject, color: 'text-coral', dimensionKey: 'subject' },
+            { title: 'Environment', label: t.lblEnvironment, color: 'text-mint', dimensionKey: 'environment' },
+            { title: 'Composition', label: t.lblComposition, color: 'text-softblue', dimensionKey: 'composition' },
+            { title: 'Lighting', label: t.lblLighting, color: 'text-sunny', dimensionKey: 'lighting' },
+            { title: 'Mood', label: t.lblMood, color: 'text-softblue', dimensionKey: 'mood' },
+            { title: 'Style', label: t.lblStyle, color: 'text-stone-500', dimensionKey: 'style' },
+        ];
+
+        return dimensions.map(dim => {
+            const content = getCurrentContent(dim.dimensionKey);
+            return {
+                ...dim,
+                content,
+                correctedContent: getCorrectDisplayOrder(content.original, content.translated, settings.cardFrontLanguage || 'English'),
+            };
+        });
+    }, [hasStructuredPrompts, analysis, dimensionHistories, settings.cardFrontLanguage, t]);
 
     const handleGlobalCopy = async () => {
         const allowed = settings.copyIncludedModules || ["Subject", "Environment", "Composition", "Lighting", "Mood", "Style"];

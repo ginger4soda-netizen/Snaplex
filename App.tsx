@@ -10,16 +10,17 @@ import { analyzeImage } from './services/geminiService';
 import { AnalysisResult, AppMode, HistoryItem, UserSettings, DEFAULT_SETTINGS, ChatMessage } from './types';
 import { mineHistory, MiningResult } from './utils/historyMiner';
 import { explainVisualTerm, TermExplanation } from './services/geminiService';
+import { processWithConcurrency, withRetry } from './utils/async';
 
 
-// Image compression utility
+// Image compression utility - WebP for better size-to-quality ratio
 const compressImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const MAX_WIDTH = 1024;
+      const MAX_WIDTH = 1536;
       let width = img.width;
       let height = img.height;
       if (width > MAX_WIDTH) {
@@ -32,7 +33,9 @@ const compressImage = (file: File): Promise<string> => {
       if (!ctx) { URL.revokeObjectURL(url); reject(new Error("Canvas context failed")); return; }
       ctx.drawImage(img, 0, 0, width, height);
       URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL('image/jpeg', 0.6));
+      // Prefer WebP for ~30% smaller size; fallback to JPEG for unsupported browsers
+      const supportsWebP = canvas.toDataURL('image/webp').startsWith('data:image/webp');
+      resolve(canvas.toDataURL(supportsWebP ? 'image/webp' : 'image/jpeg', 0.7));
     };
     img.onerror = (err) => { URL.revokeObjectURL(url); reject(err); };
     img.src = url;
@@ -148,7 +151,10 @@ const App: React.FC = () => {
       const primaryImage = compressedImages[0];
       setCurrentImage(primaryImage);
 
-      const primaryResult = await analyzeImage(primaryImage, settings);
+      const primaryResult = await withRetry(
+        () => analyzeImage(primaryImage, settings),
+        { label: 'Primary image analysis' }
+      );
       setAnalysis(primaryResult);
 
       const primaryId = Date.now().toString();
@@ -163,16 +169,32 @@ const App: React.FC = () => {
       let backgroundItems: HistoryItem[] = [];
       if (compressedImages.length > 1) {
         const restImages = compressedImages.slice(1);
-        const restResults = await Promise.all(restImages.map(async (img, idx) => {
-          try {
-            const res = await analyzeImage(img, settings);
-            return {
-              id: (Date.now() + idx + 1).toString(), timestamp: Date.now(),
-              imageUrl: img, analysis: res, isFavorite: false, chatHistory: [], read: false,
-            } as HistoryItem;
-          } catch (e) { return null; }
-        }));
+        // Controlled concurrency: 10 parallel max, with retry on each
+        const { results: restResults, errors } = await processWithConcurrency(restImages, 10, async (img, idx) => {
+          const res = await withRetry(
+            () => analyzeImage(img, settings),
+            { label: `Image ${idx + 2} analysis` }
+          );
+          return {
+            id: (Date.now() + idx + 1).toString(), timestamp: Date.now(),
+            imageUrl: img, analysis: res, isFavorite: false, chatHistory: [], read: false,
+          } as HistoryItem;
+        });
         backgroundItems = restResults.filter((item): item is HistoryItem => item !== null);
+
+        // Report partial failures so user knows which images were lost
+        if (errors.length > 0) {
+          const succeeded = restImages.length - errors.length;
+          const firstError = errors[0].error.message.slice(0, 80);
+          setTimeout(() => {
+            alert(
+              `⚠️ ${errors.length} of ${compressedImages.length} images failed\n\n` +
+              `✅ ${succeeded + 1} images analyzed successfully\n` +
+              `❌ ${errors.length} images failed\n\n` +
+              `Error: ${firstError}`
+            );
+          }, 600);
+        }
       }
 
       const newHistory = [primaryItem, ...backgroundItems, ...historyItems];

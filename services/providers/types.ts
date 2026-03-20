@@ -52,22 +52,28 @@ export interface ModelDefinition {
 export const PROVIDER_MODELS: Record<ProviderType, ModelDefinition[]> = {
     gemini: [
         { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recommended)', supportsVision: true },
-        { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview (Experimental)', supportsVision: true },
+        { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', supportsVision: true },
+        { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview', supportsVision: true },
+        { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro Preview', supportsVision: true },
     ],
     openai: [
-        { id: 'gpt-4o', label: 'GPT-4o (Recommended)', supportsVision: true },
-        { id: 'gpt-4-turbo', label: 'GPT-4 Turbo', supportsVision: true },
+        { id: 'gpt-4o', label: 'GPT-4o', supportsVision: true },
         { id: 'gpt-4o-mini', label: 'GPT-4o Mini', supportsVision: true },
+        { id: 'gpt-4.1', label: 'GPT-4.1', supportsVision: true },
+        { id: 'gpt-5.4-mini', label: 'GPT-5.4 Mini', supportsVision: true },
+        { id: 'gpt-5.4-nano', label: 'GPT-5.4 Nano (Fast)', supportsVision: true },
+        { id: 'gpt-5.4', label: 'GPT-5.4 (Latest)', supportsVision: true },
+        { id: 'o4-mini', label: 'o4-mini (Reasoning)', supportsVision: true },
     ],
     claude: [
-        { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4', supportsVision: true },
-        { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet', supportsVision: true },
-        { id: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku (Fast)', supportsVision: true },
+        { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5 (Fast)', supportsVision: true },
+        { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (Recommended)', supportsVision: true },
+        { id: 'claude-opus-4-6', label: 'Claude Opus 4.6', supportsVision: true },
     ],
     siliconflow: [
-        { id: 'THUDM/GLM-4.1V-9B-Thinking', label: 'GLM-4.1V 9B Thinking (Free)', supportsVision: true },
-        { id: 'zai-org/GLM-4.5V', label: 'GLM-4.5V (Paid)', supportsVision: true },
-        { id: 'Pro/Qwen/Qwen2.5-VL-7B-Instruct', label: 'Qwen2.5-VL 7B (Pro)', supportsVision: true },
+        { id: 'Qwen/Qwen3-VL-32B-Instruct', label: 'Qwen3-VL 32B Instruct', supportsVision: true },
+        { id: 'Qwen/Qwen3-VL-32B-Thinking', label: 'Qwen3-VL 32B Thinking', supportsVision: true },
+        { id: 'zai-org/GLM-4.6V', label: 'GLM-4.6V (Multimodal)', supportsVision: true },
         { id: 'Qwen/Qwen2.5-VL-32B-Instruct', label: 'Qwen2.5-VL 32B', supportsVision: true },
     ],
 

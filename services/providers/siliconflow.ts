@@ -7,6 +7,15 @@ import { getApiError, getGenericApiError } from '../../utils/apiErrorMessages';
 // SiliconFlow uses OpenAI-compatible API
 const SILICONFLOW_API_URL = 'https://api.siliconflow.cn/v1/chat/completions';
 
+// Ensure correct MIME type in data URL for SiliconFlow API compatibility
+function normalizeImageDataUrl(base64Image: string): string {
+    if (base64Image.startsWith('data:')) {
+        return base64Image; // Already has correct MIME type from canvas
+    }
+    // Raw base64 without data URL prefix — default to JPEG
+    return `data:image/jpeg;base64,${base64Image}`;
+}
+
 export class SiliconFlowProvider implements AIProvider {
     readonly name = 'siliconflow';
 
@@ -24,7 +33,7 @@ export class SiliconFlowProvider implements AIProvider {
 
     async analyzeImage(base64Image: string, settings: UserSettings): Promise<AnalysisResult> {
         const modelName = getCurrentModel();
-        const imageData = base64Image.includes(',') ? base64Image : `data:image/jpeg;base64,${base64Image}`;
+        const imageData = normalizeImageDataUrl(base64Image);
 
         const response = await fetch(SILICONFLOW_API_URL, {
             method: 'POST',
@@ -137,7 +146,7 @@ Output JSON: { "def": "...", "app": "..." }`;
 
         // Build history with image in FIRST user message only
         let imageIncluded = false;
-        const imageData = image?.includes(',') ? image : (image ? `data:image/jpeg;base64,${image}` : undefined);
+        const imageData = image ? normalizeImageDataUrl(image) : undefined;
 
         for (const h of history) {
             if (h.role === 'user' && imageData && !imageIncluded) {
@@ -253,15 +262,11 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
     }
 
     async regenerateDimension(base64Image: string, dimension: DimensionKey, settings: UserSettings): Promise<PromptSegment> {
-        console.time('⏱️ [Dimension] Total');
-
-        console.time('⏱️ [Dimension] 1. Import prompt');
         const { getDimensionPrompt } = await import('./masterPrompt');
-        console.timeEnd('⏱️ [Dimension] 1. Import prompt');
 
-        const imageData = base64Image.includes(',') ? base64Image : `data:image/jpeg;base64,${base64Image}`;
+        const imageData = normalizeImageDataUrl(base64Image);
         const modelName = getCurrentModel();
-        console.log('⏱️ [Dimension] Using model:', modelName);
+
 
         // Determine format instruction based on dimension type
         const isTagBased = ['composition', 'lighting', 'mood', 'style'].includes(dimension);
@@ -272,7 +277,6 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
         // Construct robust user prompt to force adherence
         const userPrompt = `Analyze the [${dimension}] of this image. ${formatInstruction} Output STRICT JSON.`;
 
-        console.time('⏱️ [Dimension] 2. API call');
         const response = await fetch(SILICONFLOW_API_URL, {
             method: 'POST',
             headers: this.getHeaders(),
@@ -294,7 +298,6 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
                 max_tokens: 1000
             })
         });
-        console.timeEnd('⏱️ [Dimension] 2. API call');
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -312,10 +315,8 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
             throw new Error(errorMsg || getGenericApiError('SiliconFlow', response.status));
         }
 
-        console.time('⏱️ [Dimension] 3. Parse response');
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content || '';
-        console.log('⏱️ [Dimension] Raw response:', content.substring(0, 200));
 
         // Robust JSON parsing using utility
         const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -323,7 +324,6 @@ Output JSON: { "groups": [ ["word1", "syn1", "syn2"], ["word2", "syn3"] ] }`
         const { safeParseJSON } = await import('../../utils/jsonParser');
         const result = safeParseJSON(jsonStr, { original: content, translated: '' });
 
-        console.timeEnd('⏱️ [Dimension] Total');
         return { original: result.original || '', translated: result.translated || '' };
     }
 

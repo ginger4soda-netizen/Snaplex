@@ -46,7 +46,6 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
     const [model, setModel] = useState('gemini-2.5-flash');
 
     useEffect(() => {
-        // Load from LocalStorage
         const loadedProvider = getCurrentProvider();
         setProvider(loadedProvider);
         setApiKey(getApiKey(loadedProvider) || '');
@@ -56,9 +55,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
     const handleProviderChange = (newProvider: ProviderType) => {
         setProvider(newProvider);
         localStorage.setItem(STORAGE_KEYS.PROVIDER, newProvider);
-        // Load the API key for this provider
         setApiKey(getApiKey(newProvider) || '');
-        // Set default model for new provider
         const defaultModel = PROVIDER_MODELS[newProvider][0]?.id || '';
         setModel(defaultModel);
         localStorage.setItem(STORAGE_KEYS.MODEL, defaultModel);
@@ -122,176 +119,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
 
     return (
         <div className="min-h-screen md:pt-40 pb-10 animate-[fadeIn_0.3s_ease-out]">
-            {/* Desktop: Full-screen with max-width constraint */}
-            <div className="hidden md:block px-8">
-                <div className="max-w-4xl mx-auto">
-
-
-                    <div className="space-y-12">
-
-                        {/* 1. API Configuration Section */}
-                        {/* 1. API Configuration Section */}
-                        <div className="bg-stone-100/50 p-6 rounded-2xl border border-stone-200">
-                            <div className="flex items-center gap-2 mb-6">
-                                <span className="text-xl">🔌</span>
-                                <h3 className="text-stone-800 font-bold text-lg">API Configuration</h3>
-                            </div>
-
-                            <div className="space-y-5">
-                                {/* Row 1: Provider & Model on the same line */}
-                                <div className="flex gap-4">
-                                    {/* Provider Selection (Master) */}
-                                    <div className="flex-1">
-                                        <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Provider</label>
-                                        <div className="relative">
-                                            <select
-                                                value={provider}
-                                                onChange={(e) => handleProviderChange(e.target.value as ProviderType)}
-                                                className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-stone-400 appearance-none shadow-sm cursor-pointer hover:border-stone-300 transition-colors"
-                                            >
-                                                {(Object.keys(PROVIDER_LABELS) as ProviderType[]).map(p => (
-                                                    <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>
-                                                ))}
-                                            </select>
-                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Model Selection (Dependent) */}
-                                    <div className="flex-1">
-                                        <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Model</label>
-                                        <div className="relative">
-                                            <select
-                                                value={model}
-                                                onChange={(e) => handleModelChange(e.target.value)}
-                                                className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-softblue appearance-none shadow-sm cursor-pointer"
-                                            >
-                                                {PROVIDER_MODELS[provider].map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-                                            </select>
-                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Row 2: API Key */}
-                                <div>
-                                    <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">
-                                        {PROVIDER_LABELS[provider].split(' ')[0]} API Key
-                                    </label>
-
-                                    {/* Honeypot fields (hidden) to prevent browser password save prompts */}
-                                    <input
-                                        type="text"
-                                        name="username"
-                                        autoComplete="username"
-                                        style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
-                                        tabIndex={-1}
-                                        aria-hidden="true"
-                                    />
-                                    <input
-                                        type="password"
-                                        autoComplete="new-password"
-                                        style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
-                                        tabIndex={-1}
-                                        aria-hidden="true"
-                                    />
-
-                                    {/* Real API Key field (styled as password but type=text) */}
-                                    <input
-                                        type="text"
-                                        id={`api-key-${provider}`}
-                                        name={`snaplex-api-key-${provider}`}
-                                        autoComplete="off"
-                                        data-lpignore="true"
-                                        data-form-type="other"
-                                        value={apiKey}
-                                        onChange={(e) => handleApiKeyChange(e.target.value)}
-                                        placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
-                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none shadow-sm transition-all focus:ring-1 focus:border-softblue focus:ring-softblue"
-                                        style={{ WebkitTextSecurity: 'disc' } as any}
-                                    />
-
-                                    <div className="mt-2 text-right">
-                                        <a href={PROVIDER_KEY_LINKS[provider].url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-softblue hover:underline">
-                                            {PROVIDER_KEY_LINKS[provider].label}
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 2. Copy Config */}
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-stone-800 font-bold text-lg">{t.lblCopyConfig}</h3>
-                                <div className="h-px bg-stone-200 flex-1 ml-4" />
-                            </div>
-                            <div className="grid grid-cols-6 gap-3">
-                                {STORED_MODULE_KEYS.map(modKey => {
-                                    const isActive = (settings.copyIncludedModules || STORED_MODULE_KEYS).includes(modKey);
-                                    return (
-                                        <button
-                                            key={modKey}
-                                            onClick={() => toggleModule(modKey)}
-                                            className={`px-3 py-2 rounded-lg text-sm font-bold border transition-all ${isActive ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-200'}`}
-                                        >
-                                            {MODULE_LABEL_MAP[modKey] || modKey}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* 3. Language Settings */}
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-stone-800 font-bold text-lg">{t.lblLangSettings}</h3>
-                                <div className="h-px bg-stone-200 flex-1 ml-4" />
-                            </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                {renderSelect(t.lblSystemLang, settings.systemLanguage || 'English', (v) => onSave({ ...settings, systemLanguage: v }), LANGUAGES)}
-                                {renderSelect(t.lblFrontLang, settings.cardFrontLanguage || 'English', (v) => onSave({ ...settings, cardFrontLanguage: v }), LANGUAGES)}
-                                {renderSelect(t.lblBackLang, settings.cardBackLanguage || 'Chinese', (v) => onSave({ ...settings, cardBackLanguage: v }), LANGUAGES)}
-                            </div>
-                        </div>
-
-                        {/* 4. Style Preferences */}
-                        <div>
-                            <div className="flex items-center gap-2 mb-6">
-                                <h3 className="text-stone-800 font-bold text-lg">{t.lblStylePref}</h3>
-                                <div className="h-px bg-stone-200 flex-1 ml-4" />
-                            </div>
-                            <div className="grid grid-cols-6 gap-4">
-                                {styles.map(style => (
-                                    <button
-                                        key={style.id}
-                                        onClick={() => onSave({ ...settings, descriptionStyle: style.id })}
-                                        className={`
-                                            aspect-square rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow-sm active:scale-95
-                                            ${style.color}
-                                            ${settings.descriptionStyle === style.id ? 'ring-4 ring-offset-2 ring-stone-200 transform scale-[1.02] shadow-pop z-10' : 'opacity-90 hover:opacity-100 hover:scale-[1.02]'}
-                                        `}
-                                    >
-                                        <div className="scale-90">
-                                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={style.icon} /></svg>
-                                        </div>
-                                        <span className="font-bold text-xs tracking-wide">{style.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Mobile: Original layout */}
-            <div className="md:hidden px-6 pt-24 pb-6 max-w-screen-md mx-auto">
-
-
+            <div className="px-6 md:px-8 pt-24 md:pt-0 max-w-4xl mx-auto">
                 <div className="space-y-12">
 
                     {/* 1. API Configuration Section */}
@@ -302,9 +130,9 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                         </div>
 
                         <div className="space-y-5">
-                            {/* Row 1: Provider & Model on the same line */}
+                            {/* Row 1: Provider & Model */}
                             <div className="flex gap-4">
-                                {/* Provider Selection (Master) */}
+                                {/* Provider Selection */}
                                 <div className="flex-1">
                                     <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Provider</label>
                                     <div className="relative">
@@ -323,7 +151,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                     </div>
                                 </div>
 
-                                {/* Model Selection (Dependent) */}
+                                {/* Model Selection */}
                                 <div className="flex-1">
                                     <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">AI Model</label>
                                     <div className="relative">
@@ -364,11 +192,11 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                     aria-hidden="true"
                                 />
 
-                                {/* Real API Key field (styled as password but type=text) */}
+                                {/* Real API Key field */}
                                 <input
                                     type="text"
-                                    id={`api-key-mobile-${provider}`}
-                                    name={`snaplex-api-key-mobile-${provider}`}
+                                    id={`api-key-${provider}`}
+                                    name={`snaplex-api-key-${provider}`}
                                     autoComplete="off"
                                     data-lpignore="true"
                                     data-form-type="other"
@@ -394,7 +222,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                             <h3 className="text-stone-800 font-bold text-lg">{t.lblCopyConfig}</h3>
                             <div className="h-px bg-stone-200 flex-1 ml-4" />
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                             {STORED_MODULE_KEYS.map(modKey => {
                                 const isActive = (settings.copyIncludedModules || STORED_MODULE_KEYS).includes(modKey);
                                 return (
@@ -416,9 +244,9 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                             <h3 className="text-stone-800 font-bold text-lg">{t.lblLangSettings}</h3>
                             <div className="h-px bg-stone-200 flex-1 ml-4" />
                         </div>
-                        <div className="space-y-4">
+                        <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-3 md:gap-4">
                             {renderSelect(t.lblSystemLang, settings.systemLanguage || 'English', (v) => onSave({ ...settings, systemLanguage: v }), LANGUAGES)}
-                            <div className="flex gap-4">
+                            <div className="flex gap-4 md:contents">
                                 {renderSelect(t.lblFrontLang, settings.cardFrontLanguage || 'English', (v) => onSave({ ...settings, cardFrontLanguage: v }), LANGUAGES)}
                                 {renderSelect(t.lblBackLang, settings.cardBackLanguage || 'Chinese', (v) => onSave({ ...settings, cardBackLanguage: v }), LANGUAGES)}
                             </div>
@@ -431,13 +259,13 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                             <h3 className="text-stone-800 font-bold text-lg">{t.lblStylePref}</h3>
                             <div className="h-px bg-stone-200 flex-1 ml-4" />
                         </div>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-4">
                             {styles.map(style => (
                                 <button
                                     key={style.id}
                                     onClick={() => onSave({ ...settings, descriptionStyle: style.id })}
                                     className={`
-                                        aspect-[4/3] rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow-sm active:scale-95
+                                        aspect-[4/3] md:aspect-square rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow-sm active:scale-95
                                         ${style.color}
                                         ${settings.descriptionStyle === style.id ? 'ring-4 ring-offset-2 ring-stone-200 transform scale-[1.02] shadow-pop z-10' : 'opacity-90 hover:opacity-100 hover:scale-[1.02]'}
                                     `}
@@ -445,7 +273,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                     <div className="scale-90">
                                         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={style.icon} /></svg>
                                     </div>
-                                    <span className="font-bold text-[10px] tracking-wide">{style.label}</span>
+                                    <span className="font-bold text-[10px] md:text-xs tracking-wide">{style.label}</span>
                                 </button>
                             ))}
                         </div>
