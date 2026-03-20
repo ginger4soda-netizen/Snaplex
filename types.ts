@@ -52,6 +52,7 @@ export interface HistoryItem {
   lastViewedAt?: number; // Timestamp of last view
   lastExported?: number; // Timestamp of last export
   dimensionHistories?: DimensionHistories; // Track regeneration history per dimension
+  memo?: string; // User-written personal notes for this image
 }
 
 // Dimension types

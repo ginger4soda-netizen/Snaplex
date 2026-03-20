@@ -129,6 +129,17 @@ const App: React.FC = () => {
     updateHistoryItem(currentHistoryId, { chatHistory: msgs });
   };
 
+  const handleMemoChange = (text: string) => {
+    if (!currentHistoryId) return;
+    updateHistoryItem(currentHistoryId, { memo: text });
+  };
+
+  const handleImportItems = (importedItems: HistoryItem[]) => {
+    const newHistory = [...importedItems, ...historyItems];
+    setHistoryItems(newHistory);
+    set('visionLearnHistory', newHistory);
+  };
+
   const handleImageUpload = async (files: File[]) => {
     if (files.length === 0) return;
 
@@ -298,6 +309,8 @@ const App: React.FC = () => {
                 chatHistory={currentItem?.chatHistory || []}
                 onUpdateChatHistory={handleUpdateChatHistory}
                 historyItemId={currentItem?.id}
+                memo={currentItem?.memo || ''}
+                onMemoChange={handleMemoChange}
               />
             )
           )
@@ -309,6 +322,7 @@ const App: React.FC = () => {
             onSelect={handleHistorySelect}
             onDeleteItems={handleDeleteHistoryItems}
             onMarkAsExported={handleMarkAsExported}
+            onImportItems={handleImportItems}
             systemLanguage={settings.systemLanguage}
           />
         )}

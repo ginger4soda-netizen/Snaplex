@@ -1,25 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { HistoryItem } from '../types';
 import { searchHistory } from '../services/geminiService';
 import { getTranslation } from '../translations';
 import { getCorrectDisplayOrder } from '../utils/languageDetect';
+import { parseExportedFile } from '../utils/importHistory';
 
 interface Props {
     items: HistoryItem[];
     onSelect: (item: HistoryItem) => void;
     onDeleteItems: (ids: string[]) => void;
     onMarkAsExported: (ids: string[]) => void;
+    onImportItems: (items: HistoryItem[]) => void;
     systemLanguage?: string;
 }
 
-const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkAsExported, systemLanguage }) => {
+const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkAsExported, onImportItems, systemLanguage }) => {
     const [filteredItems, setFilteredItems] = useState<HistoryItem[]>([]);
     const [query, setQuery] = useState('');
     const [searching, setSearching] = useState(false);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    // New State for Grid Size (4-8)
-    const [gridCols, setGridCols] = useState(4);
+    const [gridCols, setGridCols] = useState(() => parseInt(localStorage.getItem('snaplex_gridCols') || '6'));
+    const [importing, setImporting] = useState(false);
+    const importInputRef = useRef<HTMLInputElement>(null);
 
     const t = getTranslation(systemLanguage);
 
@@ -82,6 +85,32 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
             onDeleteItems(Array.from(selectedIds));
             setIsSelectionMode(false);
             setSelectedIds(new Set());
+        }
+    };
+
+    const handleGridColsChange = (value: number) => {
+        setGridCols(value);
+        localStorage.setItem('snaplex_gridCols', String(value));
+    };
+
+    const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImporting(true);
+        try {
+            const importedItems = await parseExportedFile(file);
+            if (importedItems.length === 0) {
+                alert('No valid items found in the file. Make sure it is a Snaplex export file.');
+            } else {
+                onImportItems(importedItems);
+                alert(`✅ Successfully imported ${importedItems.length} item(s)!`);
+            }
+        } catch (err) {
+            console.error('Import failed:', err);
+            alert('❌ Import failed. Please check the file format.');
+        } finally {
+            setImporting(false);
+            if (importInputRef.current) importInputRef.current.value = '';
         }
     };
 
@@ -210,7 +239,7 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
                             max="8"
                             step="1"
                             value={gridCols}
-                            onChange={(e) => setGridCols(parseInt(e.target.value))}
+                            onChange={(e) => handleGridColsChange(parseInt(e.target.value))}
                             className="w-20 h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-softblue"
                         />
                         <span className="text-[10px] text-stone-400 font-mono w-3 text-right">{gridCols}</span>
@@ -253,13 +282,26 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
 
     return (
         <div className="min-h-screen md:pt-40 pb-10 animate-[fadeIn_0.3s_ease-out]">
+            {/* Hidden file input for import */}
+            <input
+                ref={importInputRef}
+                type="file"
+                accept=".xls,.html,.htm"
+                className="hidden"
+                onChange={handleImport}
+            />
             {/* Desktop: Full-screen grid layout */}
             <div className="hidden md:block px-8 max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-3xl font-black text-stone-800 tracking-tight">{t.libraryTitle}</h2>
-                    <button onClick={toggleSelectionMode} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${isSelectionMode ? 'bg-stone-200 text-stone-800' : 'text-stone-500 hover:bg-stone-100'}`}>
-                        {isSelectionMode ? t.btnCancel : t.btnSelect}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => importInputRef.current?.click()} disabled={importing} className="px-4 py-2 rounded-xl font-bold text-sm transition-colors text-softblue hover:bg-softblue/10 disabled:opacity-50">
+                            {importing ? '...' : `↓ ${t.btnImport}`}
+                        </button>
+                        <button onClick={toggleSelectionMode} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${isSelectionMode ? 'bg-stone-200 text-stone-800' : 'text-stone-500 hover:bg-stone-100'}`}>
+                            {isSelectionMode ? t.btnCancel : `↑ ${t.btnSelect}`}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Search Bar */}
@@ -347,14 +389,19 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
                                     max="6"
                                     step="1"
                                     value={gridCols}
-                                    onChange={(e) => setGridCols(parseInt(e.target.value))}
+                                    onChange={(e) => handleGridColsChange(parseInt(e.target.value))}
                                     className="w-16 h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-softblue"
                                 />
                             </div>
                         )}
-                        <button onClick={toggleSelectionMode} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${isSelectionMode ? 'bg-stone-200 text-stone-800' : 'text-stone-500 hover:bg-stone-100'}`}>
-                            {isSelectionMode ? t.btnCancel : t.btnSelect}
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => importInputRef.current?.click()} disabled={importing} className="px-3 py-2 rounded-xl font-bold text-sm text-softblue hover:bg-softblue/10 disabled:opacity-50">
+                                {importing ? '...' : `↓ ${t.btnImport}`}
+                            </button>
+                            <button onClick={toggleSelectionMode} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${isSelectionMode ? 'bg-stone-200 text-stone-800' : 'text-stone-500 hover:bg-stone-100'}`}>
+                                {isSelectionMode ? t.btnCancel : `↑ ${t.btnSelect}`}
+                            </button>
+                        </div>
                     </div>
                 </div>
 

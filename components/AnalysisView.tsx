@@ -6,6 +6,7 @@ import { getTranslation } from '../translations';
 import { copyToClipboard } from '../utils/clipboard';
 import { regenerateDimension, translateText } from '../services/geminiService';
 import { getCorrectDisplayOrder } from '../utils/languageDetect';
+import { freeTranslate, debounce } from '../utils/translate';
 
 interface Props {
     image: string;
@@ -16,8 +17,126 @@ interface Props {
     onToggleFavorite: () => void;
     chatHistory: ChatMessage[];
     onUpdateChatHistory: (messages: ChatMessage[]) => void;
-    historyItemId?: string; // For IndexedDB persistence
+    historyItemId?: string;
+    memo?: string;
+    onMemoChange?: (memo: string) => void;
 }
+
+// ===== MemoCard Component =====
+const MemoCard: React.FC<{
+    memo: string;
+    onMemoChange: (text: string) => void;
+    backLanguage: string;
+    t: ReturnType<typeof getTranslation>;
+}> = ({ memo, onMemoChange, backLanguage, t }) => {
+    const [isFlipped, setIsFlipped] = useState(false);
+    const [translated, setTranslated] = useState('');
+    const [isCopied, setIsCopied] = useState(false);
+    const [isTranslating, setIsTranslating] = useState(false);
+
+    // Debounced translation
+    const debouncedTranslate = useCallback(
+        debounce(async (text: string) => {
+            if (!text.trim()) { setTranslated(''); setIsTranslating(false); return; }
+            setIsTranslating(true);
+            const result = await freeTranslate(text, backLanguage);
+            setTranslated(result);
+            setIsTranslating(false);
+        }, 800),
+        [backLanguage]
+    );
+
+    useEffect(() => {
+        debouncedTranslate(memo);
+    }, [memo, debouncedTranslate]);
+
+    const handleCopy = async () => {
+        const text = isFlipped ? translated : memo;
+        await copyToClipboard(text);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 1500);
+    };
+
+    return (
+        <div className="relative" style={{ perspective: '600px' }}>
+            <div
+                className="transition-transform duration-500"
+                style={{ transformStyle: 'preserve-3d', transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0)' }}
+            >
+                {/* Front: User Input */}
+                <div
+                    className="rounded-2xl p-5 border-2 border-dashed border-red-300/60 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 shadow-inner"
+                    style={{ backfaceVisibility: 'hidden' }}
+                >
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <span className="text-lg">📝</span>
+                            <span className="text-xs font-black uppercase tracking-widest text-red-400/70">{t.memoLabel}</span>
+                        </div>
+                        <div className="flex gap-1.5">
+                            <button
+                                onClick={handleCopy}
+                                className="w-7 h-7 rounded-full bg-white/80 border border-red-200/50 flex items-center justify-center text-stone-500 hover:text-stone-800 hover:border-red-300 transition-all active:scale-90"
+                            >
+                                {isCopied
+                                    ? <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                    : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                }
+                            </button>
+                            <button
+                                onClick={() => setIsFlipped(true)}
+                                className="w-7 h-7 rounded-full bg-white/80 border border-red-200/50 flex items-center justify-center text-stone-500 hover:text-red-500 hover:border-red-300 transition-all active:scale-90"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <textarea
+                        value={memo}
+                        onChange={(e) => onMemoChange(e.target.value)}
+                        placeholder={t.memoPlaceholder}
+                        className="w-full bg-transparent text-stone-700 text-sm leading-relaxed resize-none outline-none min-h-[80px] placeholder:text-red-300/60 placeholder:italic font-sans"
+                        rows={3}
+                    />
+                </div>
+
+                {/* Back: Translation */}
+                <div
+                    className="absolute inset-0 rounded-2xl p-5 border-2 border-dashed border-red-300/60 bg-gradient-to-br from-rose-50 via-pink-50 to-amber-50 shadow-inner"
+                    style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+                >
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <span className="text-lg">🌐</span>
+                            <span className="text-xs font-black uppercase tracking-widest text-red-400/70">{t.memoTranslationLabel}</span>
+                            {isTranslating && <span className="text-[10px] text-red-300 animate-pulse">translating...</span>}
+                        </div>
+                        <div className="flex gap-1.5">
+                            <button
+                                onClick={handleCopy}
+                                className="w-7 h-7 rounded-full bg-white/80 border border-red-200/50 flex items-center justify-center text-stone-500 hover:text-stone-800 hover:border-red-300 transition-all active:scale-90"
+                            >
+                                {isCopied
+                                    ? <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                    : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                }
+                            </button>
+                            <button
+                                onClick={() => setIsFlipped(false)}
+                                className="w-7 h-7 rounded-full bg-white/80 border border-red-200/50 flex items-center justify-center text-red-400 hover:text-red-600 hover:border-red-300 transition-all active:scale-90"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <p className="text-stone-700 text-sm leading-relaxed font-sans">
+                        {translated || (memo ? '...' : '')}
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const COLOR_MAP: Record<string, string> = {
     'text-coral': '#EF476F', 'text-mint': '#06D6A0', 'text-softblue': '#118AB2', 'text-sunny': '#FFD166', 'text-stone-500': '#78716c',
@@ -134,7 +253,7 @@ const PromptCard: React.FC<{
     );
 };
 
-const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chatHistory, onUpdateChatHistory, historyItemId }) => {
+const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chatHistory, onUpdateChatHistory, historyItemId, memo, onMemoChange }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     const [isGlobalFlipped, setIsGlobalFlipped] = useState(false);
     const [showChat, setShowChat] = useState(false);
@@ -422,6 +541,18 @@ const AnalysisView: React.FC<Props> = ({ image, analysis, onBack, settings, chat
                                 />
                             </div>
                         ))}
+                        {/* ===== Red Dashed Separator + Memo ===== */}
+                        <div className="flex items-center gap-3 my-6 px-2">
+                            <div className="flex-1 border-t-2 border-dashed border-red-300/50"></div>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-red-300/70">{t.memoPersonalNotes}</span>
+                            <div className="flex-1 border-t-2 border-dashed border-red-300/50"></div>
+                        </div>
+                        <MemoCard
+                            memo={memo || ''}
+                            onMemoChange={(text) => onMemoChange?.(text)}
+                            backLanguage={settings.cardBackLanguage || 'Chinese'}
+                            t={t}
+                        />
                     </div>
                     <button onClick={() => setShowChat(true)} className="fixed bottom-6 right-6 md:absolute w-14 h-14 bg-stone-800 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all z-40 border-2 border-cream"><svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" /><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" /></svg></button>
                 </div>
