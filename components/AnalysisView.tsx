@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey, DimensionHistories } from '../types';
 import { get, set } from 'idb-keyval';
 import ChatBot from './ChatBot';
@@ -33,6 +33,17 @@ const MemoCard: React.FC<{
     const [translated, setTranslated] = useState('');
     const [isCopied, setIsCopied] = useState(false);
     const [isTranslating, setIsTranslating] = useState(false);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Auto-resize textarea
+    const autoResize = useCallback(() => {
+        const el = textareaRef.current;
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = Math.max(80, el.scrollHeight) + 'px';
+    }, []);
+
+    useEffect(() => { autoResize(); }, [memo, autoResize]);
 
     // Debounced translation
     const debouncedTranslate = useCallback(
@@ -57,83 +68,61 @@ const MemoCard: React.FC<{
         setTimeout(() => setIsCopied(false), 1500);
     };
 
-    return (
-        <div className="relative" style={{ perspective: '600px' }}>
-            <div
-                className="transition-transform duration-500"
-                style={{ transformStyle: 'preserve-3d', transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0)' }}
-            >
-                {/* Front: User Input */}
-                <div
-                    className="rounded-2xl p-5 border-2 border-dashed border-red-300/60 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 shadow-inner"
-                    style={{ backfaceVisibility: 'hidden' }}
-                >
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <span className="text-lg">📝</span>
-                            <span className="text-xs font-black uppercase tracking-widest text-red-400/70">{t.memoLabel}</span>
-                        </div>
-                        <div className="flex gap-1.5">
-                            <button
-                                onClick={handleCopy}
-                                className="w-7 h-7 rounded-full bg-white/80 border border-red-200/50 flex items-center justify-center text-stone-500 hover:text-stone-800 hover:border-red-300 transition-all active:scale-90"
-                            >
-                                {isCopied
-                                    ? <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-                                    : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                                }
-                            </button>
-                            <button
-                                onClick={() => setIsFlipped(true)}
-                                className="w-7 h-7 rounded-full bg-white/80 border border-red-200/50 flex items-center justify-center text-stone-500 hover:text-red-500 hover:border-red-300 transition-all active:scale-90"
-                            >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
-                            </button>
-                        </div>
-                    </div>
-                    <textarea
-                        value={memo}
-                        onChange={(e) => onMemoChange(e.target.value)}
-                        placeholder={t.memoPlaceholder}
-                        className="w-full bg-transparent text-stone-700 text-sm leading-relaxed resize-none outline-none min-h-[80px] placeholder:text-red-300/60 placeholder:italic font-sans"
-                        rows={3}
-                    />
-                </div>
+    const copyBtn = (
+        <button
+            onClick={handleCopy}
+            className="w-7 h-7 rounded-full bg-white/80 border border-red-200/50 flex items-center justify-center text-stone-500 hover:text-stone-800 hover:border-red-300 transition-all active:scale-90"
+        >
+            {isCopied
+                ? <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+            }
+        </button>
+    );
 
-                {/* Back: Translation */}
-                <div
-                    className="absolute inset-0 rounded-2xl p-5 border-2 border-dashed border-red-300/60 bg-gradient-to-br from-rose-50 via-pink-50 to-amber-50 shadow-inner"
-                    style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-                >
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <span className="text-lg">🌐</span>
-                            <span className="text-xs font-black uppercase tracking-widest text-red-400/70">{t.memoTranslationLabel}</span>
-                            {isTranslating && <span className="text-[10px] text-red-300 animate-pulse">translating...</span>}
-                        </div>
-                        <div className="flex gap-1.5">
-                            <button
-                                onClick={handleCopy}
-                                className="w-7 h-7 rounded-full bg-white/80 border border-red-200/50 flex items-center justify-center text-stone-500 hover:text-stone-800 hover:border-red-300 transition-all active:scale-90"
-                            >
-                                {isCopied
-                                    ? <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-                                    : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                                }
-                            </button>
-                            <button
-                                onClick={() => setIsFlipped(false)}
-                                className="w-7 h-7 rounded-full bg-white/80 border border-red-200/50 flex items-center justify-center text-red-400 hover:text-red-600 hover:border-red-300 transition-all active:scale-90"
-                            >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
-                            </button>
-                        </div>
-                    </div>
-                    <p className="text-stone-700 text-sm leading-relaxed font-sans">
-                        {translated || (memo ? '...' : '')}
-                    </p>
+    const flipBtn = (toFlip: boolean) => (
+        <button
+            onClick={() => setIsFlipped(toFlip)}
+            className={`w-7 h-7 rounded-full bg-white/80 border border-red-200/50 flex items-center justify-center transition-all active:scale-90 ${toFlip ? 'text-stone-500 hover:text-red-500' : 'text-red-400 hover:text-red-600'} hover:border-red-300`}
+        >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+        </button>
+    );
+
+    return (
+        <div className="rounded-2xl p-5 border-2 border-dashed border-red-300/60 shadow-inner transition-colors duration-300"
+            style={{ background: isFlipped
+                ? 'linear-gradient(to bottom right, #fff1f2, #fce7f3, #fffbeb)'
+                : 'linear-gradient(to bottom right, #fffbeb, #fff7ed, #fff1f2)' }}
+        >
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <span className="text-lg">{isFlipped ? '🌐' : '📝'}</span>
+                    <span className="text-xs font-black uppercase tracking-widest text-red-400/70">
+                        {isFlipped ? t.memoTranslationLabel : t.memoLabel}
+                    </span>
+                    {isFlipped && isTranslating && <span className="text-[10px] text-red-300 animate-pulse">translating...</span>}
+                </div>
+                <div className="flex gap-1.5">
+                    {copyBtn}
+                    {flipBtn(!isFlipped)}
                 </div>
             </div>
+
+            {!isFlipped ? (
+                <textarea
+                    ref={textareaRef}
+                    value={memo}
+                    onChange={(e) => onMemoChange(e.target.value)}
+                    onInput={autoResize}
+                    placeholder={t.memoPlaceholder}
+                    className="w-full bg-transparent text-stone-700 text-sm leading-relaxed resize-none outline-none min-h-[80px] placeholder:text-red-300/60 placeholder:italic font-sans"
+                />
+            ) : (
+                <div className="text-stone-700 text-sm leading-relaxed font-sans min-h-[80px]">
+                    {translated || (memo ? '...' : '')}
+                </div>
+            )}
         </div>
     );
 };
