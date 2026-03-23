@@ -103,6 +103,27 @@ pub fn save_analysis(
         "UPDATE images SET has_analysis = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
         rusqlite::params![image_id],
     )?;
+
+    // Populate FTS5 search index with all analysis text
+    let search_parts: Vec<&str> = [
+        analysis.description.as_str(),
+        p.subject.original.as_str(), p.subject.translated.as_str(),
+        p.environment.original.as_str(), p.environment.translated.as_str(),
+        p.composition.original.as_str(), p.composition.translated.as_str(),
+        p.lighting.original.as_str(), p.lighting.translated.as_str(),
+        p.mood.original.as_str(), p.mood.translated.as_str(),
+        p.style.original.as_str(), p.style.translated.as_str(),
+    ].into_iter().filter(|s| !s.is_empty()).collect();
+    let search_content = search_parts.join(" ");
+
+    let memo: String = conn.query_row(
+        "SELECT COALESCE(memo, '') FROM images WHERE id = ?1",
+        rusqlite::params![image_id],
+        |row| row.get(0),
+    ).unwrap_or_default();
+
+    super::search::update_search_index(conn, image_id, &search_content, &memo)?;
+
     Ok(())
 }
 

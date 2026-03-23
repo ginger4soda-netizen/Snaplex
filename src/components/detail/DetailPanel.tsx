@@ -7,6 +7,7 @@ import DimensionCards from './DimensionCards';
 import MemoCard from './MemoCard';
 import ChatPanel from './ChatPanel';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import { extractColors } from '@/utils/colorExtract';
 
 interface DetailPanelProps {
   imageId?: string;
@@ -65,6 +66,21 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
       </div>
     );
   }
+
+  // Extract colors when image loads and palette is null
+  useEffect(() => {
+    if (!detail || detail.colorPalette) return;
+    const url = detail.fullUrl;
+    if (!url) return;
+    const filePath = url.startsWith('file://') ? url.slice(7) : url;
+    const assetUrl = convertFileSrc(filePath);
+
+    extractColors(assetUrl, 8).then(colors => {
+      setDetail(prev => prev ? { ...prev, colorPalette: colors } : null);
+    }).catch(err => {
+      console.warn('Color extraction failed:', err);
+    });
+  }, [detail?.id]);
 
   if (!detail) return null;
 
