@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function About(): React.ReactElement {
+const About: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto px-8 py-12">
       <div className="flex items-center gap-4 mb-8">
@@ -34,4 +34,3 @@ export function About(): React.ReactElement {
 };
 
 export default About;
-
