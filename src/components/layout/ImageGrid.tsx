@@ -7,6 +7,7 @@ import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { showToast } from '@/hooks/useToast';
 import { exportAnalysisData } from '@/utils/exportAnalysis';
+import { importLegacyFile } from '@/utils/importLegacy';
 
 interface ImageGridProps {
   folderId?: string;
@@ -293,6 +294,27 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     e.dataTransfer.setData('application/snaplex-source-folder', folderId || '');
   }, [multiSelected, folderId]);
 
+  const handleImportXLS = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xls,.xlsx';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      setLoading(true);
+      try {
+        const { result } = await importLegacyFile(file);
+        showToast(`Imported ${result.imported} items (${result.failed} failed)`, result.failed > 0 ? 'error' : 'success');
+        await loadImages();
+      } catch (err) {
+        showToast(`XLS import failed: ${err}`, 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    input.click();
+  }, [loadImages]);
+
   const handleExportAnalysis = useCallback(async () => {
     if (multiSelected.size === 0) return;
     try {
@@ -388,9 +410,19 @@ const ImageGrid: React.FC<ImageGridProps> = ({
               <svg className="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
             </div>
 
+            <button
+              onClick={handleImportXLS}
+              className="p-2 rounded-lg text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+              title="Import from XLS"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+            </button>
+
             <div className="w-px h-6 bg-stone-200 dark:border-stone-800" />
 
-            <button 
+            <button
               onClick={onToggleDetail}
               className={`p-2 rounded-lg transition-colors ${isDetailVisible ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'}`}
               title="Toggle Detail Panel"
