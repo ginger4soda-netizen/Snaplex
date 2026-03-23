@@ -30,6 +30,7 @@ const App: React.FC = () => {
       try {
         const stored = await get('visionLearnSettings');
         const detected = detectSystemLanguage();
+        console.log('[Snaplex] Detected system language:', detected, 'from navigator.language:', navigator.language);
         if (stored) {
           // Always enforce system language on desktop launch
           const updated = {
@@ -38,12 +39,12 @@ const App: React.FC = () => {
             cardBackLanguage: stored.cardBackLanguage || detected,
           };
           setSettings(updated);
-          set('visionLearnSettings', updated);
+          await set('visionLearnSettings', updated);
         } else {
           // First launch — use defaults + detected language
           const autoSettings = { ...DEFAULT_SETTINGS, systemLanguage: detected, cardBackLanguage: detected };
           setSettings(autoSettings);
-          set('visionLearnSettings', autoSettings);
+          await set('visionLearnSettings', autoSettings);
         }
       } catch {
         // idb-keyval may fail in Tauri, non-critical
