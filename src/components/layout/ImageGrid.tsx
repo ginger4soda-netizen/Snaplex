@@ -3,7 +3,6 @@ import { useTauriIPC } from '@/hooks/useTauriIPC';
 import { ImageItem } from '@/types';
 import ImageCard from '../images/ImageCard';
 import SearchBar from '../search/SearchBar';
-import SearchResults from '../search/SearchResults';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { showToast } from '@/hooks/useToast';
@@ -288,10 +287,19 @@ const ImageGrid: React.FC<ImageGridProps> = ({
         {/* Search Status Bar */}
         {!isMultiMode && (isSearching || searchResultIds !== null) && (
           <div className="px-6 pb-2">
-            <SearchResults
-              isSearching={isSearching}
-              count={searchResultIds?.length || 0}
-            />
+            <div className="flex items-center gap-2 px-1 py-1.5 text-xs text-stone-500">
+              {isSearching ? (
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Searching...
+                </span>
+              ) : (
+                <span>{searchResultIds?.length || 0} result{(searchResultIds?.length || 0) !== 1 ? 's' : ''} found</span>
+              )}
+            </div>
           </div>
         )}
       </div>

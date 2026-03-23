@@ -40,6 +40,22 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
     loadDetail();
   }, [imageId]);
 
+  // Extract colors when image loads and palette is null
+  // NOTE: This hook must be BEFORE any conditional returns to satisfy React's Rules of Hooks
+  useEffect(() => {
+    if (!detail || detail.colorPalette) return;
+    const url = detail.fullUrl;
+    if (!url) return;
+    const filePath = url.startsWith('file://') ? url.slice(7) : url;
+    const assetUrl = convertFileSrc(filePath);
+
+    extractColors(assetUrl, 8).then(colors => {
+      setDetail(prev => prev ? { ...prev, colorPalette: colors } : null);
+    }).catch(err => {
+      console.warn('Color extraction failed:', err);
+    });
+  }, [detail?.id]);
+
   const handleMemoChange = async (memo: string) => {
     if (!imageId) return;
     try {
@@ -66,21 +82,6 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
       </div>
     );
   }
-
-  // Extract colors when image loads and palette is null
-  useEffect(() => {
-    if (!detail || detail.colorPalette) return;
-    const url = detail.fullUrl;
-    if (!url) return;
-    const filePath = url.startsWith('file://') ? url.slice(7) : url;
-    const assetUrl = convertFileSrc(filePath);
-
-    extractColors(assetUrl, 8).then(colors => {
-      setDetail(prev => prev ? { ...prev, colorPalette: colors } : null);
-    }).catch(err => {
-      console.warn('Color extraction failed:', err);
-    });
-  }, [detail?.id]);
 
   if (!detail) return null;
 
