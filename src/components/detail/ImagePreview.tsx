@@ -1,0 +1,23 @@
+import React from 'react';
+
+interface ImagePreviewProps {
+  src: string;
+  filename: string;
+}
+
+const ImagePreview: React.FC<ImagePreviewProps> = ({ src, filename }) => {
+  return (
+    <div className="relative aspect-video bg-stone-100 dark:bg-stone-800 overflow-hidden group">
+      <img 
+        src={src} 
+        alt={filename} 
+        className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
+      />
+      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+        <svg className="w-8 h-8 text-white drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
+      </div>
+    </div>
+  );
+};
+
+export default ImagePreview;

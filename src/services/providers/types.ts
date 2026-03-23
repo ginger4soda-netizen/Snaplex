@@ -1,0 +1,156 @@
+import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey } from '../../types';
+
+// Term explanation response
+export interface TermExplanation {
+    def: string;
+    app: string;
+}
+
+// Provider interface - all providers must implement this
+export interface AIProvider {
+    readonly name: string;
+
+    // Core image analysis
+    analyzeImage(base64Image: string, settings: UserSettings): Promise<AnalysisResult>;
+
+    // Term explanation for printer
+    explainTerm(term: string, language: string): Promise<TermExplanation>;
+
+    // Chat with streaming
+    chatStream(
+        history: ChatMessage[],
+        message: string,
+        image: string | undefined,
+        onUpdate: (text: string) => void,
+        settings?: UserSettings
+    ): Promise<void>;
+
+    // Translate text
+    translateText(text: string, language: string): Promise<string>;
+
+    // Semantic search expansion
+    expandSearchQuery(query: string): Promise<string[][]>;
+
+    // Regenerate a single dimension
+    regenerateDimension(
+        base64Image: string,
+        dimension: DimensionKey,
+        settings: UserSettings
+    ): Promise<PromptSegment>;
+}
+
+// Provider identifiers
+export type ProviderType = 'gemini' | 'openai' | 'claude' | 'siliconflow';
+
+// Model definitions per provider
+export interface ModelDefinition {
+    id: string;
+    label: string;
+    supportsVision: boolean;
+}
+
+export const PROVIDER_MODELS: Record<ProviderType, ModelDefinition[]> = {
+    gemini: [
+        { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recommended)', supportsVision: true },
+        { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', supportsVision: true },
+        { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview', supportsVision: true },
+        { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro Preview', supportsVision: true },
+    ],
+    openai: [
+        { id: 'gpt-4o', label: 'GPT-4o', supportsVision: true },
+        { id: 'gpt-4o-mini', label: 'GPT-4o Mini', supportsVision: true },
+        { id: 'gpt-4.1', label: 'GPT-4.1', supportsVision: true },
+        { id: 'gpt-5.4-mini', label: 'GPT-5.4 Mini', supportsVision: true },
+        { id: 'gpt-5.4-nano', label: 'GPT-5.4 Nano (Fast)', supportsVision: true },
+        { id: 'gpt-5.4', label: 'GPT-5.4 (Latest)', supportsVision: true },
+        { id: 'o4-mini', label: 'o4-mini (Reasoning)', supportsVision: true },
+    ],
+    claude: [
+        { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5 (Fast)', supportsVision: true },
+        { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (Recommended)', supportsVision: true },
+        { id: 'claude-opus-4-6', label: 'Claude Opus 4.6', supportsVision: true },
+    ],
+    siliconflow: [
+        { id: 'Qwen/Qwen3-VL-32B-Instruct', label: 'Qwen3-VL 32B Instruct', supportsVision: true },
+        { id: 'Qwen/Qwen3-VL-32B-Thinking', label: 'Qwen3-VL 32B Thinking', supportsVision: true },
+        { id: 'zai-org/GLM-4.6V', label: 'GLM-4.6V (Multimodal)', supportsVision: true },
+        { id: 'Qwen/Qwen2.5-VL-32B-Instruct', label: 'Qwen2.5-VL 32B', supportsVision: true },
+    ],
+
+};
+
+export const PROVIDER_LABELS: Record<ProviderType, string> = {
+    gemini: 'Google Gemini',
+    openai: 'OpenAI',
+    claude: 'Anthropic Claude',
+    siliconflow: 'SiliconFlow',
+};
+
+// LocalStorage keys
+export const STORAGE_KEYS = {
+    PROVIDER: 'SNAPLEX_PROVIDER',
+    MODEL: 'SNAPLEX_MODEL_ID',
+    API_KEY_PREFIX: 'SNAPLEX_API_KEY_',
+};
+
+// Helper to get API key for a provider
+export const getApiKey = (provider: ProviderType): string | null => {
+    return localStorage.getItem(`${STORAGE_KEYS.API_KEY_PREFIX}${provider.toUpperCase()}`);
+};
+
+// Helper to set API key for a provider
+export const setApiKey = (provider: ProviderType, key: string): void => {
+    localStorage.setItem(`${STORAGE_KEYS.API_KEY_PREFIX}${provider.toUpperCase()}`, key.trim());
+};
+
+// Helper to get current provider
+export const getCurrentProvider = (): ProviderType => {
+    return (localStorage.getItem(STORAGE_KEYS.PROVIDER) as ProviderType) || 'gemini';
+};
+
+// Helper to get current model
+export const getCurrentModel = (): string => {
+    const provider = getCurrentProvider();
+    const storedModel = localStorage.getItem(STORAGE_KEYS.MODEL);
+    if (storedModel) return storedModel;
+    // Default to first model of current provider
+    return PROVIDER_MODELS[provider][0]?.id || 'gemini-2.5-flash';
+};
+
+// API Key format validation patterns
+const KEY_PATTERNS: Record<ProviderType, RegExp> = {
+    gemini: /^AIza[a-zA-Z0-9_-]{35}$/,
+    openai: /^sk-[a-zA-Z0-9]{48,}$/,
+    claude: /^sk-ant-[a-zA-Z0-9_-]+$/,
+    siliconflow: /^sk-[a-zA-Z0-9]+$/,
+};
+
+/**
+ * Validate API key format for a given provider.
+ * Returns true if format is valid, false otherwise.
+ */
+export const validateKeyFormat = (provider: ProviderType, key: string): boolean => {
+    if (!key || key.trim() === '') return false;
+    const pattern = KEY_PATTERNS[provider];
+    return pattern ? pattern.test(key.trim()) : true;
+};
+
+/**
+ * Get a user-friendly error message for invalid API key format.
+ */
+export const getKeyFormatError = (provider: ProviderType): string => {
+    const providerNames = {
+        gemini: 'Google Gemini',
+        openai: 'OpenAI',
+        claude: 'Anthropic Claude',
+        siliconflow: 'SiliconFlow'
+    };
+    const expectedPrefixes = {
+        gemini: 'AIza',
+        openai: 'sk-',
+        claude: 'sk-ant-',
+        siliconflow: 'sk-'
+    };
+    return `❌ API Key 格式错误！您选择了 ${providerNames[provider]}，但 Key 格式不正确。${providerNames[provider]} 的 Key 应以 "${expectedPrefixes[provider]}" 开头。请检查设置页。`;
+};
+
