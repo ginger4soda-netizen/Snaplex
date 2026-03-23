@@ -174,6 +174,9 @@ pub fn get_image_detail(conn: &Connection, id: &str) -> Result<ImageDetail, rusq
         })
     })?;
 
+    // Load analysis if it exists
+    let analysis = super::analysis::get_analysis(conn, id)?;
+
     // Load folder_ids
     let mut folder_stmt =
         conn.prepare("SELECT folder_id FROM image_folders WHERE image_id = ?1")?;
@@ -183,6 +186,7 @@ pub fn get_image_detail(conn: &Connection, id: &str) -> Result<ImageDetail, rusq
         .collect();
 
     Ok(ImageDetail {
+        analysis,
         folder_ids,
         ..detail
     })

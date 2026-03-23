@@ -123,10 +123,13 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
 
               <section>
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4">AI Analysis</h3>
-                <DimensionCards 
-                  imageId={detail.id} 
-                  analysis={detail.analysis} 
+                <DimensionCards
+                  imageId={detail.id}
+                  analysis={detail.analysis}
                   image={fullUrl}
+                  onAnalysisComplete={(analysis) => {
+                    setDetail(prev => prev ? { ...prev, analysis, hasAnalysis: true } : null);
+                  }}
                 />
               </section>
 
