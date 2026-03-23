@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { get, set } from 'idb-keyval';
-import Settings from './components/Settings';
-import StylePrinter from './components/StylePrinter';
 import ThreeColumnLayout from './components/layout/ThreeColumnLayout';
 import { UserSettings, DEFAULT_SETTINGS } from './types';
 import { useTheme } from './hooks/useTheme';
 import { useTauriIPC } from './hooks/useTauriIPC';
 import ToastContainer from './components/common/ToastContainer';
 import { showToast } from './hooks/useToast';
-
-type DesktopMode = 'library' | 'settings' | 'printer';
+import { useNavigationHistory, NavEntry } from './hooks/useNavigationHistory';
 
 const DEFAULT_LIBRARY_NAME = 'Default';
 
 const App: React.FC = () => {
-  const [mode, setMode] = useState<DesktopMode>('library');
-  const [currentFolderId, setCurrentFolderId] = useState<string | undefined>(undefined);
+  const nav = useNavigationHistory({ type: 'folder', id: undefined });
+
+  // Derive centerView from navigation state
+  const centerView = nav.current.type === 'folder' ? 'grid' : nav.current.type;
+  const navFolderId = nav.current.type === 'folder' ? nav.current.id : undefined;
+
   const [selectedImageId, setSelectedImageId] = useState<string | undefined>(undefined);
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [initState, setInitState] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -75,6 +76,16 @@ const App: React.FC = () => {
     set('visionLearnSettings', newSettings);
   };
 
+  const handleNavigate = (target: string) => {
+    if (target === 'settings') nav.push({ type: 'settings' });
+    else if (target === 'printer') nav.push({ type: 'stylePrinter' });
+    else if (target === 'about') nav.push({ type: 'about' });
+  };
+
+  const handleFolderSelect = (folderId: string | undefined) => {
+    nav.push({ type: 'folder', id: folderId });
+  };
+
   const handleRetryInit = () => {
     setInitState('loading');
     setInitError('');
@@ -120,44 +131,19 @@ const App: React.FC = () => {
     );
   }
 
-  // Sub-views (Settings, Printer) — rendered inside desktop layout, no web home page
-  if (mode === 'settings' || mode === 'printer') {
-    return (
-      <div className="min-h-screen bg-stone-50 dark:bg-stone-900 font-sans text-stone-800 dark:text-stone-200 transition-colors">
-        <div className="sticky top-0 z-50 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md border-b border-stone-200 dark:border-stone-800">
-          <div className="max-w-4xl mx-auto px-6 py-3 flex items-center gap-4">
-            <button
-              onClick={() => setMode('library')}
-              className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
-              Back to Library
-            </button>
-            <span className="text-sm font-bold capitalize">{mode}</span>
-          </div>
-        </div>
-        <main>
-          {mode === 'settings' && (
-            <Settings settings={settings} onSave={handleSaveSettings} />
-          )}
-          {mode === 'printer' && (
-            <StylePrinter mode="standalone" systemLanguage={settings.systemLanguage} />
-          )}
-        </main>
-        <ToastContainer />
-      </div>
-    );
-  }
-
-  // Main library view
+  // Main layout — always rendered, center column routing handled inside ThreeColumnLayout
   return (
     <>
       <ThreeColumnLayout
-        currentFolderId={currentFolderId}
-        onFolderSelect={setCurrentFolderId}
+        centerView={centerView}
+        currentFolderId={navFolderId}
+        onFolderSelect={handleFolderSelect}
         selectedImageId={selectedImageId}
         onImageSelect={setSelectedImageId}
-        onNavigate={(m) => setMode(m as DesktopMode)}
+        onNavigate={handleNavigate}
+        settings={settings}
+        onSaveSettings={handleSaveSettings}
+        nav={{ goBack: nav.goBack, goForward: nav.goForward, canGoBack: nav.canGoBack, canGoForward: nav.canGoForward }}
       />
       <ToastContainer />
     </>
