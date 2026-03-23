@@ -30,7 +30,10 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [searchResultIds, setSearchResultIds] = useState<string[] | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const isMultiMode = multiSelected.size > 0;
 
   const loadImages = useCallback(async () => {
     setLoading(true);
@@ -121,6 +124,56 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     setupDragDrop();
     return () => { unlisten?.(); };
   }, [folderId, importImages, loadImages]);
+
+  const handleImageClick = useCallback((id: string, e?: React.MouseEvent) => {
+    if (e && (e.metaKey || e.ctrlKey)) {
+      // Cmd/Ctrl+click: toggle multi-select
+      setMultiSelected(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      return;
+    }
+    if (e && e.shiftKey && selectedImageId) {
+      // Shift+click: range select
+      const startIdx = images.findIndex(img => img.id === selectedImageId);
+      const endIdx = images.findIndex(img => img.id === id);
+      if (startIdx >= 0 && endIdx >= 0) {
+        const [lo, hi] = startIdx < endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+        const rangeIds = images.slice(lo, hi + 1).map(img => img.id);
+        setMultiSelected(new Set(rangeIds));
+        return;
+      }
+    }
+    // Normal click: single select
+    if (isMultiMode) {
+      setMultiSelected(new Set());
+    }
+    onImageSelect(id);
+  }, [images, selectedImageId, isMultiMode, onImageSelect]);
+
+  const handleBatchDelete = useCallback(async () => {
+    if (multiSelected.size === 0) return;
+    try {
+      await deleteImages(Array.from(multiSelected));
+      setImages(prev => prev.filter(img => !multiSelected.has(img.id)));
+      if (selectedImageId && multiSelected.has(selectedImageId)) onImageSelect(undefined);
+      showToast(`Deleted ${multiSelected.size} image(s)`, 'success');
+      setMultiSelected(new Set());
+    } catch (err) {
+      showToast(`Failed to delete: ${err}`, 'error');
+    }
+  }, [multiSelected, deleteImages, selectedImageId, onImageSelect]);
+
+  const handleSelectAll = useCallback(() => {
+    setMultiSelected(new Set(images.map(img => img.id)));
+  }, [images]);
+
+  const handleClearSelection = useCallback(() => {
+    setMultiSelected(new Set());
+  }, []);
 
   const handleToggleFavorite = useCallback(async (id: string) => {
     try {
@@ -216,12 +269,28 @@ const ImageGrid: React.FC<ImageGridProps> = ({
           </div>
         </div>
         
+        {/* Batch Action Bar */}
+        {isMultiMode && (
+          <div className="flex items-center gap-3 px-6 pb-2">
+            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{multiSelected.size} selected</span>
+            <button onClick={handleSelectAll} className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors">Select All</button>
+            <button onClick={handleClearSelection} className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors">Clear</button>
+            <div className="flex-1" />
+            <button
+              onClick={handleBatchDelete}
+              className="px-3 py-1 text-xs font-bold text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+            >
+              Delete Selected
+            </button>
+          </div>
+        )}
+
         {/* Search Status Bar */}
-        {(isSearching || searchResultIds !== null) && (
+        {!isMultiMode && (isSearching || searchResultIds !== null) && (
           <div className="px-6 pb-2">
-            <SearchResults 
-              isSearching={isSearching} 
-              count={searchResultIds?.length || 0} 
+            <SearchResults
+              isSearching={isSearching}
+              count={searchResultIds?.length || 0}
             />
           </div>
         )}
@@ -271,8 +340,8 @@ const ImageGrid: React.FC<ImageGridProps> = ({
               <ImageCard
                 key={image.id}
                 image={image}
-                isSelected={selectedImageId === image.id}
-                onClick={() => onImageSelect(image.id)}
+                isSelected={selectedImageId === image.id || multiSelected.has(image.id)}
+                onClick={(e) => handleImageClick(image.id, e)}
                 onToggleFavorite={handleToggleFavorite}
                 onDelete={handleDeleteImage}
                 onOpenInFinder={handleOpenInFinder}

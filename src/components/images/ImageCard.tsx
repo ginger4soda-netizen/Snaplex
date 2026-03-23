@@ -6,7 +6,7 @@ import ContextMenu, { MenuItem } from '@/components/common/ContextMenu';
 interface ImageCardProps {
   image: ImageItem;
   isSelected: boolean;
-  onClick: () => void;
+  onClick: (e?: React.MouseEvent) => void;
   onToggleFavorite?: (id: string) => void;
   onDelete?: (id: string) => void;
   onOpenInFinder?: (id: string) => void;
@@ -49,7 +49,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onTog
   return (
     <>
       <div
-        onClick={onClick}
+        onClick={(e) => onClick(e)}
         onContextMenu={handleContextMenu}
         className={`relative group cursor-pointer rounded-xl overflow-hidden transition-all duration-200 ${isSelected ? 'ring-4 ring-blue-500 shadow-xl scale-[0.98]' : 'hover:shadow-lg'}`}
       >
