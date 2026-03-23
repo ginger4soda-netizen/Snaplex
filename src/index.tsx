@@ -1,17 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css'; // Import Tailwind Styles
-import App from './App';
 import { initObservability } from './observability';
 
 // 🔭 Initialize Observability (Vercel Analytics + Sentry + Performance)
 initObservability();
 
 // 🔄 Handle dynamic import failures (e.g., after deployment with new chunk hashes)
-// This gives users a better experience by auto-refreshing instead of showing errors
 window.addEventListener('vite:preloadError', (event) => {
   event.preventDefault();
-  console.warn('🔄 Dynamic import failed, refreshing page...');
+  console.warn('Dynamic import failed, refreshing page...');
   window.location.reload();
 });
 
@@ -20,9 +18,18 @@ if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
 
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// Detect Tauri environment and load the appropriate app
+const isTauri = !!(window as any).__TAURI_INTERNALS__;
+
+async function renderApp() {
+  const root = ReactDOM.createRoot(rootElement);
+  if (isTauri) {
+    const { default: App } = await import('./App');
+    root.render(<React.StrictMode><App /></React.StrictMode>);
+  } else {
+    const { default: AppWeb } = await import('./AppWeb');
+    root.render(<React.StrictMode><AppWeb /></React.StrictMode>);
+  }
+}
+
+renderApp();
