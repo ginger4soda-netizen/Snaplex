@@ -13,6 +13,7 @@ interface ImageGridProps {
   onImageSelect: (imageId: string | undefined) => void;
   onToggleDetail: () => void;
   isDetailVisible: boolean;
+  nav?: { goBack: () => void; goForward: () => void; canGoBack: boolean; canGoForward: boolean };
 }
 
 const ImageGrid: React.FC<ImageGridProps> = ({
@@ -20,7 +21,8 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   selectedImageId,
   onImageSelect,
   onToggleDetail,
-  isDetailVisible
+  isDetailVisible,
+  nav
 }) => {
   const { getImages, getImageDetail, importImages, deleteImages, toggleFavorite, openImageInFinder } = useTauriIPC();
   const [images, setImages] = useState<ImageItem[]>([]);
@@ -248,8 +250,30 @@ const ImageGrid: React.FC<ImageGridProps> = ({
       {/* Search & Toolbar */}
       <div className="flex flex-col border-b border-stone-200 dark:border-stone-800 bg-cream dark:bg-stone-900 sticky top-0 z-10">
         <div className="flex items-center gap-4 px-6 py-3">
+          {/* Back/Forward Navigation */}
+          {nav && (
+            <div className="flex items-center gap-1 mr-2">
+              <button
+                onClick={nav.goBack}
+                disabled={!nav.canGoBack}
+                className={`p-1.5 rounded-md transition-colors ${nav.canGoBack ? 'text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800' : 'text-stone-300 dark:text-stone-700 cursor-not-allowed'}`}
+                title="Back (Cmd+[)"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <button
+                onClick={nav.goForward}
+                disabled={!nav.canGoForward}
+                className={`p-1.5 rounded-md transition-colors ${nav.canGoForward ? 'text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800' : 'text-stone-300 dark:text-stone-700 cursor-not-allowed'}`}
+                title="Forward (Cmd+])"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
+          )}
+
           <div className="flex-1">
-            <SearchBar 
+            <SearchBar
               folderId={folderId}
               onSearchResults={handleSearchResults}
               onSearchClear={handleSearchClear}
