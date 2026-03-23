@@ -44,12 +44,16 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
     return saved ? Number(saved) : 380;
   });
   const [isDetailVisible, setIsDetailVisible] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('snaplex-sidebar-collapsed') === 'true';
+  });
   const [dragging, setDragging] = useState<'sidebar' | 'detail' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Persist widths
+  // Persist widths and collapse state
   useEffect(() => { localStorage.setItem('snaplex-sidebar-width', String(sidebarWidth)); }, [sidebarWidth]);
   useEffect(() => { localStorage.setItem('snaplex-detail-width', String(detailWidth)); }, [detailWidth]);
+  useEffect(() => { localStorage.setItem('snaplex-sidebar-collapsed', String(sidebarCollapsed)); }, [sidebarCollapsed]);
 
   const handleMouseDown = useCallback((panel: 'sidebar' | 'detail') => {
     setDragging(panel);
@@ -91,21 +95,25 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
     <div ref={containerRef} className="flex h-screen w-full overflow-hidden bg-cream dark:bg-stone-900 text-dark dark:text-stone-200 transition-colors duration-200">
       {/* Left Sidebar */}
       <div
-        style={{ width: sidebarWidth }}
-        className="h-full flex-shrink-0 border-r border-stone-200 dark:border-stone-800"
+        style={{ width: sidebarCollapsed ? 56 : sidebarWidth }}
+        className="h-full flex-shrink-0 border-r border-stone-200 dark:border-stone-800 transition-[width] duration-200"
       >
         <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           currentFolderId={currentFolderId}
           onFolderSelect={onFolderSelect}
           onNavigate={onNavigate}
         />
       </div>
 
-      {/* Sidebar Resize Handle */}
-      <div
-        onMouseDown={() => handleMouseDown('sidebar')}
-        className={`w-1 h-full flex-shrink-0 cursor-col-resize hover:bg-blue-400/40 active:bg-blue-500/60 transition-colors ${dragging === 'sidebar' ? 'bg-blue-500/60' : 'bg-transparent'}`}
-      />
+      {/* Sidebar Resize Handle — hidden when collapsed */}
+      {!sidebarCollapsed && (
+        <div
+          onMouseDown={() => handleMouseDown('sidebar')}
+          className={`w-1 h-full flex-shrink-0 cursor-col-resize hover:bg-blue-400/40 active:bg-blue-500/60 transition-colors ${dragging === 'sidebar' ? 'bg-blue-500/60' : 'bg-transparent'}`}
+        />
+      )}
 
       {/* Middle Column */}
       <div className="flex-1 h-full flex flex-col min-w-[300px]">
