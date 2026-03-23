@@ -32,6 +32,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   const [searchResultIds, setSearchResultIds] = useState<string[] | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
+  const [rectSelect, setRectSelect] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const importingRef = useRef(false);
   const dropPathsRef = useRef<Set<string>>(new Set());
@@ -222,6 +223,64 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     }
   }, [openImageInFinder]);
 
+  const handleGridMouseDown = useCallback((e: React.MouseEvent) => {
+    // Only start rect select if clicking on grid background (not on an image card)
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-image-card]')) return;
+    // Only left button
+    if (e.button !== 0) return;
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const startX = e.clientX - rect.left + (e.currentTarget as HTMLElement).scrollLeft;
+    const startY = e.clientY - rect.top + (e.currentTarget as HTMLElement).scrollTop;
+    setRectSelect({ startX, startY, endX: startX, endY: startY });
+
+    if (!(e.metaKey || e.ctrlKey)) {
+      setMultiSelected(new Set());
+    }
+  }, []);
+
+  const handleGridMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!rectSelect) return;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const endX = e.clientX - rect.left + (e.currentTarget as HTMLElement).scrollLeft;
+    const endY = e.clientY - rect.top + (e.currentTarget as HTMLElement).scrollTop;
+    setRectSelect(prev => prev ? { ...prev, endX, endY } : null);
+
+    // Find intersecting images
+    const selRect = {
+      left: Math.min(rectSelect.startX, endX),
+      top: Math.min(rectSelect.startY, endY),
+      right: Math.max(rectSelect.startX, endX),
+      bottom: Math.max(rectSelect.startY, endY),
+    };
+
+    const container = e.currentTarget as HTMLElement;
+    const cards = container.querySelectorAll('[data-image-card]');
+    const selected = new Set<string>();
+    cards.forEach(card => {
+      const cardRect = card.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const cardRelative = {
+        left: cardRect.left - containerRect.left + container.scrollLeft,
+        top: cardRect.top - containerRect.top + container.scrollTop,
+        right: cardRect.right - containerRect.left + container.scrollLeft,
+        bottom: cardRect.bottom - containerRect.top + container.scrollTop,
+      };
+      // Check intersection
+      if (selRect.left < cardRelative.right && selRect.right > cardRelative.left &&
+          selRect.top < cardRelative.bottom && selRect.bottom > cardRelative.top) {
+        const id = card.getAttribute('data-image-id');
+        if (id) selected.add(id);
+      }
+    });
+    setMultiSelected(selected);
+  }, [rectSelect]);
+
+  const handleGridMouseUp = useCallback(() => {
+    setRectSelect(null);
+  }, []);
+
   const handleClickUpload = useCallback(async () => {
     try {
       const selected = await openDialog({
@@ -348,7 +407,10 @@ const ImageGrid: React.FC<ImageGridProps> = ({
       {/* Grid Content */}
       <div
         ref={scrollContainerRef}
-        className={`flex-1 overflow-y-auto p-6 scroll-smooth relative ${isDragOver ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+        onMouseDown={handleGridMouseDown}
+        onMouseMove={handleGridMouseMove}
+        onMouseUp={handleGridMouseUp}
+        className={`flex-1 overflow-y-auto p-6 scroll-smooth relative select-none ${isDragOver ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
       >
         {/* Drop overlay */}
         {isDragOver && (
@@ -397,6 +459,19 @@ const ImageGrid: React.FC<ImageGridProps> = ({
               />
             ))}
           </div>
+        )}
+
+        {/* Rectangle selection overlay */}
+        {rectSelect && (
+          <div
+            className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-none z-10 rounded-sm"
+            style={{
+              left: Math.min(rectSelect.startX, rectSelect.endX),
+              top: Math.min(rectSelect.startY, rectSelect.endY),
+              width: Math.abs(rectSelect.endX - rectSelect.startX),
+              height: Math.abs(rectSelect.endY - rectSelect.startY),
+            }}
+          />
         )}
       </div>
     </div>

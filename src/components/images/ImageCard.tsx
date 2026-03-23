@@ -49,6 +49,8 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onTog
   return (
     <>
       <div
+        data-image-card
+        data-image-id={image.id}
         onClick={(e) => onClick(e)}
         onContextMenu={handleContextMenu}
         className={`relative group cursor-pointer rounded-xl overflow-hidden transition-all duration-200 ${isSelected ? 'ring-4 ring-blue-500 shadow-xl scale-[0.98]' : 'hover:shadow-lg'}`}
