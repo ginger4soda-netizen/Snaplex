@@ -76,7 +76,7 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
   }, [dragging, handleMouseMove, handleMouseUp]);
 
   return (
-    <div ref={containerRef} className="flex h-screen w-full overflow-hidden bg-stone-50 dark:bg-stone-900 text-dark dark:text-stone-200 transition-colors duration-200">
+    <div ref={containerRef} className="flex h-screen w-full overflow-hidden bg-cream dark:bg-stone-900 text-dark dark:text-stone-200 transition-colors duration-200">
       {/* Left Sidebar */}
       <div
         style={{ width: sidebarWidth }}
@@ -116,7 +116,7 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
           />
           <div
             style={{ width: detailWidth }}
-            className="h-full flex-shrink-0 bg-stone-50 dark:bg-stone-900"
+            className="h-full flex-shrink-0 border-l border-stone-200 dark:border-stone-800"
           >
             <DetailPanel
               imageId={selectedImageId}

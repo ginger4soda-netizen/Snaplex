@@ -37,7 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentFolderId, onFolderSelect, onNa
   };
 
   return (
-    <div className="flex flex-col h-full bg-stone-50 dark:bg-stone-900">
+    <div className="flex flex-col h-full bg-cream dark:bg-stone-900">
       {/* App Header / Logo */}
       <div className="p-4 flex items-center gap-2">
         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20">S</div>

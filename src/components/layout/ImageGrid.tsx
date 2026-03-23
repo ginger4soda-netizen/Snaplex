@@ -244,9 +244,9 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   }, [folderId, importImages, loadImages]);
 
   return (
-    <div className="flex flex-col h-full bg-stone-50 dark:bg-stone-900 transition-colors">
+    <div className="flex flex-col h-full bg-cream dark:bg-stone-900 transition-colors">
       {/* Search & Toolbar */}
-      <div className="flex flex-col border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 sticky top-0 z-10">
+      <div className="flex flex-col border-b border-stone-200 dark:border-stone-800 bg-cream dark:bg-stone-900 sticky top-0 z-10">
         <div className="flex items-center gap-4 px-6 py-3">
           <div className="flex-1">
             <SearchBar 
