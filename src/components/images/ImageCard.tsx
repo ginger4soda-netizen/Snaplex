@@ -10,9 +10,10 @@ interface ImageCardProps {
   onToggleFavorite?: (id: string) => void;
   onDelete?: (id: string) => void;
   onOpenInFinder?: (id: string) => void;
+  onDragStart?: (e: React.DragEvent) => void;
 }
 
-const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onToggleFavorite, onDelete, onOpenInFinder }) => {
+const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onToggleFavorite, onDelete, onOpenInFinder, onDragStart }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   // Always convert file paths to Tauri asset:// URLs
@@ -51,7 +52,9 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onTog
       <div
         data-image-card
         data-image-id={image.id}
+        draggable
         onClick={(e) => onClick(e)}
+        onDragStart={(e) => onDragStart?.(e)}
         onContextMenu={handleContextMenu}
         className={`relative group cursor-pointer rounded-xl overflow-hidden transition-all duration-200 ${isSelected ? 'ring-4 ring-blue-500 shadow-xl scale-[0.98]' : 'hover:shadow-lg'}`}
       >

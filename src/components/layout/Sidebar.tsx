@@ -11,11 +11,12 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentFolderId, onFolderSelect, onNavigate }) => {
-  const { createFolder } = useTauriIPC();
+  const { createFolder, moveImages, linkImageToFolder } = useTauriIPC();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
 
   // Hover popup state for folders in collapsed mode
   const [showFolderPopup, setShowFolderPopup] = useState(false);
@@ -28,6 +29,30 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
 
   const handleFolderMouseLeave = () => {
     folderPopupTimerRef.current = setTimeout(() => setShowFolderPopup(false), 200);
+  };
+
+  const handleFolderDrop = async (targetFolderId: string, e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverFolderId(null);
+    const data = e.dataTransfer.getData('application/snaplex-images');
+    if (!data) return;
+    const imageIds: string[] = JSON.parse(data);
+    const sourceFolder = e.dataTransfer.getData('application/snaplex-source-folder');
+    const isAltHeld = e.altKey;
+    // From All Images or Favorites: always link. From a specific folder: default = move, Alt = link
+    const shouldLink = !sourceFolder || sourceFolder === '__favorites__' || isAltHeld;
+    try {
+      if (shouldLink) {
+        for (const id of imageIds) {
+          await linkImageToFolder(id, targetFolderId);
+        }
+      } else {
+        await moveImages(imageIds, targetFolderId);
+      }
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err) {
+      console.error('Drag-to-folder failed:', err);
+    }
   };
 
   const handleCreateFolder = () => {
@@ -112,6 +137,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
                 currentFolderId={currentFolderId}
                 onFolderSelect={onFolderSelect}
                 refreshTrigger={refreshTrigger}
+                onFolderDrop={handleFolderDrop}
+                dragOverFolderId={dragOverFolderId}
+                onDragOverFolder={setDragOverFolderId}
               />
             </div>
           )}

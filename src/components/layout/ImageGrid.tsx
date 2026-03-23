@@ -281,6 +281,17 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     setRectSelect(null);
   }, []);
 
+  // Drag-to-folder: set drag data with selected image IDs and source folder
+  const handleDragStart = useCallback((imageId: string, e: React.DragEvent) => {
+    const ids = multiSelected.size > 0 && multiSelected.has(imageId)
+      ? Array.from(multiSelected)
+      : [imageId];
+    e.dataTransfer.setData('application/snaplex-images', JSON.stringify(ids));
+    e.dataTransfer.setData('text/plain', `${ids.length} image(s)`);
+    e.dataTransfer.effectAllowed = 'copyMove';
+    e.dataTransfer.setData('application/snaplex-source-folder', folderId || '');
+  }, [multiSelected, folderId]);
+
   const handleClickUpload = useCallback(async () => {
     try {
       const selected = await openDialog({
@@ -456,6 +467,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                 onToggleFavorite={handleToggleFavorite}
                 onDelete={handleDeleteImage}
                 onOpenInFinder={handleOpenInFinder}
+                onDragStart={(e) => handleDragStart(image.id, e)}
               />
             ))}
           </div>

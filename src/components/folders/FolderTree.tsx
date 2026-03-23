@@ -7,9 +7,12 @@ interface FolderTreeProps {
   currentFolderId?: string;
   onFolderSelect: (folderId: string | undefined) => void;
   refreshTrigger?: number;
+  onFolderDrop?: (targetFolderId: string, e: React.DragEvent) => void;
+  dragOverFolderId?: string | null;
+  onDragOverFolder?: (folderId: string | null) => void;
 }
 
-const FolderTree: React.FC<FolderTreeProps> = ({ currentFolderId, onFolderSelect, refreshTrigger }) => {
+const FolderTree: React.FC<FolderTreeProps> = ({ currentFolderId, onFolderSelect, refreshTrigger, onFolderDrop, dragOverFolderId, onDragOverFolder }) => {
   const { getFolderTree, createFolder, renameFolder, deleteFolder } = useTauriIPC();
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -133,7 +136,10 @@ const FolderTree: React.FC<FolderTreeProps> = ({ currentFolderId, onFolderSelect
         <div
           onClick={() => !isEditing && onFolderSelect(node.id)}
           onContextMenu={(e) => handleContextMenu(e, node.id, node.name)}
-          className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm transition-colors cursor-pointer group ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'}`}
+          onDragOver={(e) => { e.preventDefault(); onDragOverFolder?.(node.id); }}
+          onDragLeave={() => onDragOverFolder?.(null)}
+          onDrop={(e) => { e.preventDefault(); onFolderDrop?.(node.id, e); }}
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm transition-colors cursor-pointer group ${dragOverFolderId === node.id ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-400' : isSelected ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'}`}
           style={{ paddingLeft: `${(level * 12) + 12}px` }}
         >
           <div
