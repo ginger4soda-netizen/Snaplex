@@ -32,6 +32,8 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const importingRef = useRef(false);
+  const dropPathsRef = useRef<Set<string>>(new Set());
+  const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isMultiMode = multiSelected.size > 0;
 
@@ -97,17 +99,24 @@ const ImageGrid: React.FC<ImageGridProps> = ({
             setIsDragOver(true);
           } else if (event.payload.type === 'drop') {
             setIsDragOver(false);
-            // Guard against duplicate drop events
-            if (importingRef.current) return;
+            // Collect paths from potentially multiple drop events
             const paths = event.payload.paths;
             const imagePaths = paths.filter((p: string) =>
               /\.(png|jpe?g|gif|webp|bmp|svg|tiff?)$/i.test(p)
             );
-            if (imagePaths.length > 0) {
+            imagePaths.forEach((p: string) => dropPathsRef.current.add(p));
+
+            // Debounce: wait 150ms for any more drop events, then import once
+            if (dropTimerRef.current) clearTimeout(dropTimerRef.current);
+            dropTimerRef.current = setTimeout(async () => {
+              const uniquePaths = Array.from(dropPathsRef.current);
+              dropPathsRef.current = new Set();
+              if (uniquePaths.length === 0 || importingRef.current) return;
+
               importingRef.current = true;
               setLoading(true);
               try {
-                await importImages(imagePaths, folderId);
+                await importImages(uniquePaths, folderId);
                 await loadImages();
               } catch (err) {
                 showToast(`Import failed: ${err}`, 'error');
@@ -115,7 +124,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                 setLoading(false);
                 importingRef.current = false;
               }
-            }
+            }, 150);
           } else if (event.payload.type === 'cancel') {
             setIsDragOver(false);
           }
@@ -126,7 +135,10 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     };
 
     setupDragDrop();
-    return () => { unlisten?.(); };
+    return () => {
+      unlisten?.();
+      if (dropTimerRef.current) clearTimeout(dropTimerRef.current);
+    };
   }, [folderId, importImages, loadImages]);
 
   const handleImageClick = useCallback((id: string, e?: React.MouseEvent) => {
