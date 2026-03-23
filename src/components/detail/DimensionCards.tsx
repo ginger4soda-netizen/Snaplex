@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnalysisResult, DimensionKey, PromptSegment, UserSettings, DEFAULT_SETTINGS } from '@/types';
 import { useTauriIPC } from '@/hooks/useTauriIPC';
 import { analyzeImage, regenerateDimension } from '@/services/geminiService';
 import { getCurrentProvider, getCurrentModel } from '@/services/providers/types';
 import { imageUrlToBase64 } from '@/utils/imageToBase64';
+import { translatePromptDimensions } from '@/services/googleTranslate';
 import { get } from 'idb-keyval';
 
 interface DimensionCardsProps {
@@ -31,6 +32,53 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
   const { saveAnalysis, saveDimensionVersion } = useTauriIPC();
 
   const currentAnalysis = localAnalysis || analysis;
+  const [translating, setTranslating] = useState(false);
+
+  // Auto-translate when analysis exists but translations are empty
+  useEffect(() => {
+    if (!currentAnalysis) return;
+    const prompts = currentAnalysis.structuredPrompts;
+    const hasUntranslated = Object.values(prompts).some(
+      (seg: PromptSegment) => seg.original && !seg.translated
+    );
+    if (!hasUntranslated) return;
+
+    const doTranslate = async () => {
+      setTranslating(true);
+      try {
+        const settings = await loadSettings();
+        const targetLang = settings.cardBackLanguage || 'Chinese';
+        const originals: Record<string, string> = {};
+        for (const key of Object.keys(prompts)) {
+          const seg = prompts[key as DimensionKey];
+          if (seg.original && !seg.translated) {
+            originals[key] = seg.original;
+          }
+        }
+        if (Object.keys(originals).length === 0) return;
+        const translated = await translatePromptDimensions(originals, targetLang);
+        // Merge translations into analysis
+        const updated = {
+          ...currentAnalysis,
+          structuredPrompts: { ...currentAnalysis.structuredPrompts },
+        };
+        for (const [key, val] of Object.entries(translated)) {
+          if (val) {
+            (updated.structuredPrompts as any)[key] = {
+              ...(updated.structuredPrompts as any)[key],
+              translated: val,
+            };
+          }
+        }
+        setLocalAnalysis(updated);
+      } catch (e) {
+        console.warn('Auto-translate failed:', e);
+      } finally {
+        setTranslating(false);
+      }
+    };
+    doTranslate();
+  }, [currentAnalysis?.description]); // Only trigger when analysis changes (use description as key)
 
   const loadSettings = async (): Promise<UserSettings> => {
     try {
@@ -172,14 +220,16 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
                       <div className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-medium">
                         {content.original}
                       </div>
-                      {content.translated && (
+                      {content.translated ? (
                         <>
                           <div className="h-px bg-stone-200 dark:bg-stone-800" />
                           <div className="text-sm text-stone-500 dark:text-stone-400 italic">
                             {content.translated}
                           </div>
                         </>
-                      )}
+                      ) : translating ? (
+                        <div className="text-xs text-stone-400 italic">Translating...</div>
+                      ) : null}
                     </>
                   )}
                 </div>

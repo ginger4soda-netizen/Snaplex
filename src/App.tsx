@@ -29,7 +29,17 @@ const App: React.FC = () => {
       // Load user settings
       try {
         const stored = await get('visionLearnSettings');
-        if (stored) setSettings(stored);
+        if (stored) {
+          setSettings(stored);
+        } else {
+          // Auto-detect system language on first launch
+          const detected = detectSystemLanguage();
+          if (detected) {
+            const autoSettings = { ...DEFAULT_SETTINGS, systemLanguage: detected, cardBackLanguage: detected };
+            setSettings(autoSettings);
+            set('visionLearnSettings', autoSettings);
+          }
+        }
       } catch {
         // idb-keyval may fail in Tauri, non-critical
       }
@@ -147,6 +157,26 @@ const App: React.FC = () => {
     </>
   );
 };
+
+/** Detect system language from navigator.language and map to our language names */
+function detectSystemLanguage(): string {
+  try {
+    const lang = navigator.language || navigator.languages?.[0] || '';
+    const code = lang.toLowerCase().split('-')[0];
+    const map: Record<string, string> = {
+      en: 'English',
+      zh: 'Chinese',
+      es: 'Spanish',
+      ja: 'Japanese',
+      fr: 'French',
+      de: 'German',
+      ko: 'Korean',
+    };
+    return map[code] || 'English';
+  } catch {
+    return 'English';
+  }
+}
 
 /** Get user home directory — works in Tauri and falls back for tests */
 async function getHomeDir(): Promise<string> {
