@@ -56,6 +56,9 @@ const ipc = {
     invoke<ColorInfo[]>('extract_color_palette', { imageId, colorCount }),
   getColorPalette: (imageId: string) => invoke<ColorInfo[] | null>('get_color_palette', { imageId }),
 
+  // File system
+  writeTextFile: (path: string, content: string) => invoke<void>('write_text_file', { path, content }),
+
   // System
   checkForUpdate: () => invoke<UpdateInfo | null>('check_for_update'),
   installUpdate: () => invoke<void>('install_update'),

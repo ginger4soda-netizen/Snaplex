@@ -6,6 +6,7 @@ import SearchBar from '../search/SearchBar';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { showToast } from '@/hooks/useToast';
+import { exportAnalysisData } from '@/utils/exportAnalysis';
 
 interface ImageGridProps {
   folderId?: string;
@@ -292,6 +293,26 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     e.dataTransfer.setData('application/snaplex-source-folder', folderId || '');
   }, [multiSelected, folderId]);
 
+  const handleExportAnalysis = useCallback(async () => {
+    if (multiSelected.size === 0) return;
+    try {
+      const items = await Promise.all(
+        Array.from(multiSelected).map(async (id) => {
+          const detail = await getImageDetail(id);
+          return {
+            filename: detail.filename,
+            analysis: detail.analysis,
+            memo: detail.memo,
+          };
+        })
+      );
+      await exportAnalysisData(items);
+      showToast('Analysis data exported', 'success');
+    } catch (err) {
+      showToast(`Export failed: ${err}`, 'error');
+    }
+  }, [multiSelected, getImageDetail]);
+
   const handleClickUpload = useCallback(async () => {
     try {
       const selected = await openDialog({
@@ -386,6 +407,12 @@ const ImageGrid: React.FC<ImageGridProps> = ({
             <button onClick={handleSelectAll} className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors">Select All</button>
             <button onClick={handleClearSelection} className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors">Clear</button>
             <div className="flex-1" />
+            <button
+              onClick={handleExportAnalysis}
+              className="px-3 py-1 text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+            >
+              Export Analysis
+            </button>
             <button
               onClick={handleBatchDelete}
               className="px-3 py-1 text-xs font-bold text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"

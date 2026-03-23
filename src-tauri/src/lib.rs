@@ -58,6 +58,8 @@ pub fn run() {
             // §5.6 Color
             commands::image_commands::extract_color_palette,
             commands::image_commands::get_color_palette,
+            // §5.7 File system
+            commands::fs_commands::write_text_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
