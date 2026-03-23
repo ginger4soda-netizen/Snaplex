@@ -7,7 +7,10 @@ import DimensionCards from './DimensionCards';
 import MemoCard from './MemoCard';
 import ChatPanel from './ChatPanel';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { extractColors } from '@/utils/colorExtract';
+import { extractColors, ExtractedColor } from '@/utils/colorExtract';
+
+// Module-level cache so colors persist across re-navigation within a session
+const colorCache = new Map<string, ExtractedColor[]>();
 
 interface DetailPanelProps {
   imageId?: string;
@@ -40,16 +43,26 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
     loadDetail();
   }, [imageId]);
 
-  // Extract colors when image loads and palette is null
+  // Extract colors when image loads and palette is null (uses session cache)
   // NOTE: This hook must be BEFORE any conditional returns to satisfy React's Rules of Hooks
   useEffect(() => {
     if (!detail || detail.colorPalette) return;
+    const id = detail.id;
+
+    // Check cache first
+    const cached = colorCache.get(id);
+    if (cached) {
+      setDetail(prev => prev ? { ...prev, colorPalette: cached } : null);
+      return;
+    }
+
     const url = detail.fullUrl;
     if (!url) return;
     const filePath = url.startsWith('file://') ? url.slice(7) : url;
     const assetUrl = convertFileSrc(filePath);
 
     extractColors(assetUrl, 8).then(colors => {
+      colorCache.set(id, colors);
       setDetail(prev => prev ? { ...prev, colorPalette: colors } : null);
     }).catch(err => {
       console.warn('Color extraction failed:', err);
@@ -93,7 +106,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
   })();
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-stone-900 transition-colors">
+    <div className="h-full flex flex-col bg-stone-50 dark:bg-stone-900 transition-colors">
       {/* Header Tabs */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100 dark:border-stone-800 shrink-0">
         <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-lg">

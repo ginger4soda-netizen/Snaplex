@@ -18,6 +18,7 @@ Your task is to reverse-engineer this image into high-precision prompts with dee
 
 Output strictly JSON with this exact structure:
 {
+  "description": "A one-sentence summary of what this image depicts.",
   "structuredPrompts": {
     "subject": { "original": "...", "translated": "..." },
     "environment": { "original": "...", "translated": "..." },

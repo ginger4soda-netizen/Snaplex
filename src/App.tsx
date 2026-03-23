@@ -26,19 +26,24 @@ const App: React.FC = () => {
   // Initialize: load settings + ensure library exists
   useEffect(() => {
     const init = async () => {
-      // Load user settings
+      // Load user settings + always apply system language detection on desktop
       try {
         const stored = await get('visionLearnSettings');
+        const detected = detectSystemLanguage();
         if (stored) {
-          setSettings(stored);
+          // Always enforce system language on desktop launch
+          const updated = {
+            ...stored,
+            systemLanguage: detected,
+            cardBackLanguage: stored.cardBackLanguage || detected,
+          };
+          setSettings(updated);
+          set('visionLearnSettings', updated);
         } else {
-          // Auto-detect system language on first launch
-          const detected = detectSystemLanguage();
-          if (detected) {
-            const autoSettings = { ...DEFAULT_SETTINGS, systemLanguage: detected, cardBackLanguage: detected };
-            setSettings(autoSettings);
-            set('visionLearnSettings', autoSettings);
-          }
+          // First launch — use defaults + detected language
+          const autoSettings = { ...DEFAULT_SETTINGS, systemLanguage: detected, cardBackLanguage: detected };
+          setSettings(autoSettings);
+          set('visionLearnSettings', autoSettings);
         }
       } catch {
         // idb-keyval may fail in Tauri, non-critical

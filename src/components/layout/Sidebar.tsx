@@ -37,14 +37,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentFolderId, onFolderSelect, onNa
   };
 
   return (
-    <div className="flex flex-col h-full bg-stone-50/50 dark:bg-stone-900/50 backdrop-blur-md">
+    <div className="flex flex-col h-full bg-stone-50 dark:bg-stone-900">
       {/* App Header / Logo */}
       <div className="p-4 flex items-center gap-2">
         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20">S</div>
         <h1 className="font-bold text-lg tracking-tight dark:text-white">Snaplex</h1>
       </div>
 
-      {/* Navigation Groups */}
+      {/* Library + Folders — scrollable area */}
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-4">
         {/* Library Section */}
         <div>
@@ -103,27 +103,21 @@ const Sidebar: React.FC<SidebarProps> = ({ currentFolderId, onFolderSelect, onNa
             refreshTrigger={refreshTrigger}
           />
         </div>
-
-        {/* Tools Section */}
-        <div>
-          <h2 className="px-3 mb-1 text-xs font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider">Tools</h2>
-          <div className="space-y-0.5">
-            <button
-              onClick={() => onNavigate?.('printer')}
-              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-              <span>Style Printer</span>
-            </button>
-          </div>
-        </div>
       </div>
 
-      {/* Sidebar Footer */}
-      <div className="p-2 border-t border-stone-200 dark:border-stone-800">
+      {/* Tools + Settings — pinned at bottom */}
+      <div className="border-t border-stone-200 dark:border-stone-800 px-2 py-2 space-y-0.5">
+        <h2 className="px-3 mb-1 text-xs font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider">Tools</h2>
+        <button
+          onClick={() => onNavigate?.('printer')}
+          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+          <span>Style Printer</span>
+        </button>
         <button
           onClick={() => onNavigate?.('settings')}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
           <span>Settings</span>

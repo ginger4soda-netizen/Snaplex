@@ -98,6 +98,10 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
         imageUrlToBase64(image),
       ]);
       const result = await analyzeImage(base64, settings);
+      // Ensure description exists (some AI responses omit it)
+      if (!result.description) {
+        result.description = result.structuredPrompts?.subject?.original?.slice(0, 120) || '';
+      }
       const provider = getCurrentProvider();
       const model = getCurrentModel();
       await saveAnalysis(imageId, result, provider, model);

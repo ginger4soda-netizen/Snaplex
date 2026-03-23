@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ImagePreviewProps {
   src: string;
@@ -24,8 +25,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ src, filename }) => {
         </div>
       </div>
 
-      {/* Fullscreen overlay */}
-      {fullscreen && (
+      {/* Fullscreen overlay — rendered via portal to escape backdrop-filter containing block */}
+      {fullscreen && createPortal(
         <div
           className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center cursor-pointer"
           onClick={() => setFullscreen(false)}
@@ -44,7 +45,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ src, filename }) => {
             </svg>
           </button>
           <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-sm">{filename}</p>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

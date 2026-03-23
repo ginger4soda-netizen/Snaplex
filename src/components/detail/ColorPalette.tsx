@@ -119,29 +119,6 @@ const ColorPalette: React.FC<ColorPaletteProps> = ({ colors }) => {
           <span className="text-stone-400">{colors[hoveredIndex].percentage.toFixed(1)}%</span>
         </div>
       )}
-
-      {/* Expanded color grid */}
-      <div className="grid grid-cols-4 gap-1">
-        {colors.map((color, i) => (
-          <button
-            key={i}
-            onClick={() => handleCopy(color, i)}
-            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors text-left group"
-          >
-            <div
-              className="w-4 h-4 rounded shrink-0 border border-stone-200/50 dark:border-stone-700/50 shadow-sm group-hover:scale-110 transition-transform"
-              style={{ backgroundColor: color.hex }}
-            />
-            <span className="text-[10px] font-mono text-stone-500 dark:text-stone-400 truncate leading-tight">
-              {copiedIndex === i ? (
-                <span className="text-green-500">Copied!</span>
-              ) : (
-                formatColor(color, format)
-              )}
-            </span>
-          </button>
-        ))}
-      </div>
     </div>
   );
 };

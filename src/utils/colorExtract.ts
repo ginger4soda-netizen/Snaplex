@@ -3,7 +3,7 @@
  * Extracts dominant colors from an image URL.
  */
 
-interface ExtractedColor {
+export interface ExtractedColor {
   hex: string;
   rgb: [number, number, number];
   hsl: [number, number, number];

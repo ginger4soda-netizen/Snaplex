@@ -31,6 +31,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   const [isDragOver, setIsDragOver] = useState(false);
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const importingRef = useRef(false);
 
   const isMultiMode = multiSelected.size > 0;
 
@@ -96,11 +97,14 @@ const ImageGrid: React.FC<ImageGridProps> = ({
             setIsDragOver(true);
           } else if (event.payload.type === 'drop') {
             setIsDragOver(false);
+            // Guard against duplicate drop events
+            if (importingRef.current) return;
             const paths = event.payload.paths;
             const imagePaths = paths.filter((p: string) =>
               /\.(png|jpe?g|gif|webp|bmp|svg|tiff?)$/i.test(p)
             );
             if (imagePaths.length > 0) {
+              importingRef.current = true;
               setLoading(true);
               try {
                 await importImages(imagePaths, folderId);
@@ -109,6 +113,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                 showToast(`Import failed: ${err}`, 'error');
               } finally {
                 setLoading(false);
+                importingRef.current = false;
               }
             }
           } else if (event.payload.type === 'cancel') {
@@ -227,10 +232,10 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   }, [folderId, importImages, loadImages]);
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-stone-900 transition-colors">
+    <div className="flex flex-col h-full bg-stone-50 dark:bg-stone-900 transition-colors">
       {/* Search & Toolbar */}
-      <div className="flex flex-col border-b border-stone-100 dark:border-stone-800 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md sticky top-0 z-10">
-        <div className="flex items-center gap-4 px-6 py-4">
+      <div className="flex flex-col border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 sticky top-0 z-10">
+        <div className="flex items-center gap-4 px-6 py-3">
           <div className="flex-1">
             <SearchBar 
               folderId={folderId}

@@ -46,6 +46,7 @@ pub struct ImageDetail {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AnalysisResult {
+    #[serde(default)]
     pub description: String,
     pub structured_prompts: StructuredPrompts,
 }
