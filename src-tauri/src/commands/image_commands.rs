@@ -240,6 +240,45 @@ pub fn export_images(
     Ok(export_dir.to_string_lossy().to_string())
 }
 
+/// Read image file as base64 for AI analysis
+/// Frontend fetch() on asset:// URLs can fail depending on protocol config.
+/// This command reads the file directly via the filesystem and returns base64.
+#[tauri::command]
+pub fn read_image_base64(
+    id: String,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<String, String> {
+    let file_path = with_db(&db_state, |conn| {
+        conn.query_row(
+            "SELECT file_path FROM images WHERE id = ?1",
+            rusqlite::params![&id],
+            |row| row.get::<_, String>(0),
+        )
+    })?;
+
+    let bytes = std::fs::read(&file_path)
+        .map_err(|e| format!("Failed to read image file: {}", e))?;
+
+    // Detect MIME type from extension
+    let ext = std::path::Path::new(&file_path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("png")
+        .to_lowercase();
+    let mime = match ext.as_str() {
+        "jpg" | "jpeg" => "image/jpeg",
+        "png" => "image/png",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "bmp" => "image/bmp",
+        _ => "image/png",
+    };
+
+    use base64::Engine;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    Ok(format!("data:{};base64,{}", mime, b64))
+}
+
 /// §5.6 — extract_color_palette (mock for Phase 0)
 #[tauri::command]
 pub fn extract_color_palette(

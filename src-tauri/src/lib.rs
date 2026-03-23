@@ -56,6 +56,7 @@ pub fn run() {
             commands::search_commands::save_text_embedding,
             commands::search_commands::visual_search,
             // §5.6 Color
+            commands::image_commands::read_image_base64,
             commands::image_commands::extract_color_palette,
             commands::image_commands::get_color_palette,
             // §5.7 File system

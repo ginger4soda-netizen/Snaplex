@@ -3,7 +3,7 @@ import { AnalysisResult, DimensionKey, PromptSegment, UserSettings, DEFAULT_SETT
 import { useTauriIPC } from '@/hooks/useTauriIPC';
 import { analyzeImage, regenerateDimension } from '@/services/geminiService';
 import { getCurrentProvider, getCurrentModel } from '@/services/providers/types';
-import { imageUrlToBase64 } from '@/utils/imageToBase64';
+import { getImageBase64 } from '@/utils/imageToBase64';
 import { translatePromptDimensions } from '@/services/googleTranslate';
 import { get } from 'idb-keyval';
 
@@ -95,7 +95,7 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
     try {
       const [settings, base64] = await Promise.all([
         loadSettings(),
-        imageUrlToBase64(image),
+        getImageBase64(imageId, image),
       ]);
       const result = await analyzeImage(base64, settings);
       // Ensure description exists (some AI responses omit it)
@@ -138,7 +138,7 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
     try {
       const [settings, base64] = await Promise.all([
         loadSettings(),
-        imageUrlToBase64(image),
+        getImageBase64(imageId, image),
       ]);
       const result = await regenerateDimension(base64, dim, settings);
       await saveDimensionVersion(imageId, dim, result.original, result.translated);

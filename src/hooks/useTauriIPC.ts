@@ -51,6 +51,9 @@ const ipc = {
   searchImages: (query: string, folderId?: string) => invoke<SearchResult[]>('search_images', { query, folderId }),
   visualSearch: (query: string, limit: number = 50) => invoke<SearchResult[]>('visual_search', { query, limit }),
 
+  // Image base64 (for AI analysis — bypasses asset:// fetch issues)
+  readImageBase64: (id: string) => invoke<string>('read_image_base64', { id }),
+
   // Color
   extractColorPalette: (imageId: string, colorCount: number = 8) =>
     invoke<ColorInfo[]>('extract_color_palette', { imageId, colorCount }),
