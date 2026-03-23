@@ -137,10 +137,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
             <ImagePreview src={fullUrl} filename={detail.filename} />
             
             <div className="px-5 py-6 space-y-8 pb-12">
-              <section>
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Color Palette</h3>
-                <ColorPalette colors={detail.colorPalette} />
-              </section>
+              <ColorPalette colors={detail.colorPalette} />
 
               {detail.sourceUrl && (
                 <section>
