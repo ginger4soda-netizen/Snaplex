@@ -2,13 +2,21 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import ImageGrid from './ImageGrid';
 import DetailPanel from '../detail/DetailPanel';
+import Settings from '../Settings';
+import StylePrinter from '../StylePrinter';
+import About from '../About';
+import { UserSettings } from '@/types';
 
 interface ThreeColumnLayoutProps {
+  centerView: 'grid' | 'settings' | 'stylePrinter' | 'about';
   currentFolderId?: string;
   onFolderSelect: (folderId: string | undefined) => void;
   selectedImageId?: string;
   onImageSelect: (imageId: string | undefined) => void;
   onNavigate?: (mode: string) => void;
+  settings: UserSettings;
+  onSaveSettings: (settings: UserSettings) => void;
+  nav: { goBack: () => void; goForward: () => void; canGoBack: boolean; canGoForward: boolean };
 }
 
 const SIDEBAR_MIN = 180;
@@ -17,11 +25,15 @@ const DETAIL_MIN = 280;
 const DETAIL_MAX = 600;
 
 const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
+  centerView,
   currentFolderId,
   onFolderSelect,
   selectedImageId,
   onImageSelect,
   onNavigate,
+  settings,
+  onSaveSettings,
+  nav,
 }) => {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('snaplex-sidebar-width');
@@ -95,15 +107,30 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
         className={`w-1 h-full flex-shrink-0 cursor-col-resize hover:bg-blue-400/40 active:bg-blue-500/60 transition-colors ${dragging === 'sidebar' ? 'bg-blue-500/60' : 'bg-transparent'}`}
       />
 
-      {/* Middle Image Grid */}
+      {/* Middle Column */}
       <div className="flex-1 h-full flex flex-col min-w-[300px]">
-        <ImageGrid
-          folderId={currentFolderId}
-          selectedImageId={selectedImageId}
-          onImageSelect={onImageSelect}
-          onToggleDetail={() => setIsDetailVisible(!isDetailVisible)}
-          isDetailVisible={isDetailVisible}
-        />
+        {centerView === 'grid' ? (
+          <ImageGrid
+            folderId={currentFolderId}
+            selectedImageId={selectedImageId}
+            onImageSelect={onImageSelect}
+            onToggleDetail={() => setIsDetailVisible(!isDetailVisible)}
+            isDetailVisible={isDetailVisible}
+            nav={nav}
+          />
+        ) : centerView === 'settings' ? (
+          <div className="h-full overflow-y-auto">
+            <Settings settings={settings} onSave={onSaveSettings} />
+          </div>
+        ) : centerView === 'stylePrinter' ? (
+          <div className="h-full overflow-y-auto">
+            <StylePrinter mode="standalone" systemLanguage={settings.systemLanguage} />
+          </div>
+        ) : centerView === 'about' ? (
+          <div className="h-full overflow-y-auto">
+            <About />
+          </div>
+        ) : null}
       </div>
 
       {/* Right Detail Panel */}
