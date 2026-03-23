@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import FolderTree from '../folders/FolderTree';
+import { useTauriIPC } from '@/hooks/useTauriIPC';
 
 interface SidebarProps {
   currentFolderId?: string;
@@ -8,6 +9,33 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentFolderId, onFolderSelect, onNavigate }) => {
+  const { createFolder } = useTauriIPC();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleCreateFolder = () => {
+    setIsCreating(true);
+    setNewFolderName('New Folder');
+    setTimeout(() => inputRef.current?.select(), 50);
+  };
+
+  const submitCreate = async () => {
+    if (!newFolderName.trim()) {
+      setIsCreating(false);
+      return;
+    }
+    try {
+      await createFolder(newFolderName.trim(), null);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err) {
+      console.error('Failed to create folder', err);
+    }
+    setIsCreating(false);
+    setNewFolderName('');
+  };
+
   return (
     <div className="flex flex-col h-full bg-stone-50/50 dark:bg-stone-900/50 backdrop-blur-md">
       {/* App Header / Logo */}
@@ -22,7 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentFolderId, onFolderSelect, onNa
         <div>
           <h2 className="px-3 mb-1 text-xs font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider">Library</h2>
           <div className="space-y-0.5">
-            <button 
+            <button
               onClick={() => onFolderSelect(undefined)}
               className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${!currentFolderId ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'}`}
             >
@@ -41,10 +69,38 @@ const Sidebar: React.FC<SidebarProps> = ({ currentFolderId, onFolderSelect, onNa
 
         {/* Folders Section */}
         <div>
-          <h2 className="px-3 mb-1 text-xs font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider">Folders</h2>
-          <FolderTree 
+          <div className="flex items-center justify-between px-3 mb-1">
+            <h2 className="text-xs font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider">Folders</h2>
+            <button
+              onClick={handleCreateFolder}
+              className="p-0.5 rounded text-stone-400 hover:text-blue-500 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+              title="New Folder"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
+          {isCreating && (
+            <div className="flex items-center gap-1 px-4 py-1">
+              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              </svg>
+              <input
+                ref={inputRef}
+                autoFocus
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onBlur={submitCreate}
+                onKeyDown={(e) => { if (e.key === 'Enter') submitCreate(); if (e.key === 'Escape') { setIsCreating(false); setNewFolderName(''); } }}
+                className="flex-1 text-sm bg-transparent border border-blue-400 rounded px-1 py-0.5 outline-none dark:text-white"
+              />
+            </div>
+          )}
+          <FolderTree
             currentFolderId={currentFolderId}
             onFolderSelect={onFolderSelect}
+            refreshTrigger={refreshTrigger}
           />
         </div>
 

@@ -16,14 +16,14 @@ interface ImageGridProps {
   isDetailVisible: boolean;
 }
 
-const ImageGrid: React.FC<ImageGridProps> = ({ 
-  folderId, 
-  selectedImageId, 
+const ImageGrid: React.FC<ImageGridProps> = ({
+  folderId,
+  selectedImageId,
   onImageSelect,
   onToggleDetail,
   isDetailVisible
 }) => {
-  const { getImages, getImageDetail, importImages } = useTauriIPC();
+  const { getImages, getImageDetail, importImages, deleteImages, toggleFavorite, openImageInFinder } = useTauriIPC();
   const [images, setImages] = useState<ImageItem[]>([]);
   const [gridSize, setGridSize] = useState(200);
   const [loading, setLoading] = useState(false);
@@ -121,6 +121,35 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     setupDragDrop();
     return () => { unlisten?.(); };
   }, [folderId, importImages, loadImages]);
+
+  const handleToggleFavorite = useCallback(async (id: string) => {
+    try {
+      await toggleFavorite(id);
+      setImages(prev => prev.map(img =>
+        img.id === id ? { ...img, isFavorite: !img.isFavorite } : img
+      ));
+    } catch (err) {
+      showToast(`Failed to toggle favorite: ${err}`, 'error');
+    }
+  }, [toggleFavorite]);
+
+  const handleDeleteImage = useCallback(async (id: string) => {
+    try {
+      await deleteImages([id]);
+      setImages(prev => prev.filter(img => img.id !== id));
+      if (selectedImageId === id) onImageSelect(undefined);
+    } catch (err) {
+      showToast(`Failed to delete image: ${err}`, 'error');
+    }
+  }, [deleteImages, selectedImageId, onImageSelect]);
+
+  const handleOpenInFinder = useCallback(async (id: string) => {
+    try {
+      await openImageInFinder(id);
+    } catch (err) {
+      showToast(`Failed to open in Finder: ${err}`, 'error');
+    }
+  }, [openImageInFinder]);
 
   const handleClickUpload = useCallback(async () => {
     try {
@@ -239,11 +268,14 @@ const ImageGrid: React.FC<ImageGridProps> = ({
             }}
           >
             {images.map(image => (
-              <ImageCard 
+              <ImageCard
                 key={image.id}
                 image={image}
                 isSelected={selectedImageId === image.id}
                 onClick={() => onImageSelect(image.id)}
+                onToggleFavorite={handleToggleFavorite}
+                onDelete={handleDeleteImage}
+                onOpenInFinder={handleOpenInFinder}
               />
             ))}
           </div>
