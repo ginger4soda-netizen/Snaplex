@@ -61,9 +61,19 @@ pub fn import_images(
             }
         };
 
+        // Deduplicate: skip if same filename + file_size already in library
+        let src_size = std::fs::metadata(src).map(|m| m.len() as i64).unwrap_or(0);
+        let already_exists = with_db(&db_state, |conn| {
+            images::image_exists_by_name_size(conn, &filename, src_size)
+        }).unwrap_or(false);
+        if already_exists {
+            // Skip silently — not an error, just a duplicate
+            continue;
+        }
+
         let id = uuid::Uuid::new_v4().to_string();
         // Use UUID prefix to avoid filename collisions
-        let ext = src.extension().and_then(|e| e.to_str()).unwrap_or("jpg");
+        let _ext = src.extension().and_then(|e| e.to_str()).unwrap_or("jpg");
         let stored_filename = format!("{}_{}", &id[..8], filename);
         let dest = images_dir.join(&stored_filename);
         let thumb_dest = thumbs_dir.join(format!("{}.webp", id));

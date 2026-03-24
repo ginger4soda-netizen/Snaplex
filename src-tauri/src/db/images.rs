@@ -193,6 +193,20 @@ pub fn get_image_detail(conn: &Connection, id: &str) -> Result<ImageDetail, rusq
     })
 }
 
+/// Check if an image with the same filename and file_size already exists
+pub fn image_exists_by_name_size(
+    conn: &Connection,
+    filename: &str,
+    file_size: i64,
+) -> Result<bool, rusqlite::Error> {
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM images WHERE filename = ?1 AND file_size = ?2",
+        rusqlite::params![filename, file_size],
+        |row| row.get(0),
+    )?;
+    Ok(count > 0)
+}
+
 pub fn insert_image(
     conn: &Connection,
     id: &str,

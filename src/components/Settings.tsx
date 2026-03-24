@@ -97,7 +97,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                 <select
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
-                    className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-stone-400 appearance-none shadow-sm cursor-pointer hover:border-stone-300 transition-colors"
+                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-3 font-bold text-stone-700 dark:text-stone-200 text-sm outline-none focus:border-stone-400 appearance-none shadow-sm cursor-pointer hover:border-stone-300 dark:hover:border-stone-600 transition-colors"
                 >
                     {options.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
                 </select>
@@ -123,10 +123,10 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                 <div className="space-y-12">
 
                     {/* 1. API Configuration Section */}
-                    <div className="bg-stone-100/50 p-6 rounded-2xl border border-stone-200">
+                    <div className="bg-stone-100/50 dark:bg-stone-800/50 p-6 rounded-2xl border border-stone-200 dark:border-stone-700">
                         <div className="flex items-center gap-2 mb-6">
                             <span className="text-xl">🔌</span>
-                            <h3 className="text-stone-800 font-bold text-lg">API Configuration</h3>
+                            <h3 className="text-stone-800 dark:text-stone-100 font-bold text-lg">API Configuration</h3>
                         </div>
 
                         <div className="space-y-5">
@@ -139,7 +139,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                         <select
                                             value={provider}
                                             onChange={(e) => handleProviderChange(e.target.value as ProviderType)}
-                                            className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-stone-400 appearance-none shadow-sm cursor-pointer hover:border-stone-300 transition-colors"
+                                            className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-3 font-bold text-stone-700 dark:text-stone-200 text-sm outline-none focus:border-stone-400 appearance-none shadow-sm cursor-pointer hover:border-stone-300 dark:hover:border-stone-600 transition-colors"
                                         >
                                             {(Object.keys(PROVIDER_LABELS) as ProviderType[]).map(p => (
                                                 <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>
@@ -158,7 +158,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                         <select
                                             value={model}
                                             onChange={(e) => handleModelChange(e.target.value)}
-                                            className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-bold text-stone-700 text-sm outline-none focus:border-softblue appearance-none shadow-sm cursor-pointer"
+                                            className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-3 font-bold text-stone-700 dark:text-stone-200 text-sm outline-none focus:border-softblue appearance-none shadow-sm cursor-pointer"
                                         >
                                             {PROVIDER_MODELS[provider].map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
                                         </select>
@@ -203,7 +203,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                     value={apiKey}
                                     onChange={(e) => handleApiKeyChange(e.target.value)}
                                     placeholder={provider === 'gemini' ? 'AIzaSy...' : 'sk-...'}
-                                    className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 font-mono text-stone-700 text-sm outline-none shadow-sm transition-all focus:ring-1 focus:border-softblue focus:ring-softblue"
+                                    className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-3 font-mono text-stone-700 dark:text-stone-200 text-sm outline-none shadow-sm transition-all focus:ring-1 focus:border-softblue focus:ring-softblue"
                                     style={{ WebkitTextSecurity: 'disc' } as any}
                                 />
 
@@ -219,8 +219,8 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                     {/* 2. Copy Config */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-2">
-                            <h3 className="text-stone-800 font-bold text-lg">{t.lblCopyConfig}</h3>
-                            <div className="h-px bg-stone-200 flex-1 ml-4" />
+                            <h3 className="text-stone-800 dark:text-stone-100 font-bold text-lg">{t.lblCopyConfig}</h3>
+                            <div className="h-px bg-stone-200 dark:bg-stone-700 flex-1 ml-4" />
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                             {STORED_MODULE_KEYS.map(modKey => {
@@ -229,7 +229,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                     <button
                                         key={modKey}
                                         onClick={() => toggleModule(modKey)}
-                                        className={`px-3 py-2 rounded-lg text-sm font-bold border transition-all ${isActive ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-500 border-stone-200'}`}
+                                        className={`px-3 py-2 rounded-lg text-sm font-bold border transition-all ${isActive ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 border-stone-800 dark:border-stone-200' : 'bg-white dark:bg-stone-800 text-stone-500 dark:text-stone-400 border-stone-200 dark:border-stone-700'}`}
                                     >
                                         {MODULE_LABEL_MAP[modKey] || modKey}
                                     </button>
@@ -241,8 +241,8 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                     {/* 3. Language Settings */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-2">
-                            <h3 className="text-stone-800 font-bold text-lg">{t.lblLangSettings}</h3>
-                            <div className="h-px bg-stone-200 flex-1 ml-4" />
+                            <h3 className="text-stone-800 dark:text-stone-100 font-bold text-lg">{t.lblLangSettings}</h3>
+                            <div className="h-px bg-stone-200 dark:bg-stone-700 flex-1 ml-4" />
                         </div>
                         <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-3 md:gap-4">
                             {renderSelect(t.lblSystemLang, settings.systemLanguage || 'English', (v) => onSave({ ...settings, systemLanguage: v }), LANGUAGES)}
@@ -256,8 +256,8 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                     {/* 4. Style Preferences */}
                     <div>
                         <div className="flex items-center gap-2 mb-6">
-                            <h3 className="text-stone-800 font-bold text-lg">{t.lblStylePref}</h3>
-                            <div className="h-px bg-stone-200 flex-1 ml-4" />
+                            <h3 className="text-stone-800 dark:text-stone-100 font-bold text-lg">{t.lblStylePref}</h3>
+                            <div className="h-px bg-stone-200 dark:bg-stone-700 flex-1 ml-4" />
                         </div>
                         <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-4">
                             {styles.map(style => (
@@ -267,7 +267,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                     className={`
                                         aspect-[4/3] md:aspect-square rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow-sm active:scale-95
                                         ${style.color}
-                                        ${settings.descriptionStyle === style.id ? 'ring-4 ring-offset-2 ring-stone-200 transform scale-[1.02] shadow-pop z-10' : 'opacity-90 hover:opacity-100 hover:scale-[1.02]'}
+                                        ${settings.descriptionStyle === style.id ? 'ring-4 ring-offset-2 ring-stone-200 dark:ring-stone-600 dark:ring-offset-stone-900 transform scale-[1.02] shadow-pop z-10' : 'opacity-90 hover:opacity-100 hover:scale-[1.02]'}
                                     `}
                                 >
                                     <div className="scale-90">

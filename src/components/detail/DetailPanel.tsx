@@ -131,43 +131,44 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
         </button>
       </div>
 
+      {/* Image always visible at top */}
+      <div className="shrink-0">
+        <ImagePreview src={fullUrl} filename={detail.filename} />
+      </div>
+
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'info' ? (
-          <div className="flex flex-col">
-            <ImagePreview src={fullUrl} filename={detail.filename} />
-            
-            <div className="px-5 py-6 space-y-8 pb-12">
-              <ColorPalette colors={detail.colorPalette} />
+          <div className="px-5 py-6 space-y-8 pb-12">
+            <ColorPalette colors={detail.colorPalette} />
 
-              {detail.sourceUrl && (
-                <section>
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Source</h3>
-                  <a href={detail.sourceUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline truncate block">
-                    {detail.sourceUrl}
-                  </a>
-                </section>
-              )}
-
+            {detail.sourceUrl && (
               <section>
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4">AI Analysis</h3>
-                <DimensionCards
-                  imageId={detail.id}
-                  analysis={detail.analysis}
-                  image={fullUrl}
-                  onAnalysisComplete={(analysis) => {
-                    setDetail(prev => prev ? { ...prev, analysis, hasAnalysis: true } : null);
-                  }}
-                />
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Source</h3>
+                <a href={detail.sourceUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline truncate block">
+                  {detail.sourceUrl}
+                </a>
               </section>
+            )}
 
-              <section>
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Notes</h3>
-                <MemoCard 
-                  memo={detail.memo} 
-                  onMemoChange={handleMemoChange} 
-                />
-              </section>
-            </div>
+            <section>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4">Prompt</h3>
+              <DimensionCards
+                imageId={detail.id}
+                analysis={detail.analysis}
+                image={fullUrl}
+                onAnalysisComplete={(analysis) => {
+                  setDetail(prev => prev ? { ...prev, analysis, hasAnalysis: true } : null);
+                }}
+              />
+            </section>
+
+            <section>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Notes</h3>
+              <MemoCard
+                memo={detail.memo}
+                onMemoChange={handleMemoChange}
+              />
+            </section>
           </div>
         ) : (
           <ChatPanel imageId={detail.id} image={fullUrl} />

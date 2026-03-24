@@ -256,11 +256,11 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
     const handleDragEnd = () => { setDraggedId(null); setDragOverId(null); };
 
     return (
-        <div className="flex flex-col h-full bg-cream overflow-hidden" onClick={deleteMode ? handleExitDeleteMode : undefined}>
-            <div className="flex-1 overflow-y-auto px-6 pt-12 pb-10 space-y-6 scroll-smooth">
+        <div className="flex flex-col h-full bg-stone-50 dark:bg-stone-900 overflow-hidden transition-colors" onClick={deleteMode ? handleExitDeleteMode : undefined}>
+            <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 space-y-6 scroll-smooth">
                 {messages.map((msg, index) => (
                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-[fadeIn_0.3s_ease-out]`}>
-                        <div className={`relative max-w-[90%] px-5 py-3.5 rounded-2xl shadow-sm text-[15px] leading-relaxed group ${msg.role === 'user' ? 'bg-stone-800 text-white rounded-tr-none' : `bg-white text-stone-800 rounded-tl-none border border-stone-100 ${index > 0 ? 'pb-8' : ''}`}`}>
+                        <div className={`relative max-w-[90%] px-5 py-3.5 rounded-2xl shadow-sm text-[15px] leading-relaxed group ${msg.role === 'user' ? 'bg-stone-800 dark:bg-stone-700 text-white rounded-tr-none' : `bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 rounded-tl-none border border-stone-100 dark:border-stone-700 ${index > 0 ? 'pb-8' : ''}`}`}>
                             <MarkdownRenderer>{msg.text}</MarkdownRenderer>
                             {msg.role === 'model' && loading && msg.id === messages[messages.length - 1].id && msg.text === '' && (
                                 <span className="inline-flex gap-1 ml-1">
@@ -270,7 +270,7 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
                                 </span>
                             )}
                             {msg.role === 'model' && msg.text && index > 0 && (
-                                <button onClick={() => handleCopy(msg.text, msg.id)} className="absolute bottom-2 right-2 p-1.5 text-stone-300 hover:text-softblue transition-colors rounded-lg hover:bg-stone-50 active:scale-95">
+                                <button onClick={() => handleCopy(msg.text, msg.id)} className="absolute bottom-2 right-2 p-1.5 text-stone-300 dark:text-stone-500 hover:text-softblue transition-colors rounded-lg hover:bg-stone-50 dark:hover:bg-stone-700 active:scale-95">
                                     {copiedId === msg.id ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>}
                                 </button>
                             )}
@@ -280,9 +280,9 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
                 <div ref={endRef} className="h-2" />
             </div>
 
-            <div className="shrink-0 bg-white border-t border-stone-100 z-50 pb-[env(safe-area-inset-bottom)]" onClick={(e) => e.stopPropagation()}>
+            <div className="shrink-0 bg-white dark:bg-stone-900 border-t border-stone-100 dark:border-stone-800 z-50 pb-[env(safe-area-inset-bottom)] transition-colors" onClick={(e) => e.stopPropagation()}>
                 {deleteMode && (
-                    <div className="px-4 py-2 bg-red-50 text-red-600 text-xs text-center font-medium">
+                    <div className="px-4 py-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs text-center font-medium">
                         点击标签上的 − 删除 | 点击空白处退出
                     </div>
                 )}
@@ -306,7 +306,7 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
                                 onContextMenu={(e) => { e.preventDefault(); openEditModal(chip); }}
                                 disabled={loading}
                                 className={`whitespace-nowrap px-4 py-1.5 text-xs font-bold rounded-full transition-all active:scale-95 disabled:opacity-50 cursor-grab active:cursor-grabbing
-                                    ${chip.isDefault ? 'bg-stone-100 hover:bg-sunny hover:text-stone-900 text-stone-600 border border-stone-200 hover:border-sunny/50' : 'bg-coral/10 hover:bg-coral hover:text-white text-coral border border-coral/30 hover:border-coral'}
+                                    ${chip.isDefault ? 'bg-stone-100 dark:bg-stone-800 hover:bg-sunny hover:text-stone-900 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 hover:border-sunny/50' : 'bg-coral/10 hover:bg-coral hover:text-white text-coral border border-coral/30 hover:border-coral'}
                                     ${dragOverId === chip.id ? 'ring-2 ring-softblue scale-105' : ''}
                                     ${draggedId === chip.id ? 'opacity-50' : ''}
                                     ${deleteMode ? 'animate-[wiggle_0.3s_ease-in-out_infinite]' : ''}`}
@@ -318,13 +318,13 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
                             )}
                         </div>
                     ))}
-                    <button onClick={openAddModal} className="whitespace-nowrap px-3 py-1.5 bg-stone-50 hover:bg-stone-200 text-stone-400 hover:text-stone-600 text-xs font-bold rounded-full transition-all active:scale-95 border border-dashed border-stone-300">
+                    <button onClick={openAddModal} className="whitespace-nowrap px-3 py-1.5 bg-stone-50 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 text-xs font-bold rounded-full transition-all active:scale-95 border border-dashed border-stone-300 dark:border-stone-600">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                     </button>
                 </div>
                 <div className="px-4 pb-2 pt-1 transition-all">
-                    <div className="flex items-end gap-2 bg-stone-100/80 p-2 rounded-[1.5rem] border border-stone-200 focus-within:border-stone-400 focus-within:bg-white transition-all shadow-sm">
-                        <textarea className="flex-1 bg-transparent px-4 py-3 outline-none text-stone-800 placeholder-stone-400 resize-none max-h-32 min-h-[44px] text-sm" placeholder={t.chatPlaceholder} rows={1} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendInput(); } }} />
+                    <div className="flex items-end gap-2 bg-stone-100/80 dark:bg-stone-800/80 p-2 rounded-[1.5rem] border border-stone-200 dark:border-stone-700 focus-within:border-stone-400 dark:focus-within:border-stone-500 focus-within:bg-white dark:focus-within:bg-stone-800 transition-all shadow-sm">
+                        <textarea className="flex-1 bg-transparent px-4 py-3 outline-none text-stone-800 dark:text-stone-200 placeholder-stone-400 dark:placeholder-stone-600 resize-none max-h-32 min-h-[44px] text-sm" placeholder={t.chatPlaceholder} rows={1} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendInput(); } }} />
                         <button onClick={handleSendInput} disabled={loading || !input.trim()} className="w-10 h-10 mb-1 mr-1 bg-coral text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none hover:bg-red-400">
                             {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <svg className="w-5 h-5 transform rotate-90 translate-x-[1px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19V5m0 0l-7 7m7-7l7 7" /></svg>}
                         </button>
