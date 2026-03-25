@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CustomChip } from '../types';
+import { CustomChip } from '../../types';
 
 interface Props {
     isOpen: boolean;

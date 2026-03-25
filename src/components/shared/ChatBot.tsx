@@ -1,8 +1,8 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { get, set } from 'idb-keyval';
-import { ChatMessage, UserSettings, CustomChip } from '../types';
-import { sendChatMessageStream } from '../services/geminiService';
-import { getTranslation, ChipData } from '../translations';
+import { ChatMessage, UserSettings, CustomChip } from '../../types';
+import { sendChatMessageStream } from '../../services/geminiService';
+import { getTranslation, ChipData } from '../../translations';
 import MarkdownRenderer from './MarkdownRenderer';
 import ChipEditorModal from './ChipEditorModal';
 

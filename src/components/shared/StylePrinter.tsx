@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { get, set } from 'idb-keyval';
-import { mineHistory, MiningResult } from '../utils/historyMiner';
-import { explainVisualTerm, TermExplanation } from '../services/geminiService';
-import { HistoryItem } from '../types';
-import { playSound, startPrintSound } from '../utils/sound';
-import { AESTHETIC_TERMS } from '../data/aestheticTerms';
-import { getTranslation } from '../translations';
+import { mineHistory, MiningResult } from '../../utils/historyMiner';
+import { explainVisualTerm, TermExplanation } from '../../services/geminiService';
+import { HistoryItem } from '../../types';
+import { playSound, startPrintSound } from '../../utils/sound';
+import { AESTHETIC_TERMS } from '../../data/aestheticTerms';
+import { getTranslation } from '../../translations';
 
 interface Props {
   systemLanguage?: string;

@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { getTranslation } from '../translations';
+import { getTranslation } from '../../translations';
 import BentoBox from './BentoBox';
 import CrabProgressBar from './CrabProgressBar';
 import AnimatedText from './AnimatedText';

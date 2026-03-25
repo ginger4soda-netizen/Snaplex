@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { docStructure } from '../data/docStructure';
+import { docStructure } from '../../data/docStructure';
 import DocSidebar from './DocSidebar';
 import DocContent from './DocContent';
 

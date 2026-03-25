@@ -1,6 +1,6 @@
 import React from 'react';
-import { DocSection } from '../data/docStructure';
-import { getTranslation } from '../translations';
+import { DocSection } from '../../data/docStructure';
+import { getTranslation } from '../../translations';
 
 interface Props {
     sections: DocSection[];

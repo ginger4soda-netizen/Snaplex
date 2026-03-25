@@ -2,8 +2,8 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import ImageGrid from './ImageGrid';
 import DetailPanel from '../detail/DetailPanel';
-import Settings from '../Settings';
-import StylePrinter from '../StylePrinter';
+import Settings from '../shared/Settings';
+import StylePrinter from '../shared/StylePrinter';
 import About from '../About';
 import { UserSettings } from '@/types';
 

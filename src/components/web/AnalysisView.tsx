@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey, DimensionHistories } from '../types';
+import { AnalysisResult, UserSettings, ChatMessage, PromptSegment, DimensionKey, DimensionHistories } from '../../types';
 import { get, set } from 'idb-keyval';
-import ChatBot from './ChatBot';
-import { getTranslation } from '../translations';
-import { copyToClipboard } from '../utils/clipboard';
-import { regenerateDimension, translateText } from '../services/geminiService';
-import { getCorrectDisplayOrder } from '../utils/languageDetect';
-import { freeTranslate, debounce } from '../utils/translate';
+import ChatBot from '../shared/ChatBot';
+import { getTranslation } from '../../translations';
+import { copyToClipboard } from '../../utils/clipboard';
+import { regenerateDimension, translateText } from '../../services/geminiService';
+import { getCorrectDisplayOrder } from '../../utils/languageDetect';
+import { freeTranslate, debounce } from '../../utils/translate';
 
 interface Props {
     image: string;

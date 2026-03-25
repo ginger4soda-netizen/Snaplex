@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { UserSettings } from '../types';
-import { getTranslation } from '../translations';
+import { UserSettings } from '../../types';
+import { getTranslation } from '../../translations';
 import {
     ProviderType,
     PROVIDER_MODELS,
@@ -10,7 +10,7 @@ import {
     setApiKey as saveApiKey,
     getCurrentProvider,
     getCurrentModel
-} from '../services/providers';
+} from '../../services/providers';
 
 interface Props {
     settings: UserSettings;

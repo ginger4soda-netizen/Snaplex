@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ChatBot from '../ChatBot';
+import ChatBot from '../shared/ChatBot';
 import { ChatMessage, UserSettings, DEFAULT_SETTINGS } from '@/types';
 import { get, set } from 'idb-keyval';
 import { getImageBase64 } from '@/utils/imageToBase64';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppMode } from '../types';
+import { AppMode } from '../../types';
 
 interface HeaderProps {
     currentMode: AppMode;

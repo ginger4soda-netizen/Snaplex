@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { HistoryItem } from '../types';
-import { searchHistory } from '../services/geminiService';
-import { getTranslation } from '../translations';
-import { getCorrectDisplayOrder } from '../utils/languageDetect';
-import { parseExportedFile } from '../utils/importHistory';
+import { HistoryItem } from '../../types';
+import { searchHistory } from '../../services/geminiService';
+import { getTranslation } from '../../translations';
+import { getCorrectDisplayOrder } from '../../utils/languageDetect';
+import { parseExportedFile } from '../../utils/importHistory';
 
 interface Props {
     items: HistoryItem[];
