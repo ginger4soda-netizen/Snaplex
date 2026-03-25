@@ -61,11 +61,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
     setTimeout(() => inputRef.current?.select(), 50);
   };
 
+  const submitCreateRef = React.useRef(false);
   const submitCreate = async () => {
+    if (submitCreateRef.current) return;
     if (!newFolderName.trim()) {
       setIsCreating(false);
       return;
     }
+    submitCreateRef.current = true;
     try {
       await createFolder(newFolderName.trim(), null);
       setRefreshTrigger(prev => prev + 1);
@@ -74,6 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
     }
     setIsCreating(false);
     setNewFolderName('');
+    submitCreateRef.current = false;
   };
 
   const iconBtnClass = "w-10 h-10 mx-auto flex items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors";
@@ -255,6 +259,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
             currentFolderId={currentFolderId}
             onFolderSelect={onFolderSelect}
             refreshTrigger={refreshTrigger}
+            onFolderDrop={handleFolderDrop}
+            dragOverFolderId={dragOverFolderId}
+            onDragOverFolder={setDragOverFolderId}
           />
         </div>
 

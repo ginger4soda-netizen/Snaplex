@@ -162,6 +162,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const handleClear = useCallback(() => {
     setQuery('');
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    ++abortRef.current; // Cancel any in-flight searches
     onSearchClear();
   }, [onSearchClear]);
 

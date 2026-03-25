@@ -58,8 +58,9 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
 
     const url = detail.fullUrl;
     if (!url) return;
-    const filePath = url.startsWith('file://') ? url.slice(7) : url;
-    const assetUrl = convertFileSrc(filePath);
+    // Avoid double-conversion: if already an asset:// URL, use as-is
+    const assetUrl = url.startsWith('asset://') ? url
+      : convertFileSrc(url.startsWith('file://') ? url.slice(7) : url);
 
     extractColors(assetUrl, 8).then(colors => {
       colorCache.set(id, colors);
@@ -101,6 +102,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
   const fullUrl = (() => {
     const url = detail.fullUrl;
     if (!url) return '';
+    if (url.startsWith('asset://')) return url;
     const filePath = url.startsWith('file://') ? url.slice(7) : url;
     return convertFileSrc(filePath);
   })();

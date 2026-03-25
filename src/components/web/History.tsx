@@ -157,7 +157,7 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
       `;
 
         selectedItems.forEach(item => {
-            const sp = item.analysis.structuredPrompts;
+            const sp = item.analysis?.structuredPrompts;
             let frontText = "", backText = "";
 
             if (sp) {

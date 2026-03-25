@@ -54,11 +54,14 @@ const FolderTree: React.FC<FolderTreeProps> = ({ currentFolderId, onFolderSelect
     }
   };
 
+  const submitCreateRef = React.useRef(false);
   const submitCreate = async () => {
+    if (submitCreateRef.current) return;
     if (!newFolderName.trim()) {
       setCreatingParentId(undefined);
       return;
     }
+    submitCreateRef.current = true;
     try {
       await createFolder(newFolderName.trim(), creatingParentId ?? null);
       await loadFolders();
@@ -67,6 +70,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({ currentFolderId, onFolderSelect
     }
     setCreatingParentId(undefined);
     setNewFolderName('');
+    submitCreateRef.current = false;
   };
 
   const startRename = (id: string, name: string) => {
@@ -74,11 +78,14 @@ const FolderTree: React.FC<FolderTreeProps> = ({ currentFolderId, onFolderSelect
     setEditingName(name);
   };
 
+  const submitRenameRef = React.useRef(false);
   const submitRename = async () => {
+    if (submitRenameRef.current) return;
     if (!editingId || !editingName.trim()) {
       setEditingId(null);
       return;
     }
+    submitRenameRef.current = true;
     try {
       await renameFolder(editingId, editingName.trim());
       await loadFolders();
@@ -87,6 +94,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({ currentFolderId, onFolderSelect
     }
     setEditingId(null);
     setEditingName('');
+    submitRenameRef.current = false;
   };
 
   const handleDelete = async (id: string) => {

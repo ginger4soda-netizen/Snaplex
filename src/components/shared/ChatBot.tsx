@@ -145,10 +145,16 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
         onUpdateMessages([...newHistory, modelMsg]);
         setInput('');
         setLoading(true);
-        await sendChatMessageStream(newHistory, textToSend, imageContext, (streamedText) => {
-            onUpdateMessages([...newHistory, { ...modelMsg, text: streamedText }]);
-        }, settings);
-        setLoading(false);
+        try {
+            await sendChatMessageStream(newHistory, textToSend, imageContext, (streamedText) => {
+                onUpdateMessages([...newHistory, { ...modelMsg, text: streamedText }]);
+            }, settings);
+        } catch (err) {
+            console.error('Chat stream failed:', err);
+            onUpdateMessages([...newHistory, { ...modelMsg, text: '⚠ Error: failed to get a response. Please check your API settings.' }]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSendInput = () => processSend(input);
