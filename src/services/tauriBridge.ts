@@ -74,10 +74,16 @@ export async function getColorPalette(imageId: string): Promise<ColorInfo[] | nu
 
 // ─── Image Commands ────────────────────────────────────────────
 
-export async function getImages(folderId?: string, offset: number = 0, limit: number = 50): Promise<ImageItem[]> {
+export async function getImages(folderId?: string, offset: number = 0, limit: number = 500): Promise<ImageItem[]> {
   const invoke = await getInvoke();
   if (!invoke) return [];
   return invoke('get_images', { folderId, offset, limit }) as Promise<ImageItem[]>;
+}
+
+export async function countImages(folderId?: string): Promise<number> {
+  const invoke = await getInvoke();
+  if (!invoke) return 0;
+  return invoke('count_images', { folderId }) as Promise<number>;
 }
 
 export async function getImageDetail(id: string): Promise<ImageDetail | null> {

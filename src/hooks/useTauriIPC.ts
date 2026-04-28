@@ -23,8 +23,10 @@ const ipc = {
   moveFolder: (id: string, newParentId: string | null) => invoke<void>('move_folder', { id, newParentId }),
 
   // Images
-  getImages: (folderId?: string, offset: number = 0, limit: number = 50) =>
+  getImages: (folderId?: string, offset: number = 0, limit: number = 500) =>
     invoke<ImageItem[]>('get_images', { folderId, offset, limit }),
+  countImages: (folderId?: string) =>
+    invoke<number>('count_images', { folderId }),
   getImagesByIds: (ids: string[]) => invoke<ImageItem[]>('get_images_by_ids', { ids }),
   importImages: (filePaths: string[], folderId?: string) =>
     invoke<ImportResult>('import_images', { filePaths, folderId }),
