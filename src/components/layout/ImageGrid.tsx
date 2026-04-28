@@ -8,6 +8,9 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { showToast } from '@/hooks/useToast';
 import { exportAnalysisData } from '@/utils/exportAnalysis';
 import { importLegacyFile } from '@/utils/importLegacy';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { useGridDimensions } from '@/hooks/useGridDimensions';
+import { cardRectAtIndex, rectsIntersect, GRID_GAP, GRID_PADDING } from '@/utils/gridGeometry';
 
 interface ImageGridProps {
   folderId?: string;
@@ -43,6 +46,16 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   const importingRef = useRef(false);
   const dropPathsRef = useRef<Set<string>>(new Set());
   const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { columnCount, rowHeight } = useGridDimensions(scrollContainerRef, gridSize);
+  const rowCount = Math.ceil(images.length / Math.max(1, columnCount));
+
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => rowHeight,
+    overscan: 3,
+  });
 
   const isMultiMode = multiSelected.size > 0;
 
@@ -277,27 +290,15 @@ const ImageGrid: React.FC<ImageGridProps> = ({
       bottom: Math.max(rectSelect.startY, endY),
     };
 
-    const container = e.currentTarget as HTMLElement;
-    const cards = container.querySelectorAll('[data-image-card]');
     const selected = new Set<string>();
-    cards.forEach(card => {
-      const cardRect = card.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
-      const cardRelative = {
-        left: cardRect.left - containerRect.left + container.scrollLeft,
-        top: cardRect.top - containerRect.top + container.scrollTop,
-        right: cardRect.right - containerRect.left + container.scrollLeft,
-        bottom: cardRect.bottom - containerRect.top + container.scrollTop,
-      };
-      // Check intersection
-      if (selRect.left < cardRelative.right && selRect.right > cardRelative.left &&
-          selRect.top < cardRelative.bottom && selRect.bottom > cardRelative.top) {
-        const id = card.getAttribute('data-image-id');
-        if (id) selected.add(id);
+    for (let i = 0; i < images.length; i++) {
+      const r = cardRectAtIndex(i, Math.max(1, columnCount), gridSize, GRID_GAP, GRID_PADDING, GRID_PADDING);
+      if (rectsIntersect(selRect, r)) {
+        selected.add(images[i].id);
       }
-    });
+    }
     setMultiSelected(selected);
-  }, [rectSelect]);
+  }, [rectSelect, images, columnCount, gridSize]);
 
   const handleGridMouseUp = useCallback(() => {
     setRectSelect(null);
@@ -500,7 +501,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
         onMouseDown={handleGridMouseDown}
         onMouseMove={handleGridMouseMove}
         onMouseUp={handleGridMouseUp}
-        className={`flex-1 overflow-y-auto p-6 scroll-smooth relative select-none ${isDragOver ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+        className={`flex-1 overflow-y-auto scroll-smooth relative select-none ${isDragOver ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
       >
         {/* Drop overlay */}
         {isDragOver && (
@@ -513,42 +514,78 @@ const ImageGrid: React.FC<ImageGridProps> = ({
         )}
 
         {loading && images.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-stone-400 gap-3">
-            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm font-medium">Loading...</p>
+          <div className="p-6 h-full">
+            <div className="flex flex-col items-center justify-center h-full text-stone-400 gap-3">
+              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm font-medium">Loading...</p>
+            </div>
           </div>
         ) : images.length === 0 ? (
-          <div
-            onClick={handleClickUpload}
-            className="flex flex-col items-center justify-center h-full text-stone-400 gap-4 opacity-60 hover:opacity-80 cursor-pointer transition-opacity"
-          >
-            <div className="p-6 bg-stone-50 dark:bg-stone-800/50 rounded-3xl">
-              <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-bold">{searchResultIds !== null ? 'No results match your search' : 'No images found'}</p>
-              <p className="text-sm">{searchResultIds !== null ? 'Try different keywords or filters' : 'Drag & drop images or click to import'}</p>
+          <div className="p-6 h-full">
+            <div
+              onClick={handleClickUpload}
+              className="flex flex-col items-center justify-center h-full text-stone-400 gap-4 opacity-60 hover:opacity-80 cursor-pointer transition-opacity"
+            >
+              <div className="p-6 bg-stone-50 dark:bg-stone-800/50 rounded-3xl">
+                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold">{searchResultIds !== null ? 'No results match your search' : 'No images found'}</p>
+                <p className="text-sm">{searchResultIds !== null ? 'Try different keywords or filters' : 'Drag & drop images or click to import'}</p>
+              </div>
             </div>
           </div>
         ) : (
-          <div 
-            className="grid gap-6 auto-rows-max"
-            style={{ 
-              gridTemplateColumns: `repeat(auto-fill, minmax(${gridSize}px, 1fr))` 
+          <div
+            style={{
+              height: rowVirtualizer.getTotalSize() + 2 * GRID_PADDING,
+              position: 'relative',
+              width: '100%',
             }}
           >
-            {images.map(image => (
-              <ImageCard
-                key={image.id}
-                image={image}
-                isSelected={selectedImageId === image.id || multiSelected.has(image.id)}
-                onClick={(e) => handleImageClick(image.id, e)}
-                onToggleFavorite={handleToggleFavorite}
-                onDelete={handleDeleteImage}
-                onOpenInFinder={handleOpenInFinder}
-                onMoveToFolder={handleMoveToFolder}
-                onDragStart={(e) => handleDragStart(image.id, e)}
-              />
+            {rowVirtualizer.getVirtualItems().map(virtualRow => (
+              <div
+                key={virtualRow.key}
+                style={{
+                  position: 'absolute',
+                  top: virtualRow.start + GRID_PADDING,
+                  left: GRID_PADDING,
+                  right: GRID_PADDING,
+                  height: gridSize,
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${columnCount}, ${gridSize}px)`,
+                  gap: `${GRID_GAP}px`,
+                  justifyContent: 'start',
+                }}
+              >
+                {Array.from({ length: columnCount }).map((_, col) => {
+                  const idx = virtualRow.index * columnCount + col;
+                  const image = images[idx];
+                  if (!image) {
+                    // Unloaded slot (will fill once Task 6 pagination arrives) — keep layout stable
+                    return (
+                      <div
+                        key={`placeholder-${virtualRow.index}-${col}`}
+                        className="rounded-xl bg-stone-100/40 dark:bg-stone-800/40"
+                        style={{ width: gridSize, height: gridSize }}
+                      />
+                    );
+                  }
+                  return (
+                    <ImageCard
+                      key={image.id}
+                      image={image}
+                      isSelected={selectedImageId === image.id || multiSelected.has(image.id)}
+                      onClick={(e) => handleImageClick(image.id, e)}
+                      onToggleFavorite={handleToggleFavorite}
+                      onDelete={handleDeleteImage}
+                      onOpenInFinder={handleOpenInFinder}
+                      onMoveToFolder={handleMoveToFolder}
+                      onDragStart={(e) => handleDragStart(image.id, e)}
+                    />
+                  );
+                })}
+              </div>
             ))}
           </div>
         )}

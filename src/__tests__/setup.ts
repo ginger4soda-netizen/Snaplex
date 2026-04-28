@@ -24,7 +24,10 @@ class ResizeObserverMock {
     this.callback = cb;
     ResizeObserverMock.instances.push(this);
   }
-  observe = () => {};
+  observe = (target: Element) => {
+    // Immediately fire with a default viewport size so virtualizers get non-zero dimensions
+    this._trigger(1200, 800);
+  };
   unobserve = () => {};
   disconnect = () => {};
   // helper for tests to drive resize events
@@ -32,9 +35,9 @@ class ResizeObserverMock {
     const entry = {
       contentRect: { width, height, top: 0, left: 0, right: width, bottom: height, x: 0, y: 0, toJSON: () => ({}) },
       target: {} as Element,
-      borderBoxSize: [],
-      contentBoxSize: [],
-      devicePixelContentBoxSize: [],
+      borderBoxSize: [{ inlineSize: width, blockSize: height }],
+      contentBoxSize: [{ inlineSize: width, blockSize: height }],
+      devicePixelContentBoxSize: [{ inlineSize: width, blockSize: height }],
     } as unknown as ResizeObserverEntry;
     this.callback([entry], this as unknown as ResizeObserver);
   }
