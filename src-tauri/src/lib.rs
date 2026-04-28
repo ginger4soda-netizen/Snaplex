@@ -61,6 +61,10 @@ pub fn run() {
             commands::image_commands::extract_color_palette,
             commands::image_commands::get_color_palette,
             commands::image_commands::save_color_palette,
+            // Chat
+            commands::chat_commands::get_chat_messages,
+            commands::chat_commands::save_chat_message,
+            commands::chat_commands::delete_chat_messages,
             // §5.7 File system
             commands::fs_commands::write_text_file,
         ])

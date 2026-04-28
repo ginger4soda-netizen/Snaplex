@@ -3,6 +3,7 @@ pub mod images;
 pub mod folders;
 pub mod analysis;
 pub mod search;
+pub mod chat;
 
 use rusqlite::Connection;
 use std::path::Path;
