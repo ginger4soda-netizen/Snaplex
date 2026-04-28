@@ -123,6 +123,12 @@ const commands: Record<string, (...args: any[]) => any> = {
     return filtered.slice(offset, offset + limit);
   },
 
+  count_images: ({ folderId }: { folderId?: string }) => {
+    requireLibrary();
+    const filtered = folderId ? state.images.filter(i => i.folderId === folderId) : state.images;
+    return filtered.length;
+  },
+
   import_images: ({ filePaths, folderId }: { filePaths: string[]; folderId?: string }) => {
     requireLibrary();
     const imported: ImageItem[] = filePaths.map(fp => {

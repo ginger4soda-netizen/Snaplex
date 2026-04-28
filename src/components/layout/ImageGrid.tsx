@@ -31,7 +31,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   nav,
   refreshTrigger
 }) => {
-  const { getImages, getImageDetail, getImagesByIds, importImages, deleteImages, toggleFavorite, openImageInFinder, moveImages, getFolderTree } = useTauriIPC();
+  const { getImages, getImageDetail, getImagesByIds, countImages, importImages, deleteImages, toggleFavorite, openImageInFinder, moveImages, getFolderTree } = useTauriIPC();
   const [images, setImages] = useState<ImageItem[]>([]);
   const [gridSize, setGridSize] = useState(200);
   const [loading, setLoading] = useState(false);
@@ -42,13 +42,18 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   const [moveToFolderTarget, setMoveToFolderTarget] = useState<string | null>(null);
   const [folderList, setFolderList] = useState<FolderNode[]>([]);
   const [rectSelect, setRectSelect] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoadingPage, setIsLoadingPage] = useState(false);
+  const PAGE_SIZE = 500;
+  const folderRequestRef = useRef<string | undefined>(undefined);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const importingRef = useRef(false);
   const dropPathsRef = useRef<Set<string>>(new Set());
   const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { columnCount, rowHeight } = useGridDimensions(scrollContainerRef, gridSize);
-  const rowCount = Math.ceil(images.length / Math.max(1, columnCount));
+  const effectiveCount = searchResultIds !== null ? images.length : Math.max(images.length, totalCount);
+  const rowCount = Math.ceil(effectiveCount / Math.max(1, columnCount));
 
   const rowVirtualizer = useVirtualizer({
     count: rowCount,
@@ -61,21 +66,65 @@ const ImageGrid: React.FC<ImageGridProps> = ({
 
   const loadImages = useCallback(async () => {
     setLoading(true);
+    setIsLoadingPage(true);
+    const requestFolder = folderId;
+    folderRequestRef.current = requestFolder;
     try {
-      const result = await getImages(folderId);
-      setImages(result);
+      const [firstPage, total] = await Promise.all([
+        getImages(folderId, 0, PAGE_SIZE),
+        countImages(folderId),
+      ]);
+      // Race guard: drop if folder changed during the await
+      if (folderRequestRef.current !== requestFolder) return;
+      setImages(firstPage);
+      setTotalCount(total);
     } catch (err) {
       showToast(`Failed to load images: ${err}`, 'error');
     } finally {
       setLoading(false);
+      setIsLoadingPage(false);
     }
-  }, [folderId, getImages]);
+  }, [folderId, getImages, countImages]);
+
+  const loadMore = useCallback(async () => {
+    if (isLoadingPage) return;
+    if (images.length >= totalCount) return;
+    if (searchResultIds !== null) return; // search path doesn't paginate
+
+    setIsLoadingPage(true);
+    const requestFolder = folderId;
+    folderRequestRef.current = requestFolder;
+    try {
+      const nextPage = await getImages(folderId, images.length, PAGE_SIZE);
+      if (folderRequestRef.current !== requestFolder) return;
+      setImages(prev => [...prev, ...nextPage]);
+    } catch (err) {
+      showToast(`Failed to load more images: ${err}`, 'error');
+    } finally {
+      setIsLoadingPage(false);
+    }
+  }, [folderId, images.length, totalCount, isLoadingPage, searchResultIds, getImages]);
 
   useEffect(() => {
     if (searchResultIds === null) {
       loadImages();
     }
   }, [folderId, searchResultIds, loadImages, refreshTrigger]);
+
+  const virtualItems = rowVirtualizer.getVirtualItems();
+
+  useEffect(() => {
+    if (searchResultIds !== null) return;
+    if (images.length >= totalCount) return;
+    if (virtualItems.length === 0) return;
+
+    const lastVisibleRow = virtualItems[virtualItems.length - 1].index;
+    const lastLoadedRow = Math.floor(images.length / Math.max(1, columnCount));
+    // trigger 2 rows before reaching the last loaded row
+    if (lastVisibleRow >= lastLoadedRow - 2) {
+      loadMore();
+    }
+  }, [virtualItems, images.length, totalCount, columnCount, searchResultIds, loadMore]);
 
   const handleSearchResults = async (ids: string[]) => {
     setSearchResultIds(ids);
@@ -188,10 +237,12 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   const handleBatchDelete = useCallback(async () => {
     if (multiSelected.size === 0) return;
     try {
-      await deleteImages(Array.from(multiSelected));
+      const deletedIds = Array.from(multiSelected);
+      await deleteImages(deletedIds);
       setImages(prev => prev.filter(img => !multiSelected.has(img.id)));
+      setTotalCount(prev => Math.max(0, prev - deletedIds.length));
       if (selectedImageId && multiSelected.has(selectedImageId)) onImageSelect(undefined);
-      showToast(`Deleted ${multiSelected.size} image(s)`, 'success');
+      showToast(`Deleted ${deletedIds.length} image(s)`, 'success');
       setMultiSelected(new Set());
     } catch (err) {
       showToast(`Failed to delete: ${err}`, 'error');
@@ -221,6 +272,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     try {
       await deleteImages([id]);
       setImages(prev => prev.filter(img => img.id !== id));
+      setTotalCount(prev => Math.max(0, prev - 1));
       if (selectedImageId === id) onImageSelect(undefined);
     } catch (err) {
       showToast(`Failed to delete image: ${err}`, 'error');
@@ -543,7 +595,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
               width: '100%',
             }}
           >
-            {rowVirtualizer.getVirtualItems().map(virtualRow => (
+            {virtualItems.map(virtualRow => (
               <div
                 key={virtualRow.key}
                 style={{
