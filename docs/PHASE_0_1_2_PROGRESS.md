@@ -3,7 +3,7 @@
 > **Purpose**: This file tracks the exact state of every feature in Phase 0-2.
 > Any new session should read this file to understand what's done and what's pending.
 > Update this file after completing each item.
-> **Last updated**: 2026-03-26 (dev/phase-0-1-2 branch)
+> **Last updated**: 2026-04-28 (feat/virtual-scroll branch)
 
 ## Status Legend
 - `DONE` — Implemented, tested, verified working
@@ -134,7 +134,7 @@
 | Right-click context menu | DONE | Favorite, Open in Finder, Move to Folder, Delete |
 | Multi-select mode | DONE | Cmd+click, Shift+click |
 | Batch action menu | DONE | Select all, Clear, Delete selected |
-| Virtual scroll | TODO | Currently renders all images |
+| Virtual scroll | DONE | @tanstack/react-virtual + 500-page pagination + countImages IPC; constant DOM cost regardless of library size |
 
 ### 1.4 Detail Panel
 | Item | Status | Notes |
@@ -242,7 +242,13 @@
 4. **Search batch fetch**: New `get_images_by_ids` IPC command replaces per-image detail fetch for search results
 5. **New IPC command**: `get_images_by_ids` — batch fetch ImageItem[] by ID list
 
+## Changes in 2026-04-28 session (P0 — virtual scroll)
+1. **Virtual scroll**: `@tanstack/react-virtual` integrated; constant DOM cost regardless of library size
+2. **Pagination**: backend `count_images` IPC + frontend 500-per-page incremental loading with race-guarded `loadMore`
+3. **Rect-select redesign**: switched from DOM `querySelectorAll('[data-image-card]')` to mathematical hit-testing via `cardRectAtIndex` so cross-viewport rectangle selection works
+4. **New layout utilities**: `src/utils/gridGeometry.ts` (constants `GRID_GAP`/`GRID_PADDING` + `cardRectAtIndex` + `rectsIntersect`); `src/hooks/useGridDimensions.ts` (ResizeObserver-driven column count)
+5. **Test infrastructure**: ResizeObserver mock now emits `borderBoxSize`/`contentBoxSize` and auto-fires on `observe()` so virtualizer renders in jsdom; `count_images` mock added to `tauri.ts` mock state
+
 ## Remaining Items (low priority, can be deferred)
-1. Virtual scroll (performance for large libraries)
-2. Folder drag-to-reorder (move_folder backend exists)
-3. Thumbnail generation (WebP, uses original as fallback)
+1. Folder drag-to-reorder (move_folder backend exists)
+2. Thumbnail generation (WebP, uses original as fallback)
