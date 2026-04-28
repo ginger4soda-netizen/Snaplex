@@ -3,7 +3,7 @@
 > **Purpose**: This file tracks the exact state of every feature in Phase 0-2.
 > Any new session should read this file to understand what's done and what's pending.
 > Update this file after completing each item.
-> **Last updated**: 2026-03-23 (dev/phase-0-1-2 branch)
+> **Last updated**: 2026-03-26 (dev/phase-0-1-2 branch)
 
 ## Status Legend
 - `DONE` — Implemented, tested, verified working
@@ -53,7 +53,7 @@
 | delete_folder | DONE | |
 | move_folder | DONE | |
 | get_images | DONE | Includes file_path for thumb fallback |
-| import_images | DONE | UUID prefix for filename collision |
+| import_images | DONE | UUID prefix, reads image dimensions via `image` crate |
 | delete_images | DONE | |
 | move_images | DONE | |
 | link_image_to_folder | DONE | |
@@ -61,7 +61,7 @@
 | update_image_memo | DONE | |
 | toggle_favorite | DONE | |
 | open_image_in_finder | DONE | macOS/Windows/Linux |
-| export_images | STUB | Returns mock path |
+| export_images | DONE | Copies files to timestamped export dir in Downloads |
 | get_analysis | DONE | |
 | save_analysis | DONE | Also populates FTS5 search index |
 | get_dimension_history | DONE | |
@@ -69,8 +69,9 @@
 | search_images (FTS5) | DONE | |
 | save_text_embedding | STUB | No real implementation |
 | visual_search | STUB | Returns empty array |
-| extract_color_palette | STUB | Backend stub, frontend does real extraction |
-| get_color_palette | STUB | Returns null |
+| extract_color_palette | DONE | Backend stub, frontend does real Canvas extraction |
+| get_color_palette | DONE | Reads from color_palettes table |
+| save_color_palette | DONE | Persists extracted colors as JSON |
 | check_for_update | STUB | Returns null |
 | install_update | STUB | No-op |
 
@@ -114,6 +115,8 @@
 | FolderTree display (read-only) | DONE | |
 | "New Folder" button + input | DONE | "+" button in sidebar header |
 | Folder right-click menu (rename/delete) | DONE | ContextMenu component |
+| Drag image to folder (move/link) | DONE | HTML5 drag with alt=link, grid auto-refreshes |
+| Move to folder (context menu) | DONE | Right-click → Move to Folder picker modal |
 | Folder drag-to-reorder | TODO | Backend move_folder exists, UI not priority |
 | Nested folder expand/collapse | DONE | |
 | Image count per folder | DONE | |
@@ -128,7 +131,7 @@
 | Click-to-upload (file dialog) | DONE | Tauri native dialog |
 | Drag-and-drop import | DONE | Tauri native drag-drop events |
 | Image selection → detail panel | DONE | |
-| Right-click context menu | DONE | Favorite, Open in Finder, Delete |
+| Right-click context menu | DONE | Favorite, Open in Finder, Move to Folder, Delete |
 | Multi-select mode | DONE | Cmd+click, Shift+click |
 | Batch action menu | DONE | Select all, Clear, Delete selected |
 | Virtual scroll | TODO | Currently renders all images |
@@ -147,7 +150,7 @@
 | Copy prompt button | DONE | Copies original + translated to clipboard |
 | Google Translate on card back | DONE | Auto-translates via Google Translate API |
 | Memo card | DONE | Saves to DB via IPC |
-| Chat panel | PARTIAL | Uses IndexedDB, not Tauri backend |
+| Chat panel | DONE | Migrated to Tauri DB (chat_messages table), IndexedDB fallback |
 
 ### 1.5 Theme
 | Item | Status | Notes |
@@ -189,13 +192,13 @@
 | Item | Status | Notes |
 |------|--------|-------|
 | SearchBar UI with debounce | DONE | 300ms debounce, clear button |
-| FTS5 backend query | DONE | search.rs implemented |
+| FTS5 backend query | DONE | search.rs — sanitized queries, folder_id filtering |
 | FTS5 index population on analysis | DONE | save_analysis now calls update_search_index |
 | Text embedding generation | DEFERRED | Requires API call infrastructure |
 | Text embedding search | DEFERRED | No embeddings stored |
 | CLIP visual search | DEFERRED | CLIP not integrated |
 | Fusion sorting algorithm | DONE | Frontend code exists |
-| Search results display | DONE | |
+| Search results display | DONE | Batch fetch via get_images_by_ids |
 
 ### 2.2 Color Palette
 | Item | Status | Notes |
@@ -203,7 +206,7 @@
 | Color palette UI | DONE | Bars, grid view, format toggle |
 | K-means extraction | DONE | Canvas-based (src/utils/colorExtract.ts) |
 | Auto-extract on image select | DONE | Triggered in DetailPanel |
-| Store in color_palettes table | TODO | Currently extracted on-the-fly |
+| Store in color_palettes table | DONE | Persisted via save_color_palette IPC, loaded on revisit |
 | Color copy to clipboard | DONE | |
 
 ### 2.3 Translation
@@ -219,15 +222,27 @@
 
 ---
 
-## Verification Summary (2026-03-23)
+## Verification Summary (2026-03-26)
 
-- `cargo check`: PASS (2 warnings, 0 errors)
+- `cargo check`: PASS (1 warning, 0 errors)
 - `pnpm test`: PASS (26/26 tests)
 - TypeScript: 8 pre-existing errors in test mocks (not in feature code)
+
+## Changes in 2026-03-26 session (round 1)
+1. **export_images**: Real implementation — copies files to `~/Downloads/snaplex-export-{timestamp}/`
+2. **Image dimensions**: Now extracted on import using `image` crate (was 0x0)
+3. **Chat persistence**: Migrated from IndexedDB to Tauri SQLite `chat_messages` table (with IndexedDB fallback)
+4. **Color palette persistence**: Extracted colors now saved to `color_palettes` table, loaded from DB on revisit
+5. **New IPC commands**: `get_chat_messages`, `save_chat_message`, `delete_chat_messages`, `save_color_palette`
+
+## Changes in 2026-03-26 session (round 2)
+1. **Drag-to-folder**: Images now refresh in grid after drag-drop move/link via `onImagesChanged` callback chain (Sidebar → ThreeColumnLayout → ImageGrid)
+2. **Move to folder context menu**: Right-click image → "Move to Folder..." opens folder picker modal
+3. **FTS5 search fix**: Query sanitization (quotes each word, strips special chars) + folder_id filtering via JOIN with image_folders
+4. **Search batch fetch**: New `get_images_by_ids` IPC command replaces per-image detail fetch for search results
+5. **New IPC command**: `get_images_by_ids` — batch fetch ImageItem[] by ID list
 
 ## Remaining Items (low priority, can be deferred)
 1. Virtual scroll (performance for large libraries)
 2. Folder drag-to-reorder (move_folder backend exists)
-3. Chat panel migration to Tauri backend (currently works via IndexedDB)
-4. Color palette persistence to DB (currently extracted on-the-fly)
-5. Thumbnail generation (WebP, uses original as fallback)
+3. Thumbnail generation (WebP, uses original as fallback)

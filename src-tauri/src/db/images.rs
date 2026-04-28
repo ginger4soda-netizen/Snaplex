@@ -137,6 +137,29 @@ fn row_to_image_item(row: &rusqlite::Row) -> Result<ImageItem, rusqlite::Error> 
     })
 }
 
+pub fn get_images_by_ids(
+    conn: &Connection,
+    ids: &[String],
+) -> Result<Vec<ImageItem>, rusqlite::Error> {
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+    let placeholders: String = ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+    let sql = format!(
+        "SELECT id, filename, file_path, thumb_path, width, height, is_favorite, has_analysis, created_at
+         FROM images WHERE id IN ({})",
+        placeholders
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let params: Vec<&dyn rusqlite::types::ToSql> =
+        ids.iter().map(|id| id as &dyn rusqlite::types::ToSql).collect();
+    let items = stmt
+        .query_map(params.as_slice(), row_to_image_item)?
+        .filter_map(|r| r.ok())
+        .collect();
+    Ok(items)
+}
+
 pub fn get_image_detail(conn: &Connection, id: &str) -> Result<ImageDetail, rusqlite::Error> {
     let mut stmt = conn.prepare(
         "SELECT id, filename, file_path, thumb_path, width, height, is_favorite, has_analysis,

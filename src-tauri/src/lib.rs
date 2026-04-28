@@ -37,6 +37,7 @@ pub fn run() {
             commands::folder_commands::move_folder,
             // §5.3 Images
             commands::image_commands::get_images,
+            commands::image_commands::get_images_by_ids,
             commands::image_commands::import_images,
             commands::image_commands::delete_images,
             commands::image_commands::move_images,
@@ -59,6 +60,7 @@ pub fn run() {
             commands::image_commands::read_image_base64,
             commands::image_commands::extract_color_palette,
             commands::image_commands::get_color_palette,
+            commands::image_commands::save_color_palette,
             // §5.7 File system
             commands::fs_commands::write_text_file,
         ])

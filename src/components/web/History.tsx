@@ -120,89 +120,95 @@ const History: React.FC<Props> = ({ items = [], onSelect, onDeleteItems, onMarkA
         const selectedItems = items.filter(item => selectedIds.has(item.id));
         const idsToMark = Array.from(selectedIds);
 
-        // Get user settings for language mapping (fallback to default)
-        const userFrontLanguage = systemLanguage?.includes('中文') ? 'Chinese' : 'English';
+        try {
+            // Get user settings for language mapping (fallback to default)
+            const userFrontLanguage = systemLanguage?.includes('中文') ? 'Chinese' : 'English';
 
-        // Helper to safely get dimension content
-        const getDimension = (dimension: any): { front: string; back: string } => {
-            if (!dimension) return { front: 'N/A', back: 'N/A' };
-            const orig = dimension.original || 'N/A';
-            const trans = dimension.translated || 'N/A';
-            return getCorrectDisplayOrder(orig, trans, userFrontLanguage);
-        };
+            // Helper to safely get dimension content
+            const getDimension = (dimension: any): { front: string; back: string } => {
+                if (!dimension) return { front: 'N/A', back: 'N/A' };
+                const orig = dimension.original || 'N/A';
+                const trans = dimension.translated || 'N/A';
+                return getCorrectDisplayOrder(orig, trans, userFrontLanguage);
+            };
 
-        let tableContent = `
-        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-        <head>
-            <meta http-equiv="content-type" content="application/vnd.ms-excel; charset=UTF-8">
-            <style>
-                body { font-family: sans-serif; }
-                table { border-collapse: collapse; width: 100%; }
-                th { background-color: #f0f0f0; border: 1px solid #999; padding: 10px; text-align: left; }
-                td { border: 1px solid #999; padding: 10px; vertical-align: top; }
-                .img-cell { width: 160px; text-align: center; }
-                .text-cell { width: 400px; white-space: pre-wrap; }
-            </style>
-        </head>
-        <body>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Image</th>
-                        <th>Front Prompt</th>
-                        <th>Back Prompt</th>
-                    </tr>
-                </thead>
-                <tbody>
-      `;
-
-        selectedItems.forEach(item => {
-            const sp = item.analysis?.structuredPrompts;
-            let frontText = "", backText = "";
-
-            if (sp) {
-                // Safely extract all dimensions with language detection
-                const subject = getDimension(sp.subject);
-                const environment = getDimension(sp.environment);
-                const composition = getDimension(sp.composition);
-                const lighting = getDimension(sp.lighting);
-                const mood = getDimension(sp.mood);
-                const style = getDimension(sp.style);
-
-                frontText = `[SUBJECT]:<br>${subject.front}<br><br>[ENVIRONMENT]:<br>${environment.front}<br><br>[COMPOSITION]:<br>${composition.front}<br><br>[LIGHTING]:<br>${lighting.front}<br><br>[MOOD]:<br>${mood.front}<br><br>[STYLE]:<br>${style.front}`;
-                backText = `[SUBJECT]:<br>${subject.back}<br><br>[ENVIRONMENT]:<br>${environment.back}<br><br>[COMPOSITION]:<br>${composition.back}<br><br>[LIGHTING]:<br>${lighting.back}<br><br>[MOOD]:<br>${mood.back}<br><br>[STYLE]:<br>${style.back}`;
-            } else {
-                frontText = item.analysis.description || "";
-                backText = "N/A";
-            }
-
-            tableContent += `
-            <tr>
-                <td class="img-cell">
-                    <img src="${item.imageUrl}" width="150" style="object-fit: contain; max-height: 300px; display: block; margin: 0 auto;" />
-                    <br/><br/>
-                    <span style="color: #666; font-size: 10px;">${new Date(item.timestamp).toLocaleDateString()}</span>
-                </td>
-                <td class="text-cell">${frontText}</td>
-                <td class="text-cell">${backText}</td>
-            </tr>
+            let tableContent = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+                <meta http-equiv="content-type" content="application/vnd.ms-excel; charset=UTF-8">
+                <style>
+                    body { font-family: sans-serif; }
+                    table { border-collapse: collapse; width: 100%; }
+                    th { background-color: #f0f0f0; border: 1px solid #999; padding: 10px; text-align: left; }
+                    td { border: 1px solid #999; padding: 10px; vertical-align: top; }
+                    .img-cell { width: 160px; text-align: center; }
+                    .text-cell { width: 400px; white-space: pre-wrap; }
+                </style>
+            </head>
+            <body>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Front Prompt</th>
+                            <th>Back Prompt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
           `;
-        });
 
-        tableContent += `</tbody></table></body></html>`;
+            selectedItems.forEach(item => {
+                const sp = item.analysis?.structuredPrompts;
+                let frontText = "", backText = "";
 
-        const blob = new Blob([tableContent], { type: 'application/vnd.ms-excel' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `snaplex_export_${Date.now()}.xls`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+                if (sp) {
+                    // Safely extract all dimensions with language detection
+                    const subject = getDimension(sp.subject);
+                    const environment = getDimension(sp.environment);
+                    const composition = getDimension(sp.composition);
+                    const lighting = getDimension(sp.lighting);
+                    const mood = getDimension(sp.mood);
+                    const style = getDimension(sp.style);
 
-        onMarkAsExported(idsToMark);
-        setIsSelectionMode(false);
-        setSelectedIds(new Set());
+                    frontText = `[SUBJECT]:<br>${subject.front}<br><br>[ENVIRONMENT]:<br>${environment.front}<br><br>[COMPOSITION]:<br>${composition.front}<br><br>[LIGHTING]:<br>${lighting.front}<br><br>[MOOD]:<br>${mood.front}<br><br>[STYLE]:<br>${style.front}`;
+                    backText = `[SUBJECT]:<br>${subject.back}<br><br>[ENVIRONMENT]:<br>${environment.back}<br><br>[COMPOSITION]:<br>${composition.back}<br><br>[LIGHTING]:<br>${lighting.back}<br><br>[MOOD]:<br>${mood.back}<br><br>[STYLE]:<br>${style.back}`;
+                } else {
+                    frontText = item.analysis?.description || "";
+                    backText = "N/A";
+                }
+
+                tableContent += `
+                <tr>
+                    <td class="img-cell">
+                        <img src="${item.imageUrl}" width="150" style="object-fit: contain; max-height: 300px; display: block; margin: 0 auto;" />
+                        <br/><br/>
+                        <span style="color: #666; font-size: 10px;">${new Date(item.timestamp).toLocaleDateString()}</span>
+                    </td>
+                    <td class="text-cell">${frontText}</td>
+                    <td class="text-cell">${backText}</td>
+                </tr>
+              `;
+            });
+
+            tableContent += `</tbody></table></body></html>`;
+
+            const blob = new Blob([tableContent], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `snaplex_export_${Date.now()}.xls`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            onMarkAsExported(idsToMark);
+            setIsSelectionMode(false);
+            setSelectedIds(new Set());
+        } catch (err) {
+            console.error('Export failed:', err);
+            alert('❌ Export failed. Some items may have incomplete data.');
+        }
     };
 
     const handleItemClick = (item: HistoryItem, e: React.MouseEvent) => {

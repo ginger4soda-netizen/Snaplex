@@ -31,6 +31,11 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
   const [localAnalysis, setLocalAnalysis] = useState<AnalysisResult | null>(null);
   const { saveAnalysis, saveDimensionVersion } = useTauriIPC();
 
+  // Reset local state when image changes
+  useEffect(() => {
+    setLocalAnalysis(null);
+  }, [imageId]);
+
   const currentAnalysis = localAnalysis || analysis;
   const [translating, setTranslating] = useState(false);
 

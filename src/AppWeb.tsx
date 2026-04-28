@@ -86,7 +86,11 @@ const AppWeb: React.FC = () => {
     setCurrentImage(item.imageUrl);
     setChatHistory(item.chatHistory || []);
     setMode('analysis');
-  }, []);
+    // Mark as read and update last viewed time
+    if (!item.read || !item.lastViewedAt) {
+      updateHistoryItem(item.id, { read: true, lastViewedAt: Date.now() });
+    }
+  }, [updateHistoryItem]);
 
   // Toggle favorite on current item
   const handleToggleFavorite = useCallback(() => {

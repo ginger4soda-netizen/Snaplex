@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useTauriIPC } from '@/hooks/useTauriIPC';
-import { ImageItem } from '@/types';
+import { ImageItem, FolderNode } from '@/types';
 import ImageCard from '../images/ImageCard';
 import SearchBar from '../search/SearchBar';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
@@ -16,6 +16,7 @@ interface ImageGridProps {
   onToggleDetail: () => void;
   isDetailVisible: boolean;
   nav?: { goBack: () => void; goForward: () => void; canGoBack: boolean; canGoForward: boolean };
+  refreshTrigger?: number;
 }
 
 const ImageGrid: React.FC<ImageGridProps> = ({
@@ -24,9 +25,10 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   onImageSelect,
   onToggleDetail,
   isDetailVisible,
-  nav
+  nav,
+  refreshTrigger
 }) => {
-  const { getImages, getImageDetail, importImages, deleteImages, toggleFavorite, openImageInFinder } = useTauriIPC();
+  const { getImages, getImageDetail, getImagesByIds, importImages, deleteImages, toggleFavorite, openImageInFinder, moveImages, getFolderTree } = useTauriIPC();
   const [images, setImages] = useState<ImageItem[]>([]);
   const [gridSize, setGridSize] = useState(200);
   const [loading, setLoading] = useState(false);
@@ -34,6 +36,8 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   const [searchResultIds, setSearchResultIds] = useState<string[] | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
+  const [moveToFolderTarget, setMoveToFolderTarget] = useState<string | null>(null);
+  const [folderList, setFolderList] = useState<FolderNode[]>([]);
   const [rectSelect, setRectSelect] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const importingRef = useRef(false);
@@ -58,25 +62,18 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     if (searchResultIds === null) {
       loadImages();
     }
-  }, [folderId, searchResultIds, loadImages]);
+  }, [folderId, searchResultIds, loadImages, refreshTrigger]);
 
   const handleSearchResults = async (ids: string[]) => {
     setSearchResultIds(ids);
     if (ids.length > 0) {
       setLoading(true);
       try {
-        // Fetch full ImageItem details for search results
-        // In a real implementation, the search IPC might return ImageItem[] directly
-        // For now, we fetch them individually or use a batch command if available
-        const items = await Promise.all(ids.slice(0, 100).map(async (id) => {
-          try {
-            const detail = await getImageDetail(id);
-            return detail as ImageItem;
-          } catch (e) {
-            return null;
-          }
-        }));
-        setImages(items.filter((item): item is ImageItem => item !== null));
+        const items = await getImagesByIds(ids.slice(0, 200));
+        // Sort by search result order
+        const idOrder = new Map(ids.map((id, i) => [id, i]));
+        items.sort((a, b) => (idOrder.get(a.id) ?? 999) - (idOrder.get(b.id) ?? 999));
+        setImages(items);
       } catch (err) {
         showToast(`Search failed: ${err}`, 'error');
       } finally {
@@ -224,6 +221,29 @@ const ImageGrid: React.FC<ImageGridProps> = ({
       showToast(`Failed to open in Finder: ${err}`, 'error');
     }
   }, [openImageInFinder]);
+
+  const handleMoveToFolder = useCallback(async (imageId: string) => {
+    setMoveToFolderTarget(imageId);
+    try {
+      const tree = await getFolderTree();
+      setFolderList(tree);
+    } catch (err) {
+      showToast(`Failed to load folders: ${err}`, 'error');
+    }
+  }, [getFolderTree]);
+
+  const confirmMoveToFolder = useCallback(async (targetFolderId: string) => {
+    if (!moveToFolderTarget) return;
+    try {
+      await moveImages([moveToFolderTarget], targetFolderId);
+      showToast('Image moved', 'success');
+      await loadImages();
+    } catch (err) {
+      showToast(`Move failed: ${err}`, 'error');
+    }
+    setMoveToFolderTarget(null);
+    setFolderList([]);
+  }, [moveToFolderTarget, moveImages, loadImages]);
 
   const handleGridMouseDown = useCallback((e: React.MouseEvent) => {
     // Only start rect select if clicking on grid background (not on an image card)
@@ -526,6 +546,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                 onToggleFavorite={handleToggleFavorite}
                 onDelete={handleDeleteImage}
                 onOpenInFinder={handleOpenInFinder}
+                onMoveToFolder={handleMoveToFolder}
                 onDragStart={(e) => handleDragStart(image.id, e)}
               />
             ))}
@@ -545,7 +566,51 @@ const ImageGrid: React.FC<ImageGridProps> = ({
           />
         )}
       </div>
+
+      {/* Move to Folder Modal */}
+      {moveToFolderTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setMoveToFolderTarget(null)}>
+          <div className="bg-white dark:bg-stone-800 rounded-xl shadow-2xl w-72 max-h-80 flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 py-3 border-b border-stone-200 dark:border-stone-700">
+              <h3 className="text-sm font-bold text-stone-700 dark:text-stone-200">Move to Folder</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {folderList.length === 0 ? (
+                <p className="text-xs text-stone-400 px-2 py-4 text-center">No folders available</p>
+              ) : (
+                folderList.map(folder => (
+                  <FolderPickerItem key={folder.id} folder={folder} onSelect={confirmMoveToFolder} currentFolderId={folderId} />
+                ))
+              )}
+            </div>
+            <div className="px-4 py-2 border-t border-stone-200 dark:border-stone-700">
+              <button onClick={() => setMoveToFolderTarget(null)} className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+};
+
+const FolderPickerItem: React.FC<{ folder: FolderNode; onSelect: (id: string) => void; currentFolderId?: string; level?: number }> = ({ folder, onSelect, currentFolderId, level = 0 }) => {
+  const isCurrent = folder.id === currentFolderId;
+  return (
+    <>
+      <button
+        onClick={() => !isCurrent && onSelect(folder.id)}
+        disabled={isCurrent}
+        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${isCurrent ? 'text-stone-300 dark:text-stone-600 cursor-not-allowed' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'}`}
+        style={{ paddingLeft: `${level * 12 + 12}px` }}
+      >
+        <svg className="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+        <span className="truncate">{folder.name}</span>
+        {isCurrent && <span className="text-[10px] text-stone-400">(current)</span>}
+      </button>
+      {folder.children?.map(child => (
+        <FolderPickerItem key={child.id} folder={child} onSelect={onSelect} currentFolderId={currentFolderId} level={level + 1} />
+      ))}
+    </>
   );
 };
 

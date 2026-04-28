@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTauriIPC } from '@/hooks/useTauriIPC';
 import { ImageDetail, AnalysisResult } from '@/types';
 import ImagePreview from './ImagePreview';
@@ -9,7 +9,7 @@ import ChatPanel from './ChatPanel';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { extractColors, ExtractedColor } from '@/utils/colorExtract';
 
-// Module-level cache so colors persist across re-navigation within a session
+// Module-level cache keyed by "imageId:colorCount"
 const colorCache = new Map<string, ExtractedColor[]>();
 
 interface DetailPanelProps {
@@ -18,10 +18,11 @@ interface DetailPanelProps {
 }
 
 const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
-  const { getImageDetail, updateImageMemo } = useTauriIPC();
+  const { getImageDetail, updateImageMemo, getColorPalette, saveColorPalette } = useTauriIPC();
   const [detail, setDetail] = useState<ImageDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'chat'>('info');
+  const [colorCount, setColorCount] = useState(8);
 
   useEffect(() => {
     if (!imageId) {
@@ -29,46 +30,93 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
       return;
     }
 
+    // Clear stale detail immediately so Info tab shows loading, not the previous image's data
+    setDetail(null);
+    setLoading(true);
+
+    let cancelled = false;
     const loadDetail = async () => {
-      setLoading(true);
       try {
         const result = await getImageDetail(imageId);
-        setDetail(result);
+        if (!cancelled) setDetail(result);
       } catch (err) {
         console.error("Failed to load image detail", err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     loadDetail();
+
+    return () => { cancelled = true; };
   }, [imageId]);
 
-  // Extract colors when image loads and palette is null (uses session cache)
+  // Helper to resolve asset URL
+  const resolveAssetUrl = useCallback((url: string) => {
+    if (url.startsWith('asset://')) return url;
+    return convertFileSrc(url.startsWith('file://') ? url.slice(7) : url);
+  }, []);
+
+  // Debounced color count — prevents rapid k-means extractions while dragging the slider
+  const [debouncedColorCount, setDebouncedColorCount] = useState(colorCount);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedColorCount(colorCount), 300);
+    return () => clearTimeout(timer);
+  }, [colorCount]);
+
+  // Extract colors when image loads or debounced colorCount changes (uses session cache + DB)
   // NOTE: This hook must be BEFORE any conditional returns to satisfy React's Rules of Hooks
   useEffect(() => {
-    if (!detail || detail.colorPalette) return;
+    if (!detail) return;
     const id = detail.id;
+    const cacheKey = `${id}:${debouncedColorCount}`;
+    let cancelled = false;
 
-    // Check cache first
-    const cached = colorCache.get(id);
+    // Check session cache first
+    const cached = colorCache.get(cacheKey);
     if (cached) {
-      setDetail(prev => prev ? { ...prev, colorPalette: cached } : null);
+      setDetail(prev => prev && prev.id === id ? { ...prev, colorPalette: cached } : prev);
       return;
     }
 
-    const url = detail.fullUrl;
-    if (!url) return;
-    // Avoid double-conversion: if already an asset:// URL, use as-is
-    const assetUrl = url.startsWith('asset://') ? url
-      : convertFileSrc(url.startsWith('file://') ? url.slice(7) : url);
+    // For default count (8), try loading from DB first
+    if (debouncedColorCount === 8) {
+      getColorPalette(id).then(dbColors => {
+        if (cancelled) return;
+        if (dbColors && dbColors.length > 0) {
+          colorCache.set(cacheKey, dbColors);
+          setDetail(prev => prev && prev.id === id ? { ...prev, colorPalette: dbColors } : prev);
+          return;
+        }
+        doExtract();
+      }).catch(() => { if (!cancelled) doExtract(); });
+    } else {
+      doExtract();
+    }
 
-    extractColors(assetUrl, 8).then(colors => {
-      colorCache.set(id, colors);
-      setDetail(prev => prev ? { ...prev, colorPalette: colors } : null);
-    }).catch(err => {
-      console.warn('Color extraction failed:', err);
-    });
-  }, [detail?.id]);
+    function doExtract() {
+      const url = detail.fullUrl;
+      if (!url) return;
+      extractColors(resolveAssetUrl(url), debouncedColorCount).then(colors => {
+        if (cancelled) return;
+        colorCache.set(cacheKey, colors);
+        setDetail(prev => prev && prev.id === id ? { ...prev, colorPalette: colors } : prev);
+        // Only persist the default 8-color palette to DB
+        if (debouncedColorCount === 8) {
+          saveColorPalette(id, colors).catch(err =>
+            console.warn('Failed to save color palette:', err)
+          );
+        }
+      }).catch(err => {
+        if (!cancelled) console.warn('Color extraction failed:', err);
+      });
+    }
+
+    return () => { cancelled = true; };
+  }, [detail?.id, debouncedColorCount]);
+
+  const handleColorCountChange = useCallback((count: number) => {
+    setColorCount(count);
+  }, []);
 
   const handleMemoChange = async (memo: string) => {
     if (!imageId) return;
@@ -141,7 +189,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'info' ? (
           <div className="px-5 py-6 space-y-8 pb-12">
-            <ColorPalette colors={detail.colorPalette} />
+            <ColorPalette colors={detail.colorPalette} colorCount={colorCount} onColorCountChange={handleColorCountChange} />
 
             {detail.sourceUrl && (
               <section>

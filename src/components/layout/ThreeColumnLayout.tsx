@@ -48,6 +48,7 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
     return localStorage.getItem('snaplex-sidebar-collapsed') === 'true';
   });
   const [dragging, setDragging] = useState<'sidebar' | 'detail' | null>(null);
+  const [imageRefreshTrigger, setImageRefreshTrigger] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Persist widths and collapse state
@@ -104,6 +105,7 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
           currentFolderId={currentFolderId}
           onFolderSelect={onFolderSelect}
           onNavigate={onNavigate}
+          onImagesChanged={() => setImageRefreshTrigger(prev => prev + 1)}
         />
       </div>
 
@@ -125,6 +127,7 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
             onToggleDetail={() => setIsDetailVisible(!isDetailVisible)}
             isDetailVisible={isDetailVisible}
             nav={nav}
+            refreshTrigger={imageRefreshTrigger}
           />
         ) : centerView === 'settings' ? (
           <div className="h-full overflow-y-auto">

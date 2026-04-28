@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import {
   LibraryInfo, FolderNode, ImageItem, ImageDetail,
   ImportResult, AnalysisResult, DimensionKey, DimensionVersion,
-  SearchResult, ColorInfo, UpdateInfo
+  SearchResult, ColorInfo, UpdateInfo, ChatMessage
 } from '@/types';
 
 /**
@@ -25,6 +25,7 @@ const ipc = {
   // Images
   getImages: (folderId?: string, offset: number = 0, limit: number = 50) =>
     invoke<ImageItem[]>('get_images', { folderId, offset, limit }),
+  getImagesByIds: (ids: string[]) => invoke<ImageItem[]>('get_images_by_ids', { ids }),
   importImages: (filePaths: string[], folderId?: string) =>
     invoke<ImportResult>('import_images', { filePaths, folderId }),
   deleteImages: (ids: string[]) => invoke<void>('delete_images', { ids }),
@@ -58,6 +59,14 @@ const ipc = {
   extractColorPalette: (imageId: string, colorCount: number = 8) =>
     invoke<ColorInfo[]>('extract_color_palette', { imageId, colorCount }),
   getColorPalette: (imageId: string) => invoke<ColorInfo[] | null>('get_color_palette', { imageId }),
+  saveColorPalette: (imageId: string, colors: ColorInfo[]) =>
+    invoke<void>('save_color_palette', { imageId, colors }),
+
+  // Chat
+  getChatMessages: (imageId: string) => invoke<ChatMessage[]>('get_chat_messages', { imageId }),
+  saveChatMessage: (id: string, imageId: string, role: string, text: string) =>
+    invoke<void>('save_chat_message', { id, imageId, role, text }),
+  deleteChatMessages: (imageId: string) => invoke<void>('delete_chat_messages', { imageId }),
 
   // File system
   writeTextFile: (path: string, content: string) => invoke<void>('write_text_file', { path, content }),

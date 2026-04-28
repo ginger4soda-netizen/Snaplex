@@ -27,3 +27,4 @@ thiserror = "1"
 dirs = "5"
 tauri-plugin-dialog = "2.6.0"
 base64 = "0.22"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp", "bmp"] }

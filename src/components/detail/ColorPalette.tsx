@@ -5,6 +5,8 @@ type ColorFormat = 'hex' | 'rgb' | 'hsl';
 
 interface ColorPaletteProps {
   colors: ColorInfo[] | null;
+  colorCount: number;
+  onColorCountChange: (count: number) => void;
 }
 
 const FORMAT_CYCLE: ColorFormat[] = ['hex', 'rgb', 'hsl'];
@@ -20,29 +22,40 @@ function formatColor(color: ColorInfo, format: ColorFormat): string {
   }
 }
 
-const ColorPalette: React.FC<ColorPaletteProps> = ({ colors }) => {
+async function copyToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+}
+
+const ColorPalette: React.FC<ColorPaletteProps> = ({ colors, colorCount, onColorCountChange }) => {
   const [format, setFormat] = useState<ColorFormat>('hex');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const handleCopy = useCallback(async (color: ColorInfo, index: number) => {
-    const text = formatColor(color, format);
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 1500);
-    } catch {
-      // Fallback for older browsers
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 1500);
-    }
+    await copyToClipboard(formatColor(color, format));
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 1500);
   }, [format]);
+
+  const handleCopyAll = useCallback(async () => {
+    if (!colors || colors.length === 0) return;
+    const lines = colors.map(c =>
+      `${formatColor(c, format)}  ${c.percentage.toFixed(1)}%  ${c.name}`
+    );
+    await copyToClipboard(lines.join('\n'));
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 1500);
+  }, [colors, format]);
 
   const cycleFormat = useCallback(() => {
     setFormat(prev => {
@@ -66,14 +79,43 @@ const ColorPalette: React.FC<ColorPaletteProps> = ({ colors }) => {
 
   return (
     <div className="space-y-2.5">
-      {/* Format toggle */}
-      <div className="flex justify-end">
+      {/* Controls row: format toggle (left) | slider + copy (right) */}
+      <div className="flex items-center justify-between">
+        {/* Left: format toggle */}
         <button
           onClick={cycleFormat}
           className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700 hover:text-stone-700 dark:hover:text-stone-200 transition-colors uppercase tracking-wider"
         >
           {format}
         </button>
+
+        {/* Right: color count slider + copy all */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-stone-400 font-mono tabular-nums">{colorCount}</span>
+          <input
+            type="range"
+            min={8}
+            max={16}
+            value={colorCount}
+            onChange={(e) => onColorCountChange(Number(e.target.value))}
+            className="w-16 h-1 accent-stone-400 cursor-pointer"
+          />
+          <button
+            onClick={handleCopyAll}
+            className="p-1 rounded-md text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            title="Copy all colors"
+          >
+            {copiedAll ? (
+              <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Color Bar - proportional widths based on percentage */}

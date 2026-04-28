@@ -11,9 +11,10 @@ interface ImageCardProps {
   onDelete?: (id: string) => void;
   onOpenInFinder?: (id: string) => void;
   onDragStart?: (e: React.DragEvent) => void;
+  onMoveToFolder?: (id: string) => void;
 }
 
-const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onToggleFavorite, onDelete, onOpenInFinder, onDragStart }) => {
+const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onToggleFavorite, onDelete, onOpenInFinder, onDragStart, onMoveToFolder }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   // Always convert file paths to Tauri asset:// URLs
@@ -38,6 +39,10 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onTog
     {
       label: 'Show in Finder',
       onClick: () => onOpenInFinder?.(image.id),
+    },
+    {
+      label: 'Move to Folder...',
+      onClick: () => onMoveToFolder?.(image.id),
     },
     { label: '', onClick: () => {}, divider: true },
     {

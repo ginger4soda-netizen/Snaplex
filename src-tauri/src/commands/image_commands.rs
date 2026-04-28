@@ -1,5 +1,6 @@
 use crate::db::images::{self, ColorInfo, ImageDetail, ImageItem, ImportResult};
 use crate::db::Database;
+use rusqlite::OptionalExtension;
 use std::sync::Mutex;
 use tauri::State;
 
@@ -24,6 +25,15 @@ pub fn get_images(
     with_db(&db_state, |conn| {
         images::get_images(conn, folder_id.as_deref(), offset, limit)
     })
+}
+
+/// §5.3 — get_images_by_ids (batch fetch for search results)
+#[tauri::command]
+pub fn get_images_by_ids(
+    ids: Vec<String>,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<Vec<ImageItem>, String> {
+    with_db(&db_state, |conn| images::get_images_by_ids(conn, &ids))
 }
 
 /// §5.3 — import_images
@@ -85,8 +95,8 @@ pub fn import_images(
             continue;
         }
 
-        // Get basic image info (width/height placeholder — real implementation would read image headers)
         let file_size = std::fs::metadata(&dest).map(|m| m.len() as i64).unwrap_or(0);
+        let (width, height) = image::image_dimensions(&dest).unwrap_or((0, 0));
         let format = src
             .extension()
             .and_then(|e| e.to_str())
@@ -101,8 +111,8 @@ pub fn import_images(
                 &filename,
                 dest.to_str().unwrap_or(""),
                 thumb_dest.to_str(),
-                0, // width — will be set by image processing later
-                0, // height
+                width as i32,
+                height as i32,
                 file_size,
                 &format,
             )?;
@@ -240,13 +250,34 @@ pub fn export_images(
     format: String,
     db_state: State<'_, Mutex<Option<Database>>>,
 ) -> Result<String, String> {
-    // Phase 0: return mock export path
-    let _ = (&ids, &format, &db_state);
+    let _ = &format;
+    let timestamp = chrono::Utc::now().format("%Y%m%d-%H%M%S");
     let export_dir = dirs::download_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("/tmp"))
-        .join("snaplex-export");
+        .join(format!("snaplex-export-{}", timestamp));
     std::fs::create_dir_all(&export_dir)
         .map_err(|e| format!("Failed to create export dir: {}", e))?;
+
+    for id in &ids {
+        let file_path = with_db(&db_state, |conn| {
+            conn.query_row(
+                "SELECT file_path FROM images WHERE id = ?1",
+                rusqlite::params![id],
+                |row| row.get::<_, String>(0),
+            )
+        })?;
+
+        let src = std::path::Path::new(&file_path);
+        let filename = src
+            .file_name()
+            .and_then(|f| f.to_str())
+            .unwrap_or("image");
+        let dest = export_dir.join(filename);
+
+        std::fs::copy(src, &dest)
+            .map_err(|e| format!("Failed to copy {}: {}", filename, e))?;
+    }
+
     Ok(export_dir.to_string_lossy().to_string())
 }
 
@@ -313,13 +344,47 @@ pub fn extract_color_palette(
     Ok(mock_colors)
 }
 
-/// §5.6 — get_color_palette (mock for Phase 0)
+/// §5.6 — get_color_palette
 #[tauri::command]
 pub fn get_color_palette(
     image_id: String,
     db_state: State<'_, Mutex<Option<Database>>>,
 ) -> Result<Option<Vec<ColorInfo>>, String> {
-    let _ = (&image_id, &db_state);
-    // Phase 0: return None (no palette computed yet)
-    Ok(None)
+    with_db(&db_state, |conn| {
+        let result: Option<String> = conn
+            .query_row(
+                "SELECT colors FROM color_palettes WHERE image_id = ?1",
+                rusqlite::params![&image_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+
+        match result {
+            Some(json_str) => {
+                let colors: Vec<ColorInfo> = serde_json::from_str(&json_str).unwrap_or_default();
+                Ok(Some(colors))
+            }
+            None => Ok(None),
+        }
+    })
+}
+
+/// §5.6 — save_color_palette
+#[tauri::command]
+pub fn save_color_palette(
+    image_id: String,
+    colors: Vec<ColorInfo>,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<(), String> {
+    let json_str =
+        serde_json::to_string(&colors).map_err(|e| format!("JSON serialize error: {}", e))?;
+    let id = uuid::Uuid::new_v4().to_string();
+    let count = colors.len() as i32;
+    with_db(&db_state, |conn| {
+        conn.execute(
+            "INSERT OR REPLACE INTO color_palettes (id, image_id, colors, color_count) VALUES (?1, ?2, ?3, ?4)",
+            rusqlite::params![&id, &image_id, &json_str, count],
+        )?;
+        Ok(())
+    })
 }

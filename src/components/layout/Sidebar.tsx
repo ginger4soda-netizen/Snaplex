@@ -8,9 +8,10 @@ interface SidebarProps {
   currentFolderId?: string;
   onFolderSelect: (folderId: string | undefined) => void;
   onNavigate?: (mode: string) => void;
+  onImagesChanged?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentFolderId, onFolderSelect, onNavigate }) => {
+const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentFolderId, onFolderSelect, onNavigate, onImagesChanged }) => {
   const { createFolder, moveImages, linkImageToFolder } = useTauriIPC();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
@@ -50,6 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
         await moveImages(imageIds, targetFolderId);
       }
       setRefreshTrigger(prev => prev + 1);
+      onImagesChanged?.();
     } catch (err) {
       console.error('Drag-to-folder failed:', err);
     }
