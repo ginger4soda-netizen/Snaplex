@@ -36,6 +36,17 @@ pub fn get_images_by_ids(
     with_db(&db_state, |conn| images::get_images_by_ids(conn, &ids))
 }
 
+/// §5.3 — count_images (for pagination total)
+#[tauri::command]
+pub fn count_images(
+    folder_id: Option<String>,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<i64, String> {
+    with_db(&db_state, |conn| {
+        images::count_images(conn, folder_id.as_deref())
+    })
+}
+
 /// §5.3 — import_images
 /// Phase 0: basic import — copies files into library, creates DB records
 #[tauri::command]

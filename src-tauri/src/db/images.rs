@@ -109,6 +109,27 @@ pub fn get_images(
     }
 }
 
+pub fn count_images(
+    conn: &Connection,
+    folder_id: Option<&str>,
+) -> Result<i64, rusqlite::Error> {
+    if let Some(fid) = folder_id {
+        conn.query_row(
+            "SELECT COUNT(*) FROM images i
+             JOIN image_folders if2 ON i.id = if2.image_id
+             WHERE if2.folder_id = ?1",
+            rusqlite::params![fid],
+            |row| row.get(0),
+        )
+    } else {
+        conn.query_row(
+            "SELECT COUNT(*) FROM images",
+            [],
+            |row| row.get(0),
+        )
+    }
+}
+
 fn row_to_image_item(row: &rusqlite::Row) -> Result<ImageItem, rusqlite::Error> {
     // Columns: 0=id, 1=filename, 2=file_path, 3=thumb_path, 4=width, 5=height, 6=is_favorite, 7=has_analysis, 8=created_at
     let file_path: String = row.get(2)?;

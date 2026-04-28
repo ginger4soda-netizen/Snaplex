@@ -38,6 +38,7 @@ pub fn run() {
             // §5.3 Images
             commands::image_commands::get_images,
             commands::image_commands::get_images_by_ids,
+            commands::image_commands::count_images,
             commands::image_commands::import_images,
             commands::image_commands::delete_images,
             commands::image_commands::move_images,
