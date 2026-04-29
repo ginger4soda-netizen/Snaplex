@@ -11,53 +11,56 @@ beforeEach(() => {
   __ResizeObserverMock.instances.length = 0;
 });
 
-function setup(cellSize: number, initialWidth = 0) {
+function setup(columnCount: number, initialWidth = 0) {
   const { result } = renderHook(() => {
     const ref = useRef<HTMLDivElement>({ clientWidth: initialWidth } as HTMLDivElement);
-    const dims = useGridDimensions(ref, cellSize);
+    const dims = useGridDimensions(ref, columnCount);
     return { ref, dims };
   });
   return result;
 }
 
 describe('useGridDimensions', () => {
-  it('returns sensible defaults before any resize fires', () => {
-    const r = setup(200);
-    expect(r.current.dims.columnCount).toBeGreaterThanOrEqual(1);
-    expect(r.current.dims.rowHeight).toBe(200 + 24); // cellSize + GRID_GAP
+  it('exposes the requested column count after observe fires', () => {
+    // Setup mock auto-fires observe with 1200x800
+    const r = setup(4);
+    expect(r.current.dims.columnCount).toBe(4);
+    expect(r.current.dims.cellSize).toBeGreaterThan(0);
   });
 
-  it('computes columnCount from container width', () => {
-    const r = setup(200);
+  it('derives cellSize from container width and column count', () => {
+    const r = setup(4);
     act(() => {
       __ResizeObserverMock.instances[0]._trigger(1024, 800);
     });
-    // (1024 - 2*24 + 24) / (200 + 24) = 1000/224 = 4.46 → floor = 4
+    // (1024 - 2*24 - 3*24) / 4 = (1024 - 48 - 72) / 4 = 904/4 = 226
     expect(r.current.dims.columnCount).toBe(4);
-    expect(r.current.dims.rowHeight).toBe(224);
+    expect(r.current.dims.cellSize).toBe(226);
+    expect(r.current.dims.rowHeight).toBe(226 + 24);
   });
 
-  it('computes 1 column when container too narrow', () => {
-    const r = setup(300);
+  it('floors columnCount at 1', () => {
+    const r = setup(0);
     act(() => {
-      __ResizeObserverMock.instances[0]._trigger(200, 800);
+      __ResizeObserverMock.instances[0]._trigger(500, 800);
     });
-    // (200 - 48 + 24) / (300 + 24) = 176/324 = 0.54 → floor → max(1) = 1
     expect(r.current.dims.columnCount).toBe(1);
   });
 
-  it('updates rowHeight when cellSize changes', () => {
-    let cellSize = 200;
+  it('updates cellSize when columnCount changes', () => {
+    let cols = 4;
     const { result, rerender } = renderHook(() => {
       const ref = useRef<HTMLDivElement>({ clientWidth: 1000 } as HTMLDivElement);
-      return useGridDimensions(ref, cellSize);
+      return useGridDimensions(ref, cols);
     });
     act(() => {
       __ResizeObserverMock.instances[0]._trigger(1000, 800);
     });
-    expect(result.current.rowHeight).toBe(224);
-    cellSize = 300;
+    // 4 cols: (1000 - 48 - 72)/4 = 220
+    expect(result.current.cellSize).toBe(220);
+    cols = 5;
     rerender();
-    expect(result.current.rowHeight).toBe(324);
+    // 5 cols: (1000 - 48 - 96)/5 = 171.2
+    expect(result.current.cellSize).toBeCloseTo(171.2, 1);
   });
 });

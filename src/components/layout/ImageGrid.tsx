@@ -33,13 +33,18 @@ const ImageGrid: React.FC<ImageGridProps> = ({
 }) => {
   const { getImages, getImageDetail, getImagesByIds, countImages, importImages, deleteImages, toggleFavorite, openImageInFinder, moveImages, getFolderTree } = useTauriIPC();
   const [images, setImages] = useState<ImageItem[]>([]);
-  const [gridSize, setGridSize] = useState(200);
+  // Slider drives column count directly. Min cols = biggest cards (slider far right);
+  // max cols = smallest cards (slider far left). Stepping the slider changes
+  // columnCount by exactly 1, so the layout snaps to whole-card increments.
+  const MIN_COLS = 4;
+  const MAX_COLS = 10;
+  const [columnCount, setColumnCount] = useState(MIN_COLS);
   const [loading, setLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResultIds, setSearchResultIds] = useState<string[] | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
-  const [moveToFolderTarget, setMoveToFolderTarget] = useState<string | null>(null);
+  const [moveToFolderTargets, setMoveToFolderTargets] = useState<string[] | null>(null);
   const [folderList, setFolderList] = useState<FolderNode[]>([]);
   const [rectSelect, setRectSelect] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -53,7 +58,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   const dropPathsRef = useRef<Set<string>>(new Set());
   const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { columnCount, rowHeight } = useGridDimensions(scrollContainerRef, gridSize);
+  const { cellSize, rowHeight } = useGridDimensions(scrollContainerRef, columnCount);
   const effectiveCount = searchResultIds !== null ? images.length : Math.max(images.length, totalCount);
   const rowCount = Math.ceil(effectiveCount / Math.max(1, columnCount));
 
@@ -294,27 +299,34 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   }, [openImageInFinder]);
 
   const handleMoveToFolder = useCallback(async (imageId: string) => {
-    setMoveToFolderTarget(imageId);
+    // If the right-clicked image is part of the multi-selection, move all selected;
+    // otherwise just move this one.
+    const ids = multiSelected.size > 0 && multiSelected.has(imageId)
+      ? Array.from(multiSelected)
+      : [imageId];
+    setMoveToFolderTargets(ids);
     try {
       const tree = await getFolderTree();
       setFolderList(tree);
     } catch (err) {
       showToast(`Failed to load folders: ${err}`, 'error');
     }
-  }, [getFolderTree]);
+  }, [multiSelected, getFolderTree]);
 
   const confirmMoveToFolder = useCallback(async (targetFolderId: string) => {
-    if (!moveToFolderTarget) return;
+    if (!moveToFolderTargets || moveToFolderTargets.length === 0) return;
+    const movedIds = moveToFolderTargets;
     try {
-      await moveImages([moveToFolderTarget], targetFolderId);
-      showToast('Image moved', 'success');
+      await moveImages(movedIds, targetFolderId);
+      showToast(`Moved ${movedIds.length} image${movedIds.length === 1 ? '' : 's'}`, 'success');
+      if (multiSelected.size > 0) setMultiSelected(new Set());
       await loadImages();
     } catch (err) {
       showToast(`Move failed: ${err}`, 'error');
     }
-    setMoveToFolderTarget(null);
+    setMoveToFolderTargets(null);
     setFolderList([]);
-  }, [moveToFolderTarget, moveImages, loadImages]);
+  }, [moveToFolderTargets, multiSelected, moveImages, loadImages]);
 
   const handleGridMouseDown = useCallback((e: React.MouseEvent) => {
     // Only start rect select if clicking on grid background (not on an image card)
@@ -350,13 +362,13 @@ const ImageGrid: React.FC<ImageGridProps> = ({
 
     const selected = new Set<string>();
     for (let i = 0; i < images.length; i++) {
-      const r = cardRectAtIndex(i, Math.max(1, columnCount), gridSize, GRID_GAP, GRID_PADDING, GRID_PADDING);
+      const r = cardRectAtIndex(i, Math.max(1, columnCount), cellSize, GRID_GAP, GRID_PADDING, GRID_PADDING);
       if (rectsIntersect(selRect, r)) {
         selected.add(images[i].id);
       }
     }
     setMultiSelected(selected);
-  }, [rectSelect, images, columnCount, gridSize]);
+  }, [rectSelect, images, columnCount, cellSize]);
 
   const handleGridMouseUp = useCallback(() => {
     setRectSelect(null);
@@ -474,19 +486,22 @@ const ImageGrid: React.FC<ImageGridProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Grid Size Slider */}
+            {/* Grid Size Slider — drives column count. Slider far right (max value)
+                = MIN_COLS (largest cards). Each tick adds one column. Inverted with
+                MAX_COLS + MIN_COLS - value so right end keeps the bigger-cards icon. */}
             <div className="flex items-center gap-2 group">
-              <svg className="w-3 h-3 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
-              <input 
-                type="range" 
-                min="100" 
-                max="400" 
-                step="20"
-                value={gridSize}
-                onChange={(e) => setGridSize(Number(e.target.value))}
-                className="w-24 h-1 bg-stone-200 dark:bg-stone-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-              />
               <svg className="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+              <input
+                type="range"
+                min={MIN_COLS}
+                max={MAX_COLS}
+                step={1}
+                value={MAX_COLS + MIN_COLS - columnCount}
+                onChange={(e) => setColumnCount(MAX_COLS + MIN_COLS - Number(e.target.value))}
+                className="w-24 h-1 bg-stone-200 dark:bg-stone-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                title={`${columnCount} per row`}
+              />
+              <svg className="w-3 h-3 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
             </div>
 
             <button
@@ -609,11 +624,12 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                   top: virtualRow.start + GRID_PADDING,
                   left: GRID_PADDING,
                   right: GRID_PADDING,
-                  height: gridSize,
+                  height: cellSize,
                   display: 'grid',
-                  gridTemplateColumns: `repeat(${columnCount}, ${gridSize}px)`,
+                  // 1fr columns let cards share the full row width evenly, so the
+                  // gap between cards and the left/right padding stay uniform.
+                  gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
                   gap: `${GRID_GAP}px`,
-                  justifyContent: 'start',
                 }}
               >
                 {Array.from({ length: columnCount }).map((_, col) => {
@@ -625,7 +641,6 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                       <div
                         key={`placeholder-${virtualRow.index}-${col}`}
                         className="rounded-xl bg-stone-100/40 dark:bg-stone-800/40"
-                        style={{ width: gridSize, height: gridSize }}
                       />
                     );
                   }
@@ -663,11 +678,13 @@ const ImageGrid: React.FC<ImageGridProps> = ({
       </div>
 
       {/* Move to Folder Modal */}
-      {moveToFolderTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setMoveToFolderTarget(null)}>
+      {moveToFolderTargets && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setMoveToFolderTargets(null)}>
           <div className="bg-white dark:bg-stone-800 rounded-xl shadow-2xl w-72 max-h-80 flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="px-4 py-3 border-b border-stone-200 dark:border-stone-700">
-              <h3 className="text-sm font-bold text-stone-700 dark:text-stone-200">Move to Folder</h3>
+              <h3 className="text-sm font-bold text-stone-700 dark:text-stone-200">
+                Move {moveToFolderTargets.length > 1 ? `${moveToFolderTargets.length} images` : 'image'} to Folder
+              </h3>
             </div>
             <div className="flex-1 overflow-y-auto p-2">
               {folderList.length === 0 ? (
@@ -679,7 +696,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
               )}
             </div>
             <div className="px-4 py-2 border-t border-stone-200 dark:border-stone-700">
-              <button onClick={() => setMoveToFolderTarget(null)} className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300">Cancel</button>
+              <button onClick={() => setMoveToFolderTargets(null)} className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300">Cancel</button>
             </div>
           </div>
         </div>
