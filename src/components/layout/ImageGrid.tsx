@@ -43,9 +43,11 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   const [folderList, setFolderList] = useState<FolderNode[]>([]);
   const [rectSelect, setRectSelect] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
   const [totalCount, setTotalCount] = useState(0);
-  const [isLoadingPage, setIsLoadingPage] = useState(false);
   const PAGE_SIZE = 500;
   const folderRequestRef = useRef<string | undefined>(undefined);
+  // Synchronous re-entry guard for loadMore — state alone is async and can let
+  // multiple scroll-triggered calls slip through before React commits.
+  const loadingPageRef = useRef(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const importingRef = useRef(false);
   const dropPathsRef = useRef<Set<string>>(new Set());
@@ -66,7 +68,11 @@ const ImageGrid: React.FC<ImageGridProps> = ({
 
   const loadImages = useCallback(async () => {
     setLoading(true);
-    setIsLoadingPage(true);
+    loadingPageRef.current = true;
+    // Clear immediately so the spinner gate (loading && images.length === 0) fires
+    // and rect-select / loadMore don't run against the previous folder's data.
+    setImages([]);
+    setTotalCount(0);
     const requestFolder = folderId;
     folderRequestRef.current = requestFolder;
     try {
@@ -82,16 +88,16 @@ const ImageGrid: React.FC<ImageGridProps> = ({
       showToast(`Failed to load images: ${err}`, 'error');
     } finally {
       setLoading(false);
-      setIsLoadingPage(false);
+      loadingPageRef.current = false;
     }
   }, [folderId, getImages, countImages]);
 
   const loadMore = useCallback(async () => {
-    if (isLoadingPage) return;
+    if (loadingPageRef.current) return;
     if (images.length >= totalCount) return;
     if (searchResultIds !== null) return; // search path doesn't paginate
 
-    setIsLoadingPage(true);
+    loadingPageRef.current = true;
     const requestFolder = folderId;
     folderRequestRef.current = requestFolder;
     try {
@@ -101,9 +107,9 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     } catch (err) {
       showToast(`Failed to load more images: ${err}`, 'error');
     } finally {
-      setIsLoadingPage(false);
+      loadingPageRef.current = false;
     }
-  }, [folderId, images.length, totalCount, isLoadingPage, searchResultIds, getImages]);
+  }, [folderId, images.length, totalCount, searchResultIds, getImages]);
 
   useEffect(() => {
     if (searchResultIds === null) {
@@ -614,7 +620,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                   const idx = virtualRow.index * columnCount + col;
                   const image = images[idx];
                   if (!image) {
-                    // Unloaded slot (will fill once Task 6 pagination arrives) — keep layout stable
+                    // Unloaded slot — kept as a placeholder until the next page arrives, so the scrollbar height stays stable
                     return (
                       <div
                         key={`placeholder-${virtualRow.index}-${col}`}
