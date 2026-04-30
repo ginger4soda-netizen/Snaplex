@@ -46,6 +46,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
       ref={ref}
       className="fixed z-[100] bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl shadow-xl py-1.5 min-w-[180px] animate-[fadeIn_0.1s]"
       style={{ left: pos.x, top: pos.y }}
+      onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
       {items.map((item, i) => {

@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useTauriIPC } from '@/hooks/useTauriIPC';
-import { ImageItem, FolderNode } from '@/types';
+import { ImageItem, FolderNode, DEFAULT_SETTINGS, UserSettings, DimensionKey } from '@/types';
 import ImageCard from '../images/ImageCard';
 import SearchBar from '../search/SearchBar';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
@@ -11,6 +11,54 @@ import { importLegacyFile } from '@/utils/importLegacy';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useGridDimensions } from '@/hooks/useGridDimensions';
 import { cardRectAtIndex, rectsIntersect, GRID_GAP, GRID_PADDING } from '@/utils/gridGeometry';
+import { analyzeImage } from '@/services/geminiService';
+import { getCurrentProvider, getCurrentModel } from '@/services/providers/types';
+import { getImageBase64 } from '@/utils/imageToBase64';
+import { get } from 'idb-keyval';
+import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+
+// macOS treats Ctrl+click as a right-click but ALSO emits a synthetic click
+// with ctrlKey=true. Without platform-aware handling, that click toggles the
+// image off the multi-selection. On Mac the multi-toggle modifier is Cmd.
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.userAgent);
+
+const ALL_DIMS: DimensionKey[] = ['subject', 'environment', 'composition', 'lighting', 'mood', 'style'];
+
+type SnaplexDragPayload = {
+  ids: string[];
+  sourceFolder: string;
+  startedAt: number;
+  lastX?: number;
+  lastY?: number;
+};
+
+type InternalImageDrag = {
+  ids: string[];
+  x: number;
+  y: number;
+  thumbSrc: string;
+};
+
+declare global {
+  interface Window {
+    __SNAPLEX_IMAGE_DRAG__?: SnaplexDragPayload;
+    __SNAPLEX_SELECTED_IMAGES__?: string[];
+    __SNAPLEX_IMAGE_DRAG_OVER__?: (event: DragEvent) => void;
+  }
+}
+
+const loadUserSettings = async (): Promise<UserSettings> => {
+  try {
+    const stored = await get('visionLearnSettings');
+    return stored || DEFAULT_SETTINGS;
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+};
+
+const logBatchDebug = (message: string) => {
+  invoke('debug_log', { message }).catch(() => {});
+};
 
 interface ImageGridProps {
   folderId?: string;
@@ -20,6 +68,7 @@ interface ImageGridProps {
   isDetailVisible: boolean;
   nav?: { goBack: () => void; goForward: () => void; canGoBack: boolean; canGoForward: boolean };
   refreshTrigger?: number;
+  onImagesChanged?: () => void;
 }
 
 const ImageGrid: React.FC<ImageGridProps> = ({
@@ -29,9 +78,10 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   onToggleDetail,
   isDetailVisible,
   nav,
-  refreshTrigger
+  refreshTrigger,
+  onImagesChanged
 }) => {
-  const { getImages, getImageDetail, getImagesByIds, countImages, importImages, deleteImages, toggleFavorite, openImageInFinder, moveImages, getFolderTree } = useTauriIPC();
+  const { getImages, getImageDetail, getImagesByIds, countImages, importImages, deleteImages, toggleFavorite, setFavorites, openImageInFinder, moveImages, removeImagesFromFolders, linkImageToFolder, getFolderTree, saveAnalysis, saveDimensionVersion } = useTauriIPC();
   const [images, setImages] = useState<ImageItem[]>([]);
   // Slider drives column count directly. Min cols = biggest cards (slider far right);
   // max cols = smallest cards (slider far left). Stepping the slider changes
@@ -57,6 +107,12 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   const importingRef = useRef(false);
   const dropPathsRef = useRef<Set<string>>(new Set());
   const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const effectiveSelectedIdsRef = useRef<Set<string>>(new Set());
+  const multiSelectedRef = useRef<Set<string>>(new Set());
+  const selectedImageIdRef = useRef<string | undefined>(selectedImageId);
+  const visibleImageIdsRef = useRef<Set<string>>(new Set());
+  const suppressNextClickRef = useRef(false);
+  const [internalDrag, setInternalDrag] = useState<InternalImageDrag | null>(null);
 
   const { cellSize, rowHeight } = useGridDimensions(scrollContainerRef, columnCount);
   const effectiveCount = searchResultIds !== null ? images.length : Math.max(images.length, totalCount);
@@ -69,7 +125,79 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     overscan: 3,
   });
 
+  const visibleImageIds = useMemo(() => new Set(images.map(img => img.id)), [images]);
+  useEffect(() => {
+    visibleImageIdsRef.current = visibleImageIds;
+  }, [visibleImageIds]);
+
+  useEffect(() => {
+    selectedImageIdRef.current = selectedImageId;
+  }, [selectedImageId]);
+
+  const syncMultiSelected = useCallback((next: Set<string>, reason: string) => {
+    const visible = visibleImageIdsRef.current;
+    const normalized = new Set(Array.from(next).filter(id => visible.size === 0 || visible.has(id)));
+    const effective = new Set(normalized);
+    const focused = selectedImageIdRef.current;
+    if (focused && normalized.size > 0 && (visible.size === 0 || visible.has(focused))) {
+      effective.add(focused);
+    }
+    multiSelectedRef.current = normalized;
+    effectiveSelectedIdsRef.current = effective;
+    window.__SNAPLEX_SELECTED_IMAGES__ = Array.from(effective);
+    logBatchDebug(`selection-${reason} multi=${normalized.size} effective=${effective.size}`);
+    setMultiSelected(normalized);
+  }, []);
+
+  const effectiveSelectedIds = useMemo(() => {
+    const ids = new Set(multiSelected);
+    for (const id of ids) {
+      if (!visibleImageIds.has(id)) {
+        ids.delete(id);
+      }
+    }
+    if (selectedImageId && multiSelected.size > 0 && visibleImageIds.has(selectedImageId)) {
+      ids.add(selectedImageId);
+    }
+    return ids;
+  }, [multiSelected, selectedImageId, visibleImageIds]);
   const isMultiMode = multiSelected.size > 0;
+  const selectedCount = isMultiMode ? effectiveSelectedIds.size : 0;
+
+  const getTargetImageIds = useCallback((imageId: string) => {
+    const ids = new Set(window.__SNAPLEX_SELECTED_IMAGES__ || Array.from(effectiveSelectedIdsRef.current));
+    document.querySelectorAll<HTMLElement>('[data-image-card][data-selected="true"]').forEach(node => {
+      const id = node.dataset.imageId;
+      if (id) ids.add(id);
+    });
+    if (ids.size > 0) {
+      return Array.from(ids);
+    }
+    return [imageId];
+  }, []);
+
+  useEffect(() => {
+    effectiveSelectedIdsRef.current = effectiveSelectedIds;
+    window.__SNAPLEX_SELECTED_IMAGES__ = Array.from(effectiveSelectedIds);
+  }, [effectiveSelectedIds]);
+
+  useEffect(() => {
+    if (multiSelected.size === 0) return;
+    syncMultiSelected((() => {
+      const prev = multiSelectedRef.current;
+      const next = new Set(Array.from(prev).filter(id => visibleImageIds.has(id)));
+      return next;
+    })(), 'prune');
+  }, [visibleImageIds, multiSelected.size, syncMultiSelected]);
+
+  useEffect(() => {
+    const clearSelection = () => {
+      syncMultiSelected(new Set(), 'clear-external-drop');
+      onImageSelect(undefined);
+    };
+    window.addEventListener('snaplex-clear-selection', clearSelection);
+    return () => window.removeEventListener('snaplex-clear-selection', clearSelection);
+  }, [syncMultiSelected, onImageSelect]);
 
   const loadImages = useCallback(async () => {
     setLoading(true);
@@ -217,14 +345,22 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   }, [folderId, importImages, loadImages]);
 
   const handleImageClick = useCallback((id: string, e?: React.MouseEvent) => {
-    if (e && (e.metaKey || e.ctrlKey)) {
-      // Cmd/Ctrl+click: toggle multi-select
-      setMultiSelected(prev => {
-        const next = new Set(prev);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return next;
-      });
+    if (suppressNextClickRef.current) {
+      suppressNextClickRef.current = false;
+      return;
+    }
+
+    // Platform-aware multi-toggle modifier: Cmd on Mac, Ctrl elsewhere.
+    // On Mac, Ctrl+click is reserved for the right-click contextmenu path;
+    // treating it as a multi-toggle here would silently drop the image
+    // out of the selection during the contextmenu flow.
+    const isToggleModifier = e ? (IS_MAC ? e.metaKey : e.ctrlKey) : false;
+    if (isToggleModifier) {
+      const prev = multiSelectedRef.current;
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      syncMultiSelected(next, 'toggle');
       return;
     }
     if (e && e.shiftKey && selectedImageId) {
@@ -234,50 +370,71 @@ const ImageGrid: React.FC<ImageGridProps> = ({
       if (startIdx >= 0 && endIdx >= 0) {
         const [lo, hi] = startIdx < endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
         const rangeIds = images.slice(lo, hi + 1).map(img => img.id);
-        setMultiSelected(new Set(rangeIds));
+        syncMultiSelected(new Set(rangeIds), 'range');
         return;
       }
     }
     // Normal click: single select
     if (isMultiMode) {
-      setMultiSelected(new Set());
+      syncMultiSelected(new Set(), 'clear-click');
     }
     onImageSelect(id);
-  }, [images, selectedImageId, isMultiMode, onImageSelect]);
+  }, [images, selectedImageId, isMultiMode, onImageSelect, syncMultiSelected]);
 
   const handleBatchDelete = useCallback(async () => {
-    if (multiSelected.size === 0) return;
+    if (selectedCount === 0) return;
     try {
-      const deletedIds = Array.from(multiSelected);
+      const deletedIds = Array.from(effectiveSelectedIds);
       await deleteImages(deletedIds);
-      setImages(prev => prev.filter(img => !multiSelected.has(img.id)));
+      setImages(prev => prev.filter(img => !effectiveSelectedIds.has(img.id)));
       setTotalCount(prev => Math.max(0, prev - deletedIds.length));
-      if (selectedImageId && multiSelected.has(selectedImageId)) onImageSelect(undefined);
+      if (selectedImageId && effectiveSelectedIds.has(selectedImageId)) onImageSelect(undefined);
       showToast(`Deleted ${deletedIds.length} image(s)`, 'success');
-      setMultiSelected(new Set());
+      syncMultiSelected(new Set(), 'clear-delete');
     } catch (err) {
       showToast(`Failed to delete: ${err}`, 'error');
     }
-  }, [multiSelected, deleteImages, selectedImageId, onImageSelect]);
+  }, [selectedCount, effectiveSelectedIds, deleteImages, selectedImageId, onImageSelect]);
 
   const handleSelectAll = useCallback(() => {
-    setMultiSelected(new Set(images.map(img => img.id)));
-  }, [images]);
+    syncMultiSelected(new Set(images.map(img => img.id)), 'select-all');
+  }, [images, syncMultiSelected]);
 
   const handleClearSelection = useCallback(() => {
-    setMultiSelected(new Set());
-  }, []);
+    syncMultiSelected(new Set(), 'clear-button');
+  }, [syncMultiSelected]);
 
   const handleToggleFavorite = useCallback(async (id: string) => {
     try {
-      await toggleFavorite(id);
-      setImages(prev => prev.map(img =>
-        img.id === id ? { ...img, isFavorite: !img.isFavorite } : img
-      ));
-    } catch (err) {
-      showToast(`Failed to toggle favorite: ${err}`, 'error');
+      const ids = getTargetImageIds(id);
+      if (ids.length > 1) {
+        const clicked = images.find(img => img.id === id);
+        const nextValue = !(clicked?.isFavorite ?? false);
+        await setFavorites(ids, nextValue);
+      if (folderId === '__favorites__' && !nextValue) {
+        await loadImages();
+      } else {
+        setImages(prev => prev.map(img =>
+          ids.includes(img.id) ? { ...img, isFavorite: nextValue } : img
+        ));
+      }
+      showToast(`${nextValue ? 'Added' : 'Removed'} ${ids.length} image${ids.length === 1 ? '' : 's'} ${nextValue ? 'to' : 'from'} favorites`, 'success');
+      onImagesChanged?.();
+      return;
     }
-  }, [toggleFavorite]);
+      const nextValue = await toggleFavorite(id);
+      if (folderId === '__favorites__' && !nextValue) {
+        await loadImages();
+      } else {
+      setImages(prev => prev.map(img =>
+        img.id === id ? { ...img, isFavorite: nextValue } : img
+      ));
+    }
+    onImagesChanged?.();
+  } catch (err) {
+    showToast(`Failed to toggle favorite: ${err}`, 'error');
+  }
+  }, [folderId, images, getTargetImageIds, toggleFavorite, setFavorites, loadImages, onImagesChanged]);
 
   const handleDeleteImage = useCallback(async (id: string) => {
     try {
@@ -299,11 +456,11 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   }, [openImageInFinder]);
 
   const handleMoveToFolder = useCallback(async (imageId: string) => {
-    // If the right-clicked image is part of the multi-selection, move all selected;
-    // otherwise just move this one.
-    const ids = multiSelected.size > 0 && multiSelected.has(imageId)
-      ? Array.from(multiSelected)
-      : [imageId];
+    // If the right-clicked image is part of the visible multi-selection, move
+    // the whole group. The single focused image is included because it is also
+    // rendered as selected during Cmd/Ctrl multi-select.
+    const ids = getTargetImageIds(imageId);
+    logBatchDebug(`move-menu image=${imageId} ids=${ids.length} selectedRef=${effectiveSelectedIdsRef.current.size}`);
     setMoveToFolderTargets(ids);
     try {
       const tree = await getFolderTree();
@@ -311,22 +468,41 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     } catch (err) {
       showToast(`Failed to load folders: ${err}`, 'error');
     }
-  }, [multiSelected, getFolderTree]);
+  }, [getTargetImageIds, getFolderTree]);
 
   const confirmMoveToFolder = useCallback(async (targetFolderId: string) => {
     if (!moveToFolderTargets || moveToFolderTargets.length === 0) return;
     const movedIds = moveToFolderTargets;
     try {
-      await moveImages(movedIds, targetFolderId);
-      showToast(`Moved ${movedIds.length} image${movedIds.length === 1 ? '' : 's'}`, 'success');
-      if (multiSelected.size > 0) setMultiSelected(new Set());
+      logBatchDebug(`move-confirm target=${targetFolderId} ids=${movedIds.length}`);
+      if (targetFolderId === '__all__') {
+        await removeImagesFromFolders(movedIds);
+      } else {
+        await moveImages(movedIds, targetFolderId);
+      }
+      showToast(`${targetFolderId === '__all__' ? 'Removed from folders' : 'Moved'} ${movedIds.length} image${movedIds.length === 1 ? '' : 's'}`, 'success');
+      if (multiSelected.size > 0) syncMultiSelected(new Set(), 'clear-move');
       await loadImages();
+      onImagesChanged?.();
     } catch (err) {
       showToast(`Move failed: ${err}`, 'error');
     }
     setMoveToFolderTargets(null);
     setFolderList([]);
-  }, [moveToFolderTargets, multiSelected, moveImages, loadImages]);
+  }, [moveToFolderTargets, multiSelected, moveImages, removeImagesFromFolders, loadImages, syncMultiSelected, onImagesChanged]);
+
+  const handleRemoveFromFolder = useCallback(async (imageId: string) => {
+    const ids = getTargetImageIds(imageId);
+    try {
+      await removeImagesFromFolders(ids);
+      showToast(`Removed ${ids.length} image${ids.length === 1 ? '' : 's'} from folders`, 'success');
+      syncMultiSelected(new Set(), 'clear-remove-folder');
+      await loadImages();
+      onImagesChanged?.();
+    } catch (err) {
+      showToast(`Remove from folder failed: ${err}`, 'error');
+    }
+  }, [getTargetImageIds, removeImagesFromFolders, loadImages, syncMultiSelected, onImagesChanged]);
 
   const handleGridMouseDown = useCallback((e: React.MouseEvent) => {
     // Only start rect select if clicking on grid background (not on an image card)
@@ -341,9 +517,10 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     setRectSelect({ startX, startY, endX: startX, endY: startY });
 
     if (!(e.metaKey || e.ctrlKey)) {
-      setMultiSelected(new Set());
+      syncMultiSelected(new Set(), 'clear-rect-start');
+      onImageSelect(undefined);
     }
-  }, []);
+  }, [syncMultiSelected, onImageSelect]);
 
   const handleGridMouseMove = useCallback((e: React.MouseEvent) => {
     if (!rectSelect) return;
@@ -367,23 +544,280 @@ const ImageGrid: React.FC<ImageGridProps> = ({
         selected.add(images[i].id);
       }
     }
-    setMultiSelected(selected);
-  }, [rectSelect, images, columnCount, cellSize]);
+    syncMultiSelected(selected, 'rect');
+  }, [rectSelect, images, columnCount, cellSize, syncMultiSelected]);
 
   const handleGridMouseUp = useCallback(() => {
     setRectSelect(null);
   }, []);
 
-  // Drag-to-folder: set drag data with selected image IDs and source folder
+  const dispatchInternalDragOverFolder = (folderId: string | null) => {
+    window.dispatchEvent(new CustomEvent('snaplex-internal-drag-over-folder', { detail: { folderId } }));
+  };
+
+  const handleInternalDragMouseDown = useCallback((imageId: string, e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+
+    const ids = getTargetImageIds(imageId);
+    const sourceFolder = folderId || '';
+    const thumbSrc = (e.currentTarget as HTMLElement).querySelector('img')?.getAttribute('src') || '';
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let active = false;
+    let lastFolderId: string | null = null;
+
+    const cleanup = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      dispatchInternalDragOverFolder(null);
+      setInternalDrag(null);
+    };
+
+    const getTargetFolderId = (clientX: number, clientY: number) => {
+      const target = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+      return target?.closest<HTMLElement>('[data-folder-id]')?.dataset.folderId || null;
+    };
+
+    const commitDrop = async (targetFolderId: string, altKey: boolean) => {
+      const isRemoveToAll = targetFolderId === '__all__';
+      const shouldLink = !isRemoveToAll && (!sourceFolder || sourceFolder === '__favorites__' || altKey);
+      logBatchDebug(`pointer-drop-folder target=${targetFolderId} ids=${ids.length} source=${sourceFolder || 'none'} link=${shouldLink}`);
+      try {
+        if (isRemoveToAll) {
+          await removeImagesFromFolders(ids);
+        } else if (shouldLink) {
+          await Promise.all(ids.map(id => linkImageToFolder(id, targetFolderId)));
+        } else {
+          await moveImages(ids, targetFolderId);
+        }
+        showToast(`${isRemoveToAll ? 'Removed from folders' : shouldLink ? 'Linked' : 'Moved'} ${ids.length} image${ids.length === 1 ? '' : 's'}`, 'success');
+        syncMultiSelected(new Set(), 'clear-pointer-drop');
+        onImageSelect(undefined);
+        await loadImages();
+        onImagesChanged?.();
+      } catch (err) {
+        showToast(`Drag to folder failed: ${err}`, 'error');
+      }
+    };
+
+    function handleMouseMove(event: MouseEvent) {
+      const dx = event.clientX - startX;
+      const dy = event.clientY - startY;
+      if (!active && Math.hypot(dx, dy) < 6) return;
+
+      if (!active) {
+        active = true;
+        suppressNextClickRef.current = true;
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'grabbing';
+        logBatchDebug(`pointer-drag-start image=${imageId} ids=${ids.length} selectedRef=${effectiveSelectedIdsRef.current.size}`);
+      }
+
+      event.preventDefault();
+      const folderIdUnderPointer = getTargetFolderId(event.clientX, event.clientY);
+      if (folderIdUnderPointer !== lastFolderId) {
+        lastFolderId = folderIdUnderPointer;
+        dispatchInternalDragOverFolder(folderIdUnderPointer);
+      }
+      setInternalDrag({ ids, x: event.clientX, y: event.clientY, thumbSrc });
+    }
+
+    async function handleMouseUp(event: MouseEvent) {
+      const wasActive = active;
+      const targetFolderId = wasActive ? getTargetFolderId(event.clientX, event.clientY) : null;
+      cleanup();
+
+      if (!wasActive) return;
+      event.preventDefault();
+      suppressNextClickRef.current = true;
+      if (!targetFolderId) {
+        logBatchDebug(`pointer-drop-miss ids=${ids.length} x=${event.clientX} y=${event.clientY}`);
+        return;
+      }
+      await commitDrop(targetFolderId, event.altKey);
+    }
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [folderId, getTargetImageIds, linkImageToFolder, moveImages, removeImagesFromFolders, loadImages, syncMultiSelected, onImageSelect, onImagesChanged]);
+
+  // Drag-to-folder: set drag data with selected image IDs and source folder.
+  // For multi-drag, render a small stacked thumbnail with a count badge so the
+  // user can see they're moving more than one image (default browser drag image
+  // would only show the single dragged card).
   const handleDragStart = useCallback((imageId: string, e: React.DragEvent) => {
-    const ids = multiSelected.size > 0 && multiSelected.has(imageId)
-      ? Array.from(multiSelected)
-      : [imageId];
-    e.dataTransfer.setData('application/snaplex-images', JSON.stringify(ids));
-    e.dataTransfer.setData('text/plain', `${ids.length} image(s)`);
+    const ids = getTargetImageIds(imageId);
+    logBatchDebug(`drag-start image=${imageId} ids=${ids.length} selectedRef=${effectiveSelectedIdsRef.current.size}`);
+    const payload = JSON.stringify(ids);
+    window.__SNAPLEX_IMAGE_DRAG__ = {
+      ids,
+      sourceFolder: folderId || '',
+      startedAt: Date.now(),
+      lastX: e.clientX,
+      lastY: e.clientY,
+    };
+    if (window.__SNAPLEX_IMAGE_DRAG_OVER__) {
+      document.removeEventListener('dragover', window.__SNAPLEX_IMAGE_DRAG_OVER__);
+    }
+    window.__SNAPLEX_IMAGE_DRAG_OVER__ = (event: DragEvent) => {
+      if (!window.__SNAPLEX_IMAGE_DRAG__) return;
+      window.__SNAPLEX_IMAGE_DRAG__.lastX = event.clientX;
+      window.__SNAPLEX_IMAGE_DRAG__.lastY = event.clientY;
+    };
+    document.addEventListener('dragover', window.__SNAPLEX_IMAGE_DRAG_OVER__);
+    e.dataTransfer.setData('application/snaplex-images', payload);
+    e.dataTransfer.setData('application/json', payload);
+    e.dataTransfer.setData('text/plain', `snaplex-images:${payload}`);
     e.dataTransfer.effectAllowed = 'copyMove';
     e.dataTransfer.setData('application/snaplex-source-folder', folderId || '');
-  }, [multiSelected, folderId]);
+
+    if (ids.length > 1) {
+      const thumbSrc = (e.currentTarget as HTMLElement).querySelector('img')?.getAttribute('src') || '';
+      const ghost = document.createElement('div');
+      ghost.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:72px;height:72px;border-radius:10px;overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,0.25),0 0 0 2px rgba(255,255,255,0.9);background:#e7e5e4;';
+      const img = document.createElement('div');
+      img.style.cssText = `width:100%;height:100%;background-image:url("${thumbSrc.replace(/"/g, '\\"')}");background-size:cover;background-position:center;`;
+      const badge = document.createElement('span');
+      badge.textContent = String(ids.length);
+      badge.style.cssText = 'position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#3b82f6;color:white;font:600 12px/22px -apple-system,system-ui,sans-serif;text-align:center;box-shadow:0 2px 6px rgba(59,130,246,0.5);';
+      ghost.appendChild(img);
+      ghost.appendChild(badge);
+      document.body.appendChild(ghost);
+      e.dataTransfer.setDragImage(ghost, 36, 36);
+      // The browser snapshots the element synchronously for the drag preview,
+      // so it's safe to remove on the next tick.
+      setTimeout(() => ghost.remove(), 0);
+    }
+  }, [getTargetImageIds, folderId]);
+
+  const handleDragEnd = useCallback(async (e: React.DragEvent) => {
+    const payload = window.__SNAPLEX_IMAGE_DRAG__;
+    if (!payload || payload.ids.length === 0) {
+      if (window.__SNAPLEX_IMAGE_DRAG_OVER__) {
+        document.removeEventListener('dragover', window.__SNAPLEX_IMAGE_DRAG_OVER__);
+        delete window.__SNAPLEX_IMAGE_DRAG_OVER__;
+      }
+      delete window.__SNAPLEX_IMAGE_DRAG__;
+      return;
+    }
+
+    const pointX = e.clientX || payload.lastX || 0;
+    const pointY = e.clientY || payload.lastY || 0;
+    const target = document.elementFromPoint(pointX, pointY) as HTMLElement | null;
+    const folderEl = target?.closest<HTMLElement>('[data-folder-id]');
+    const targetFolderId = folderEl?.dataset.folderId;
+    if (!targetFolderId) {
+      if (window.__SNAPLEX_IMAGE_DRAG_OVER__) {
+        document.removeEventListener('dragover', window.__SNAPLEX_IMAGE_DRAG_OVER__);
+        delete window.__SNAPLEX_IMAGE_DRAG_OVER__;
+      }
+      delete window.__SNAPLEX_IMAGE_DRAG__;
+      return;
+    }
+
+    const ids = payload.ids;
+    const isRemoveToAll = targetFolderId === '__all__';
+    const shouldLink = !isRemoveToAll && (!payload.sourceFolder || payload.sourceFolder === '__favorites__' || e.altKey);
+    logBatchDebug(`drag-end-folder target=${targetFolderId} ids=${ids.length} source=${payload.sourceFolder || 'none'} link=${shouldLink}`);
+    try {
+      if (isRemoveToAll) {
+        await removeImagesFromFolders(ids);
+      } else if (shouldLink) {
+        await Promise.all(ids.map(id => linkImageToFolder(id, targetFolderId)));
+      } else {
+        await moveImages(ids, targetFolderId);
+      }
+      showToast(`${isRemoveToAll ? 'Removed from folders' : shouldLink ? 'Linked' : 'Moved'} ${ids.length} image${ids.length === 1 ? '' : 's'}`, 'success');
+      syncMultiSelected(new Set(), 'clear-drag-end');
+      await loadImages();
+      onImagesChanged?.();
+    } catch (err) {
+      showToast(`Drag to folder failed: ${err}`, 'error');
+    } finally {
+      if (window.__SNAPLEX_IMAGE_DRAG_OVER__) {
+        document.removeEventListener('dragover', window.__SNAPLEX_IMAGE_DRAG_OVER__);
+        delete window.__SNAPLEX_IMAGE_DRAG_OVER__;
+      }
+      delete window.__SNAPLEX_IMAGE_DRAG__;
+    }
+  }, [linkImageToFolder, moveImages, removeImagesFromFolders, loadImages, syncMultiSelected, onImagesChanged]);
+
+  const handleAnalyzePrompt = useCallback(async (imageId: string) => {
+    const ids = getTargetImageIds(imageId);
+    logBatchDebug(`analyze-menu image=${imageId} ids=${ids.length} selectedRef=${effectiveSelectedIdsRef.current.size}`);
+
+    const settings = await loadUserSettings();
+    const provider = getCurrentProvider();
+    const model = getCurrentModel();
+    const total = ids.length;
+    let done = 0;
+    let succeeded = 0;
+    let failed = 0;
+
+    if (total === 1) {
+      showToast('Analyzing prompt...', 'success');
+    } else {
+      showToast(`Analyzing 0/${total}...`, 'success');
+    }
+
+    // Cap concurrency at 2 to be polite to free-tier providers.
+    const CONCURRENCY = 2;
+    const queue = [...ids];
+
+    const runOne = async (id: string) => {
+      try {
+        const detail = await getImageDetail(id);
+        const filePath = detail.fullUrl?.startsWith('file://') ? detail.fullUrl.slice(7) : detail.fullUrl;
+        const assetUrl = filePath ? convertFileSrc(filePath) : '';
+        const base64 = await getImageBase64(id, assetUrl);
+        const result = await analyzeImage(base64, settings);
+        if (!result.description) {
+          result.description = result.structuredPrompts?.subject?.original?.slice(0, 120) || '';
+        }
+        await saveAnalysis(id, result, provider, model);
+        // Persist each dimension as version 1 so the initial analysis is preserved
+        // across reloads — without this, the first prompt is lost the moment the
+        // user refreshes any single dimension later.
+        await Promise.all(
+          ALL_DIMS.map(d => {
+            const seg = result.structuredPrompts?.[d];
+            if (!seg) return Promise.resolve();
+            return saveDimensionVersion(id, d, seg.original || '', seg.translated || '')
+              .catch(err => console.warn(`Failed to persist initial ${d} for ${id}:`, err));
+          })
+        );
+        succeeded += 1;
+      } catch (e) {
+        failed += 1;
+        console.error(`Analyze failed for ${id}:`, e);
+      } finally {
+        done += 1;
+        if (total > 1) {
+          showToast(`Analyzing ${done}/${total}...`, 'success');
+        }
+      }
+    };
+
+    const workers: Promise<void>[] = [];
+    for (let i = 0; i < Math.min(CONCURRENCY, queue.length); i++) {
+      workers.push((async () => {
+        while (queue.length > 0) {
+          const next = queue.shift();
+          if (next) await runOne(next);
+        }
+      })());
+    }
+    await Promise.all(workers);
+
+    if (failed === 0) {
+      showToast(total === 1 ? 'Prompt analyzed' : `Analyzed ${succeeded} image${succeeded === 1 ? '' : 's'}`, 'success');
+    } else {
+      showToast(`Analyzed ${succeeded}, ${failed} failed`, 'error');
+    }
+    await loadImages();
+  }, [getTargetImageIds, getImageDetail, saveAnalysis, saveDimensionVersion, loadImages]);
 
   const handleImportXLS = useCallback(() => {
     const input = document.createElement('input');
@@ -407,10 +841,10 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   }, [loadImages]);
 
   const handleExportAnalysis = useCallback(async () => {
-    if (multiSelected.size === 0) return;
+    if (selectedCount === 0) return;
     try {
       const items = await Promise.all(
-        Array.from(multiSelected).map(async (id) => {
+        Array.from(effectiveSelectedIds).map(async (id) => {
           const detail = await getImageDetail(id);
           return {
             filename: detail.filename,
@@ -424,7 +858,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     } catch (err) {
       showToast(`Export failed: ${err}`, 'error');
     }
-  }, [multiSelected, getImageDetail]);
+  }, [selectedCount, effectiveSelectedIds, getImageDetail]);
 
   const handleClickUpload = useCallback(async () => {
     try {
@@ -529,7 +963,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
         {/* Batch Action Bar */}
         {isMultiMode && (
           <div className="flex items-center gap-3 px-6 pb-2">
-            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{multiSelected.size} selected</span>
+            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{selectedCount} selected</span>
             <button onClick={handleSelectAll} className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors">Select All</button>
             <button onClick={handleClearSelection} className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors">Clear</button>
             <div className="flex-1" />
@@ -654,7 +1088,12 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                       onDelete={handleDeleteImage}
                       onOpenInFinder={handleOpenInFinder}
                       onMoveToFolder={handleMoveToFolder}
+                      onRemoveFromFolder={handleRemoveFromFolder}
+                      onAnalyzePrompt={handleAnalyzePrompt}
+                      canRemoveFromFolder={!!folderId && folderId !== '__favorites__'}
+                      onDragMouseDown={(e) => handleInternalDragMouseDown(image.id, e)}
                       onDragStart={(e) => handleDragStart(image.id, e)}
+                      onDragEnd={handleDragEnd}
                     />
                   );
                 })}
@@ -677,6 +1116,22 @@ const ImageGrid: React.FC<ImageGridProps> = ({
         )}
       </div>
 
+      {internalDrag && (
+        <div
+          className="fixed z-[9999] pointer-events-none"
+          style={{ left: internalDrag.x + 12, top: internalDrag.y + 12 }}
+        >
+          <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-stone-200 dark:bg-stone-700 shadow-2xl ring-2 ring-white/90">
+            {internalDrag.thumbSrc && (
+              <img src={internalDrag.thumbSrc} alt="" className="w-full h-full object-cover" draggable={false} />
+            )}
+            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-blue-600 text-white text-[11px] leading-5 font-bold text-center shadow">
+              {internalDrag.ids.length}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Move to Folder Modal */}
       {moveToFolderTargets && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setMoveToFolderTargets(null)}>
@@ -687,6 +1142,18 @@ const ImageGrid: React.FC<ImageGridProps> = ({
               </h3>
             </div>
             <div className="flex-1 overflow-y-auto p-2">
+              {folderId && folderId !== '__favorites__' && (
+                <button
+                  onClick={() => confirmMoveToFolder('__all__')}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 mb-1 rounded-md text-sm text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                >
+                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  <span className="truncate">All Images</span>
+                  <span className="ml-auto text-[10px] text-stone-400">remove from folder</span>
+                </button>
+              )}
               {folderList.length === 0 ? (
                 <p className="text-xs text-stone-400 px-2 py-4 text-center">No folders available</p>
               ) : (

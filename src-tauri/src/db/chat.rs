@@ -46,10 +46,7 @@ pub fn save_chat_message(
     Ok(())
 }
 
-pub fn delete_chat_messages(
-    conn: &Connection,
-    image_id: &str,
-) -> Result<(), rusqlite::Error> {
+pub fn delete_chat_messages(conn: &Connection, image_id: &str) -> Result<(), rusqlite::Error> {
     conn.execute(
         "DELETE FROM chat_messages WHERE image_id = ?1",
         rusqlite::params![image_id],

@@ -18,9 +18,7 @@ pub fn get_chat_messages(
     image_id: String,
     db_state: State<'_, Mutex<Option<Database>>>,
 ) -> Result<Vec<chat::ChatMessageRow>, String> {
-    with_db(&db_state, |conn| {
-        chat::get_chat_messages(conn, &image_id)
-    })
+    with_db(&db_state, |conn| chat::get_chat_messages(conn, &image_id))
 }
 
 #[tauri::command]

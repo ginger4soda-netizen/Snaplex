@@ -40,10 +40,7 @@ pub fn save_text_embedding(
 
 /// §5.5 — visual_search (stub for Phase 0)
 #[tauri::command]
-pub fn visual_search(
-    query: String,
-    limit: i32,
-) -> Result<Vec<SearchResult>, String> {
+pub fn visual_search(query: String, limit: i32) -> Result<Vec<SearchResult>, String> {
     let _ = (&query, &limit);
     // Phase 0: return empty — CLIP integration in Phase 2
     Ok(vec![])

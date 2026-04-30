@@ -57,11 +57,7 @@ pub fn import_images(
     current: State<'_, crate::commands::library_commands::CurrentLibrary>,
 ) -> Result<ImportResult, String> {
     let lib_info = current.info.lock().unwrap();
-    let lib_path = lib_info
-        .as_ref()
-        .ok_or("No library open")?
-        .path
-        .clone();
+    let lib_path = lib_info.as_ref().ok_or("No library open")?.path.clone();
     drop(lib_info);
 
     let images_dir = std::path::Path::new(&lib_path).join("images");
@@ -86,7 +82,8 @@ pub fn import_images(
         let src_size = std::fs::metadata(src).map(|m| m.len() as i64).unwrap_or(0);
         let already_exists = with_db(&db_state, |conn| {
             images::image_exists_by_name_size(conn, &filename, src_size)
-        }).unwrap_or(false);
+        })
+        .unwrap_or(false);
         if already_exists {
             // Skip silently — not an error, just a duplicate
             continue;
@@ -106,7 +103,9 @@ pub fn import_images(
             continue;
         }
 
-        let file_size = std::fs::metadata(&dest).map(|m| m.len() as i64).unwrap_or(0);
+        let file_size = std::fs::metadata(&dest)
+            .map(|m| m.len() as i64)
+            .unwrap_or(0);
         let (width, height) = image::image_dimensions(&dest).unwrap_or((0, 0));
         let format = src
             .extension()
@@ -166,8 +165,24 @@ pub fn move_images(
     target_folder_id: String,
     db_state: State<'_, Mutex<Option<Database>>>,
 ) -> Result<(), String> {
+    eprintln!(
+        "[snaplex-debug] backend-move target={} ids={}",
+        target_folder_id,
+        ids.len()
+    );
     with_db(&db_state, |conn| {
         images::move_images(conn, &ids, &target_folder_id)
+    })
+}
+
+#[tauri::command]
+pub fn remove_images_from_folders(
+    ids: Vec<String>,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<(), String> {
+    eprintln!("[snaplex-debug] backend-remove-folders ids={}", ids.len());
+    with_db(&db_state, |conn| {
+        images::remove_images_from_folders(conn, &ids)
     })
 }
 
@@ -211,6 +226,20 @@ pub fn toggle_favorite(
     with_db(&db_state, |conn| images::toggle_favorite(conn, &id))
 }
 
+#[tauri::command]
+pub fn set_favorites(
+    ids: Vec<String>,
+    is_favorite: bool,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<(), String> {
+    with_db(&db_state, |conn| {
+        for id in &ids {
+            images::set_favorite(conn, id, is_favorite)?;
+        }
+        Ok(())
+    })
+}
+
 /// §5.3 — open_image_in_finder
 #[tauri::command]
 pub fn open_image_in_finder(
@@ -246,7 +275,11 @@ pub fn open_image_in_finder(
     #[cfg(target_os = "linux")]
     {
         std::process::Command::new("xdg-open")
-            .arg(std::path::Path::new(&file_path).parent().unwrap_or(std::path::Path::new("/")))
+            .arg(
+                std::path::Path::new(&file_path)
+                    .parent()
+                    .unwrap_or(std::path::Path::new("/")),
+            )
             .spawn()
             .map_err(|e| format!("Failed to open file manager: {}", e))?;
     }
@@ -279,14 +312,10 @@ pub fn export_images(
         })?;
 
         let src = std::path::Path::new(&file_path);
-        let filename = src
-            .file_name()
-            .and_then(|f| f.to_str())
-            .unwrap_or("image");
+        let filename = src.file_name().and_then(|f| f.to_str()).unwrap_or("image");
         let dest = export_dir.join(filename);
 
-        std::fs::copy(src, &dest)
-            .map_err(|e| format!("Failed to copy {}: {}", filename, e))?;
+        std::fs::copy(src, &dest).map_err(|e| format!("Failed to copy {}: {}", filename, e))?;
     }
 
     Ok(export_dir.to_string_lossy().to_string())
@@ -308,8 +337,8 @@ pub fn read_image_base64(
         )
     })?;
 
-    let bytes = std::fs::read(&file_path)
-        .map_err(|e| format!("Failed to read image file: {}", e))?;
+    let bytes =
+        std::fs::read(&file_path).map_err(|e| format!("Failed to read image file: {}", e))?;
 
     // Detect MIME type from extension
     let ext = std::path::Path::new(&file_path)
@@ -343,8 +372,17 @@ pub fn extract_color_palette(
         .map(|i| {
             let hue = (i as f64 / count as f64 * 360.0) as u8;
             ColorInfo {
-                hex: format!("#{:02x}{:02x}{:02x}", 100 + i * 15, 80 + i * 10, 60 + i * 20),
-                rgb: (100 + (i * 15) as u8, 80 + (i * 10) as u8, 60 + (i * 20) as u8),
+                hex: format!(
+                    "#{:02x}{:02x}{:02x}",
+                    100 + i * 15,
+                    80 + i * 10,
+                    60 + i * 20
+                ),
+                rgb: (
+                    100 + (i * 15) as u8,
+                    80 + (i * 10) as u8,
+                    60 + (i * 20) as u8,
+                ),
                 hsl: (hue as f64, 50.0, 50.0),
                 percentage: 100.0 / count as f64,
                 name: format!("Color {}", i + 1),

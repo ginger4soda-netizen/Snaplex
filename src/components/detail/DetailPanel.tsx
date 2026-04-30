@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTauriIPC } from '@/hooks/useTauriIPC';
-import { ImageDetail, AnalysisResult } from '@/types';
+import { ImageDetail, AnalysisResult, DimensionKey, DEFAULT_SETTINGS } from '@/types';
 import ImagePreview from './ImagePreview';
 import ColorPalette from './ColorPalette';
 import DimensionCards from './DimensionCards';
@@ -8,6 +8,19 @@ import MemoCard from './MemoCard';
 import ChatPanel from './ChatPanel';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { extractColors, ExtractedColor } from '@/utils/colorExtract';
+import { getCorrectDisplayOrder } from '@/utils/languageDetect';
+import { copyToClipboard } from '@/utils/clipboard';
+import { showToast } from '@/hooks/useToast';
+import { get } from 'idb-keyval';
+
+const PROMPT_DIMS: { key: DimensionKey; label: string }[] = [
+  { key: 'subject', label: 'Subject' },
+  { key: 'environment', label: 'Environment' },
+  { key: 'composition', label: 'Composition' },
+  { key: 'lighting', label: 'Lighting' },
+  { key: 'mood', label: 'Mood' },
+  { key: 'style', label: 'Style' },
+];
 
 // Module-level cache keyed by "imageId:colorCount"
 const colorCache = new Map<string, ExtractedColor[]>();
@@ -128,6 +141,39 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
     }
   };
 
+  const [promptCopied, setPromptCopied] = useState(false);
+  const handleCopyAllPrompts = useCallback(async () => {
+    if (!detail?.analysis) return;
+    let systemLang = 'English';
+    let copyIncludedModules = DEFAULT_SETTINGS.copyIncludedModules || [];
+    try {
+      const stored = await get('visionLearnSettings');
+      systemLang = (stored && stored.systemLanguage) || DEFAULT_SETTINGS.systemLanguage || 'English';
+      copyIncludedModules = (stored && stored.copyIncludedModules) || copyIncludedModules;
+    } catch {
+      systemLang = DEFAULT_SETTINGS.systemLanguage || 'English';
+    }
+    const allowedModules = copyIncludedModules.map((m: string) => m.toLowerCase());
+    const parts: string[] = [];
+    for (const { key, label } of PROMPT_DIMS) {
+      if (allowedModules.length > 0 && !allowedModules.includes(label.toLowerCase())) continue;
+      const seg = detail.analysis.structuredPrompts?.[key];
+      if (!seg) continue;
+      const { front } = getCorrectDisplayOrder(seg.original || '', seg.translated || '', systemLang);
+      const text = (front || '').trim();
+      if (!text) continue;
+      parts.push(`[${label}]\n${text}`);
+    }
+    if (parts.length === 0) return;
+    const ok = await copyToClipboard(parts.join('\n\n'));
+    if (ok) {
+      setPromptCopied(true);
+      setTimeout(() => setPromptCopied(false), 1500);
+    } else {
+      showToast('Copy failed', 'error');
+    }
+  }, [detail?.analysis]);
+
   if (!imageId) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-stone-400 p-8 text-center gap-4 opacity-50">
@@ -201,7 +247,26 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
             )}
 
             <section>
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4">Prompt</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Prompt</h3>
+                {detail.analysis && (
+                  <button
+                    onClick={handleCopyAllPrompts}
+                    title="Copy all prompts"
+                    className="p-1 rounded-md text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                  >
+                    {promptCopied ? (
+                      <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
               <DimensionCards
                 imageId={detail.id}
                 analysis={detail.analysis}

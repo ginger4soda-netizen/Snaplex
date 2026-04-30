@@ -50,7 +50,7 @@ const ColorPalette: React.FC<ColorPaletteProps> = ({ colors, colorCount, onColor
   const handleCopyAll = useCallback(async () => {
     if (!colors || colors.length === 0) return;
     const lines = colors.map(c =>
-      `${formatColor(c, format)}  ${c.percentage.toFixed(1)}%  ${c.name}`
+      `${formatColor(c, format)}  ${c.percentage.toFixed(1)}%`
     );
     await copyToClipboard(lines.join('\n'));
     setCopiedAll(true);

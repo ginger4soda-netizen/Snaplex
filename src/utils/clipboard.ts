@@ -5,6 +5,16 @@
 export async function copyToClipboard(text: string): Promise<boolean> {
   if (!text) return false;
 
+  // Tauri desktop WebViews can reject navigator.clipboard even for user-initiated
+  // clicks. Do not rely on window.__TAURI__; v2 apps can disable the global.
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    await invoke('write_clipboard_text', { text });
+    return true;
+  } catch (err) {
+    console.warn("Tauri clipboard API failed, switching to browser fallback...", err);
+  }
+
   // 1. 优先尝试现代 API (仅在 HTTPS 或 localhost 有效)
   if (navigator.clipboard && navigator.clipboard.writeText) {
     try {

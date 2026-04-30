@@ -42,10 +42,12 @@ pub fn run() {
             commands::image_commands::import_images,
             commands::image_commands::delete_images,
             commands::image_commands::move_images,
+            commands::image_commands::remove_images_from_folders,
             commands::image_commands::link_image_to_folder,
             commands::image_commands::get_image_detail,
             commands::image_commands::update_image_memo,
             commands::image_commands::toggle_favorite,
+            commands::image_commands::set_favorites,
             commands::image_commands::open_image_in_finder,
             commands::image_commands::export_images,
             // §5.4 Analysis
@@ -68,6 +70,8 @@ pub fn run() {
             commands::chat_commands::delete_chat_messages,
             // §5.7 File system
             commands::fs_commands::write_text_file,
+            commands::fs_commands::debug_log,
+            commands::fs_commands::write_clipboard_text,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import FolderTree from '../folders/FolderTree';
 import { useTauriIPC } from '@/hooks/useTauriIPC';
+import { invoke } from '@tauri-apps/api/core';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -9,15 +10,68 @@ interface SidebarProps {
   onFolderSelect: (folderId: string | undefined) => void;
   onNavigate?: (mode: string) => void;
   onImagesChanged?: () => void;
+  refreshTrigger?: number;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentFolderId, onFolderSelect, onNavigate, onImagesChanged }) => {
-  const { createFolder, moveImages, linkImageToFolder } = useTauriIPC();
+type SnaplexDragPayload = {
+  ids: string[];
+  sourceFolder: string;
+  startedAt: number;
+  lastX?: number;
+  lastY?: number;
+};
+
+const readImageDragPayload = (e: React.DragEvent): SnaplexDragPayload | null => {
+  const raw =
+    e.dataTransfer.getData('application/snaplex-images') ||
+    e.dataTransfer.getData('application/json') ||
+    e.dataTransfer.getData('text/plain').replace(/^snaplex-images:/, '');
+
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      const ids = Array.isArray(parsed)
+        ? parsed.filter((id): id is string => typeof id === 'string')
+        : [];
+      if (ids.length > 0) {
+        return {
+          ids,
+          sourceFolder: e.dataTransfer.getData('application/snaplex-source-folder'),
+          startedAt: Date.now(),
+        };
+      }
+    } catch (err) {
+      console.error('Invalid drag payload:', err);
+    }
+  }
+
+  const fallback = (window as Window & { __SNAPLEX_IMAGE_DRAG__?: SnaplexDragPayload }).__SNAPLEX_IMAGE_DRAG__;
+  if (!fallback || Date.now() - fallback.startedAt > 10000 || fallback.ids.length === 0) {
+    return null;
+  }
+  return fallback;
+};
+
+const logBatchDebug = (message: string) => {
+  invoke('debug_log', { message }).catch(() => {});
+};
+
+const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentFolderId, onFolderSelect, onNavigate, onImagesChanged, refreshTrigger: externalRefreshTrigger = 0 }) => {
+  const { createFolder, moveImages, removeImagesFromFolders, linkImageToFolder } = useTauriIPC();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleInternalDragOver = (event: Event) => {
+      const detail = (event as CustomEvent<{ folderId: string | null }>).detail;
+      setDragOverFolderId(detail?.folderId ?? null);
+    };
+    window.addEventListener('snaplex-internal-drag-over-folder', handleInternalDragOver);
+    return () => window.removeEventListener('snaplex-internal-drag-over-folder', handleInternalDragOver);
+  }, []);
 
   // Hover popup state for folders in collapsed mode
   const [showFolderPopup, setShowFolderPopup] = useState(false);
@@ -35,10 +89,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
   const handleFolderDrop = async (targetFolderId: string, e: React.DragEvent) => {
     e.preventDefault();
     setDragOverFolderId(null);
-    const data = e.dataTransfer.getData('application/snaplex-images');
-    if (!data) return;
-    const imageIds: string[] = JSON.parse(data);
-    const sourceFolder = e.dataTransfer.getData('application/snaplex-source-folder');
+    const payload = readImageDragPayload(e);
+    if (!payload) return;
+    const imageIds = payload.ids;
+    const sourceFolder = payload.sourceFolder;
+    logBatchDebug(`folder-drop target=${targetFolderId} ids=${imageIds.length} source=${sourceFolder || 'none'}`);
     const isAltHeld = e.altKey;
     // From All Images or Favorites: always link. From a specific folder: default = move, Alt = link
     const shouldLink = !sourceFolder || sourceFolder === '__favorites__' || isAltHeld;
@@ -52,8 +107,35 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
       }
       setRefreshTrigger(prev => prev + 1);
       onImagesChanged?.();
+      window.dispatchEvent(new Event('snaplex-clear-selection'));
     } catch (err) {
       console.error('Drag-to-folder failed:', err);
+    } finally {
+      delete (window as Window & { __SNAPLEX_IMAGE_DRAG__?: SnaplexDragPayload }).__SNAPLEX_IMAGE_DRAG__;
+    }
+  };
+
+  const handleAllImagesDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverFolderId('__all__');
+  };
+
+  const handleAllImagesDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverFolderId(null);
+    const payload = readImageDragPayload(e);
+    if (!payload) return;
+    logBatchDebug(`all-images-drop ids=${payload.ids.length} source=${payload.sourceFolder || 'none'}`);
+    try {
+      await removeImagesFromFolders(payload.ids);
+      setRefreshTrigger(prev => prev + 1);
+      onImagesChanged?.();
+      window.dispatchEvent(new Event('snaplex-clear-selection'));
+    } catch (err) {
+      console.error('Drag-to-all-images failed:', err);
+    } finally {
+      delete (window as Window & { __SNAPLEX_IMAGE_DRAG__?: SnaplexDragPayload }).__SNAPLEX_IMAGE_DRAG__;
     }
   };
 
@@ -99,8 +181,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
 
         {/* All Images */}
         <button
+          data-folder-id="__all__"
           onClick={() => onFolderSelect(undefined)}
-          className={iconBtnClass + (!currentFolderId ? ' bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : '')}
+          onDragOver={handleAllImagesDragOver}
+          onDragLeave={() => setDragOverFolderId(null)}
+          onDrop={handleAllImagesDrop}
+          className={iconBtnClass + (dragOverFolderId === '__all__' ? ' bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-400 text-blue-600 dark:text-blue-400' : !currentFolderId ? ' bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : '')}
           title="All Images"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
@@ -142,7 +228,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
               <FolderTree
                 currentFolderId={currentFolderId}
                 onFolderSelect={onFolderSelect}
-                refreshTrigger={refreshTrigger}
+                refreshTrigger={refreshTrigger + externalRefreshTrigger}
                 onFolderDrop={handleFolderDrop}
                 dragOverFolderId={dragOverFolderId}
                 onDragOverFolder={setDragOverFolderId}
@@ -211,8 +297,12 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
           <h2 className="px-3 mb-1 text-xs font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider">Library</h2>
           <div className="space-y-0.5">
             <button
+              data-folder-id="__all__"
               onClick={() => onFolderSelect(undefined)}
-              className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${!currentFolderId ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'}`}
+              onDragOver={handleAllImagesDragOver}
+              onDragLeave={() => setDragOverFolderId(null)}
+              onDrop={handleAllImagesDrop}
+              className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${dragOverFolderId === '__all__' ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-400 text-blue-600 dark:text-blue-400 font-medium' : !currentFolderId ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'}`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
               <span>All Images</span>
@@ -260,7 +350,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
           <FolderTree
             currentFolderId={currentFolderId}
             onFolderSelect={onFolderSelect}
-            refreshTrigger={refreshTrigger}
+            refreshTrigger={refreshTrigger + externalRefreshTrigger}
             onFolderDrop={handleFolderDrop}
             dragOverFolderId={dragOverFolderId}
             onDragOverFolder={setDragOverFolderId}

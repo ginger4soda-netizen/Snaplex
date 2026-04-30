@@ -49,6 +49,7 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
   });
   const [dragging, setDragging] = useState<'sidebar' | 'detail' | null>(null);
   const [imageRefreshTrigger, setImageRefreshTrigger] = useState(0);
+  const [folderRefreshTrigger, setFolderRefreshTrigger] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Persist widths and collapse state
@@ -105,7 +106,11 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
           currentFolderId={currentFolderId}
           onFolderSelect={onFolderSelect}
           onNavigate={onNavigate}
-          onImagesChanged={() => setImageRefreshTrigger(prev => prev + 1)}
+          refreshTrigger={folderRefreshTrigger}
+          onImagesChanged={() => {
+            setImageRefreshTrigger(prev => prev + 1);
+            setFolderRefreshTrigger(prev => prev + 1);
+          }}
         />
       </div>
 
@@ -128,6 +133,7 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
             isDetailVisible={isDetailVisible}
             nav={nav}
             refreshTrigger={imageRefreshTrigger}
+            onImagesChanged={() => setFolderRefreshTrigger(prev => prev + 1)}
           />
         ) : centerView === 'settings' ? (
           <div className="h-full overflow-y-auto">

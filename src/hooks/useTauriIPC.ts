@@ -33,11 +33,15 @@ const ipc = {
   deleteImages: (ids: string[]) => invoke<void>('delete_images', { ids }),
   moveImages: (ids: string[], targetFolderId: string) =>
     invoke<void>('move_images', { ids, targetFolderId }),
+  removeImagesFromFolders: (ids: string[]) =>
+    invoke<void>('remove_images_from_folders', { ids }),
   linkImageToFolder: (imageId: string, folderId: string) =>
     invoke<void>('link_image_to_folder', { imageId, folderId }),
   getImageDetail: (id: string) => invoke<ImageDetail>('get_image_detail', { id }),
   updateImageMemo: (id: string, memo: string) => invoke<void>('update_image_memo', { id, memo }),
   toggleFavorite: (id: string) => invoke<boolean>('toggle_favorite', { id }),
+  setFavorites: (ids: string[], isFavorite: boolean) =>
+    invoke<void>('set_favorites', { ids, isFavorite }),
   openImageInFinder: (id: string) => invoke<void>('open_image_in_finder', { id }),
   exportImages: (ids: string[], format: string) => invoke<string>('export_images', { ids, format }),
 
@@ -72,6 +76,7 @@ const ipc = {
 
   // File system
   writeTextFile: (path: string, content: string) => invoke<void>('write_text_file', { path, content }),
+  writeClipboardText: (text: string) => invoke<void>('write_clipboard_text', { text }),
 
   // System
   checkForUpdate: () => invoke<UpdateInfo | null>('check_for_update'),

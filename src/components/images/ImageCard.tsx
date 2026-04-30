@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ImageItem } from '@/types';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import ContextMenu, { MenuItem } from '@/components/common/ContextMenu';
@@ -11,11 +11,21 @@ interface ImageCardProps {
   onDelete?: (id: string) => void;
   onOpenInFinder?: (id: string) => void;
   onDragStart?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  onDragMouseDown?: (e: React.MouseEvent) => void;
   onMoveToFolder?: (id: string) => void;
+  onRemoveFromFolder?: (id: string) => void;
+  onAnalyzePrompt?: (id: string) => void;
+  canRemoveFromFolder?: boolean;
 }
 
-const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onToggleFavorite, onDelete, onOpenInFinder, onDragStart, onMoveToFolder }) => {
+const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onToggleFavorite, onDelete, onOpenInFinder, onDragStart, onDragEnd, onDragMouseDown, onMoveToFolder, onRemoveFromFolder, onAnalyzePrompt, canRemoveFromFolder = false }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  // Tracks the last contextmenu timestamp on this card. macOS Ctrl+click fires
+  // both contextmenu and a synthetic click with ctrlKey=true; we use this to
+  // swallow any click that arrives in close succession after a right-click so
+  // the multi-selection isn't accidentally toggled off.
+  const lastContextRef = useRef(0);
 
   // Always convert file paths to Tauri asset:// URLs
   const thumbUrl = (() => {
@@ -28,7 +38,16 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onTog
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    lastContextRef.current = Date.now();
     setContextMenu({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleClickGuarded = (e: React.MouseEvent) => {
+    if (Date.now() - lastContextRef.current < 500) {
+      e.stopPropagation();
+      return;
+    }
+    onClick(e);
   };
 
   const menuItems: MenuItem[] = [
@@ -44,6 +63,14 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onTog
       label: 'Move to Folder...',
       onClick: () => onMoveToFolder?.(image.id),
     },
+    ...(canRemoveFromFolder ? [{
+      label: 'Remove from Folder',
+      onClick: () => onRemoveFromFolder?.(image.id),
+    }] : []),
+    {
+      label: 'Analyze Prompt',
+      onClick: () => onAnalyzePrompt?.(image.id),
+    },
     { label: '', onClick: () => {}, divider: true },
     {
       label: 'Delete',
@@ -57,9 +84,12 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onTog
       <div
         data-image-card
         data-image-id={image.id}
-        draggable
-        onClick={(e) => onClick(e)}
+        data-selected={isSelected ? 'true' : 'false'}
+        draggable={false}
+        onMouseDown={(e) => onDragMouseDown?.(e)}
+        onClick={handleClickGuarded}
         onDragStart={(e) => onDragStart?.(e)}
+        onDragEnd={(e) => onDragEnd?.(e)}
         onContextMenu={handleContextMenu}
         className={`relative group cursor-pointer rounded-xl overflow-hidden transition-all duration-200 ${isSelected ? 'ring-4 ring-blue-500 shadow-xl scale-[0.98]' : 'hover:shadow-lg'}`}
       >
@@ -67,6 +97,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, isSelected, onClick, onTog
           <img
             src={thumbUrl}
             alt={image.filename}
+            draggable={false}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             loading="lazy"
           />

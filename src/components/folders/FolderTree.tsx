@@ -142,6 +142,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({ currentFolderId, onFolderSelect
     return (
       <div key={node.id} className="select-none">
         <div
+          data-folder-id={node.id}
           onClick={() => !isEditing && onFolderSelect(node.id)}
           onContextMenu={(e) => handleContextMenu(e, node.id, node.name)}
           onDragOver={(e) => { e.preventDefault(); onDragOverFolder?.(node.id); }}

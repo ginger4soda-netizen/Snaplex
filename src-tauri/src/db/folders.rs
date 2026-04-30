@@ -14,7 +14,15 @@ pub struct FolderNode {
 pub fn get_folder_tree(conn: &Connection) -> Result<Vec<FolderNode>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         "SELECT f.id, f.name, f.parent_id,
-                (SELECT COUNT(*) FROM image_folders WHERE folder_id = f.id) as image_count
+                (
+                    WITH RECURSIVE folder_scope(id) AS (
+                        SELECT f.id
+                        UNION ALL
+                        SELECT child.id FROM folders child JOIN folder_scope fs ON child.parent_id = fs.id
+                    )
+                    SELECT COUNT(DISTINCT image_id) FROM image_folders
+                    WHERE folder_id IN (SELECT id FROM folder_scope)
+                ) as image_count
          FROM folders f ORDER BY f.sort_order, f.name",
     )?;
 

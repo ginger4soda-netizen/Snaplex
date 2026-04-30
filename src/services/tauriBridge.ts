@@ -110,6 +110,12 @@ export async function moveImages(ids: string[], targetFolderId: string): Promise
   await invoke('move_images', { ids, targetFolderId });
 }
 
+export async function removeImagesFromFolders(ids: string[]): Promise<void> {
+  const invoke = await getInvoke();
+  if (!invoke) return;
+  await invoke('remove_images_from_folders', { ids });
+}
+
 export async function updateImageMemo(id: string, memo: string): Promise<void> {
   const invoke = await getInvoke();
   if (!invoke) return;
@@ -120,6 +126,12 @@ export async function toggleFavorite(id: string): Promise<boolean> {
   const invoke = await getInvoke();
   if (!invoke) return false;
   return invoke('toggle_favorite', { id }) as Promise<boolean>;
+}
+
+export async function setFavorites(ids: string[], isFavorite: boolean): Promise<void> {
+  const invoke = await getInvoke();
+  if (!invoke) return;
+  await invoke('set_favorites', { ids, isFavorite });
 }
 
 export async function openImageInFinder(id: string): Promise<void> {

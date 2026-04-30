@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { AnalysisResult, DimensionKey, PromptSegment, UserSettings, DEFAULT_SETTINGS } from '@/types';
+import { AnalysisResult, DimensionKey, PromptSegment, UserSettings, DEFAULT_SETTINGS, DimensionHistories } from '@/types';
 import { useTauriIPC } from '@/hooks/useTauriIPC';
 import { analyzeImage, regenerateDimension } from '@/services/geminiService';
 import { getCurrentProvider, getCurrentModel } from '@/services/providers/types';
 import { getImageBase64 } from '@/utils/imageToBase64';
 import { translatePromptDimensions } from '@/services/googleTranslate';
 import { get } from 'idb-keyval';
+
+const ALL_DIMS: DimensionKey[] = ['subject', 'environment', 'composition', 'lighting', 'mood', 'style'];
 
 interface DimensionCardsProps {
   imageId: string;
@@ -29,15 +31,61 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
   const [refreshingDim, setRefreshingDim] = useState<DimensionKey | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [localAnalysis, setLocalAnalysis] = useState<AnalysisResult | null>(null);
-  const { saveAnalysis, saveDimensionVersion } = useTauriIPC();
+  const [dimensionHistories, setDimensionHistories] = useState<DimensionHistories>({});
+  const { saveAnalysis, saveDimensionVersion, getDimensionHistory } = useTauriIPC();
 
   // Reset local state when image changes
   useEffect(() => {
     setLocalAnalysis(null);
+    setDimensionHistories({});
   }, [imageId]);
 
   const currentAnalysis = localAnalysis || analysis;
   const [translating, setTranslating] = useState(false);
+
+  // Load persisted dimension history once analysis is available. Backend returns DESC
+  // (newest first); we reverse to ASC so versions[0] is oldest, versions[last] is current.
+  // For images analyzed before history-tracking shipped, the DB is empty but the
+  // analysis row exists — we backfill that initial version into the DB so it's
+  // preserved across reloads going forward.
+  useEffect(() => {
+    if (!imageId || !currentAnalysis) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const results = await Promise.all(
+          ALL_DIMS.map(d => getDimensionHistory(imageId, d).catch(() => []))
+        );
+        if (cancelled) return;
+        const next: DimensionHistories = {};
+        ALL_DIMS.forEach((d, i) => {
+          const dbVersions = [...results[i]]
+            .reverse()
+            .map(v => ({ original: v.original, translated: v.translated }));
+          if (dbVersions.length > 0) {
+            next[d] = { versions: dbVersions, currentIndex: dbVersions.length - 1 };
+            return;
+          }
+          const seed = currentAnalysis.structuredPrompts?.[d];
+          if (seed && (seed.original || seed.translated)) {
+            next[d] = { versions: [seed], currentIndex: 0 };
+            saveDimensionVersion(imageId, d, seed.original || '', seed.translated || '')
+              .catch(err => console.warn(`Backfill ${d} v1 failed:`, err));
+          }
+        });
+        setDimensionHistories(next);
+      } catch (e) {
+        console.warn('Failed to load dimension histories:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [imageId, currentAnalysis?.description]);
+
+  const getCurrentSegment = (dim: DimensionKey): PromptSegment | null => {
+    const h = dimensionHistories[dim];
+    if (h && h.versions.length > 0) return h.versions[h.currentIndex];
+    return currentAnalysis?.structuredPrompts?.[dim] ?? null;
+  };
 
   // Auto-translate when analysis exists but translations are empty
   useEffect(() => {
@@ -110,6 +158,17 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
       const provider = getCurrentProvider();
       const model = getCurrentModel();
       await saveAnalysis(imageId, result, provider, model);
+      // Persist each dimension as version 1 so the initial analysis is preserved
+      // across reloads (otherwise the very first prompt is lost as soon as the
+      // user refreshes any single dimension).
+      await Promise.all(
+        ALL_DIMS.map(d => {
+          const seg = result.structuredPrompts?.[d];
+          if (!seg) return Promise.resolve();
+          return saveDimensionVersion(imageId, d, seg.original || '', seg.translated || '')
+            .catch(err => console.warn(`Failed to persist initial ${d}:`, err));
+        })
+      );
       setLocalAnalysis(result);
       onAnalysisComplete?.(result);
     } catch (e) {
@@ -122,8 +181,8 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
   };
 
   const handleCopy = async (dim: DimensionKey) => {
-    if (!currentAnalysis) return;
-    const content = currentAnalysis.structuredPrompts[dim];
+    const content = getCurrentSegment(dim);
+    if (!content) return;
     const text = content.original + (content.translated ? '\n---\n' + content.translated : '');
     try {
       await navigator.clipboard.writeText(text);
@@ -159,11 +218,30 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
         setLocalAnalysis(updated);
         onAnalysisComplete?.(updated);
       }
+      // Append the new version to history. Functional update so concurrent
+      // refreshes on different dims don't clobber each other.
+      setDimensionHistories(prev => {
+        const existing = prev[dim];
+        const versions = existing ? [...existing.versions, result] : [result];
+        return { ...prev, [dim]: { versions, currentIndex: versions.length - 1 } };
+      });
     } catch (e) {
       console.error(`Refresh ${dim} failed:`, e);
     } finally {
       setRefreshingDim(null);
     }
+  };
+
+  const handleNavigateHistory = (dim: DimensionKey, direction: 'prev' | 'next') => {
+    setDimensionHistories(prev => {
+      const h = prev[dim];
+      if (!h) return prev;
+      const newIndex = direction === 'prev'
+        ? Math.max(0, h.currentIndex - 1)
+        : Math.min(h.versions.length - 1, h.currentIndex + 1);
+      if (newIndex === h.currentIndex) return prev;
+      return { ...prev, [dim]: { ...h, currentIndex: newIndex } };
+    });
   };
 
   if (!currentAnalysis) {
@@ -193,8 +271,14 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
     <div className="space-y-3">
       {DIMENSIONS.map((dim) => {
         const isExpanded = expandedKey === dim.key;
-        const content = currentAnalysis.structuredPrompts[dim.key];
+        const content = getCurrentSegment(dim.key) ?? { original: '', translated: '' };
         const isRefreshing = refreshingDim === dim.key;
+        const history = dimensionHistories[dim.key];
+        const versions = history?.versions ?? [];
+        const currentIndex = history?.currentIndex ?? 0;
+        const hasHistory = versions.length > 1;
+        const canGoPrev = currentIndex > 0;
+        const canGoNext = currentIndex < versions.length - 1;
 
         return (
           <div
@@ -208,6 +292,11 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
               <div className="flex items-center gap-2.5">
                 <span className="text-sm">{dim.icon}</span>
                 <span className={`text-[11px] font-black uppercase tracking-widest ${dim.color}`}>{dim.label}</span>
+                {hasHistory && (
+                  <span className="text-[10px] text-stone-400 font-mono tabular-nums">
+                    {currentIndex + 1}/{versions.length}
+                  </span>
+                )}
               </div>
               <svg
                 className={`w-4 h-4 text-stone-300 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
@@ -243,7 +332,31 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
                   )}
                 </div>
 
-                <div className="flex justify-end gap-2 mt-3">
+                <div className="flex justify-end items-center gap-2 mt-3">
+                  {hasHistory && (
+                    <>
+                      <button
+                        onClick={() => handleNavigateHistory(dim.key, 'prev')}
+                        disabled={!canGoPrev}
+                        title="Previous version"
+                        className="p-2 text-stone-300 hover:text-stone-500 dark:hover:text-stone-400 transition-colors disabled:opacity-30 disabled:hover:text-stone-300"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleNavigateHistory(dim.key, 'next')}
+                        disabled={!canGoNext}
+                        title="Next version"
+                        className="p-2 text-stone-300 hover:text-stone-500 dark:hover:text-stone-400 transition-colors disabled:opacity-30 disabled:hover:text-stone-300"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
                   {/* Copy button */}
                   <button
                     onClick={() => handleCopy(dim.key)}

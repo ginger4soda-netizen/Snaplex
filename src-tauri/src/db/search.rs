@@ -44,29 +44,31 @@ pub fn search_fts(
              WHERE search_index MATCH ?1 AND if2.folder_id = ?2
              ORDER BY si.rank LIMIT 50",
         )?;
-        let rows = stmt.query_map(rusqlite::params![&sanitized, fid], |row| {
-            Ok(SearchResult {
-                image_id: row.get(0)?,
-                score: row.get::<_, f64>(1)?.abs(),
-                match_type: "fts".to_string(),
-            })
-        })?
-        .filter_map(|r| r.ok())
-        .collect();
+        let rows = stmt
+            .query_map(rusqlite::params![&sanitized, fid], |row| {
+                Ok(SearchResult {
+                    image_id: row.get(0)?,
+                    score: row.get::<_, f64>(1)?.abs(),
+                    match_type: "fts".to_string(),
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
         rows
     } else {
         let mut stmt = conn.prepare(
             "SELECT image_id, rank FROM search_index WHERE search_index MATCH ?1 ORDER BY rank LIMIT 50",
         )?;
-        let rows = stmt.query_map(rusqlite::params![&sanitized], |row| {
-            Ok(SearchResult {
-                image_id: row.get(0)?,
-                score: row.get::<_, f64>(1)?.abs(),
-                match_type: "fts".to_string(),
-            })
-        })?
-        .filter_map(|r| r.ok())
-        .collect();
+        let rows = stmt
+            .query_map(rusqlite::params![&sanitized], |row| {
+                Ok(SearchResult {
+                    image_id: row.get(0)?,
+                    score: row.get::<_, f64>(1)?.abs(),
+                    match_type: "fts".to_string(),
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
         rows
     };
 

@@ -1,9 +1,9 @@
-pub mod schema;
-pub mod images;
-pub mod folders;
 pub mod analysis;
-pub mod search;
 pub mod chat;
+pub mod folders;
+pub mod images;
+pub mod schema;
+pub mod search;
 
 use rusqlite::Connection;
 use std::path::Path;

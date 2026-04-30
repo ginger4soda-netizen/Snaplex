@@ -83,19 +83,37 @@ pub fn get_images(
     limit: i64,
 ) -> Result<Vec<ImageItem>, rusqlite::Error> {
     if let Some(fid) = folder_id {
-        let mut stmt = conn.prepare(
-            "SELECT i.id, i.filename, i.file_path, i.thumb_path, i.width, i.height, i.is_favorite, i.has_analysis, i.created_at
-             FROM images i
-             JOIN image_folders if2 ON i.id = if2.image_id
-             WHERE if2.folder_id = ?1
-             ORDER BY i.created_at DESC
-             LIMIT ?2 OFFSET ?3",
-        )?;
-        let items = stmt
-            .query_map(rusqlite::params![fid, limit, offset], row_to_image_item)?
-            .filter_map(|r| r.ok())
-            .collect();
-        Ok(items)
+        if fid == "__favorites__" {
+            let mut stmt = conn.prepare(
+                "SELECT id, filename, file_path, thumb_path, width, height, is_favorite, has_analysis, created_at
+                 FROM images WHERE is_favorite = 1
+                 ORDER BY created_at DESC LIMIT ?1 OFFSET ?2",
+            )?;
+            let items = stmt
+                .query_map(rusqlite::params![limit, offset], row_to_image_item)?
+                .filter_map(|r| r.ok())
+                .collect();
+            Ok(items)
+        } else {
+            let mut stmt = conn.prepare(
+                "WITH RECURSIVE folder_scope(id) AS (
+                    SELECT ?1
+                    UNION ALL
+                    SELECT f.id FROM folders f JOIN folder_scope fs ON f.parent_id = fs.id
+                 )
+                 SELECT DISTINCT i.id, i.filename, i.file_path, i.thumb_path, i.width, i.height, i.is_favorite, i.has_analysis, i.created_at
+                 FROM images i
+                 JOIN image_folders if2 ON i.id = if2.image_id
+                 WHERE if2.folder_id IN (SELECT id FROM folder_scope)
+                 ORDER BY i.created_at DESC
+                 LIMIT ?2 OFFSET ?3",
+            )?;
+            let items = stmt
+                .query_map(rusqlite::params![fid, limit, offset], row_to_image_item)?
+                .filter_map(|r| r.ok())
+                .collect();
+            Ok(items)
+        }
     } else {
         let mut stmt = conn.prepare(
             "SELECT id, filename, file_path, thumb_path, width, height, is_favorite, has_analysis, created_at
@@ -109,24 +127,30 @@ pub fn get_images(
     }
 }
 
-pub fn count_images(
-    conn: &Connection,
-    folder_id: Option<&str>,
-) -> Result<i64, rusqlite::Error> {
+pub fn count_images(conn: &Connection, folder_id: Option<&str>) -> Result<i64, rusqlite::Error> {
     if let Some(fid) = folder_id {
-        conn.query_row(
-            "SELECT COUNT(*) FROM images i
-             JOIN image_folders if2 ON i.id = if2.image_id
-             WHERE if2.folder_id = ?1",
-            rusqlite::params![fid],
-            |row| row.get(0),
-        )
+        if fid == "__favorites__" {
+            conn.query_row(
+                "SELECT COUNT(*) FROM images WHERE is_favorite = 1",
+                [],
+                |row| row.get(0),
+            )
+        } else {
+            conn.query_row(
+                "WITH RECURSIVE folder_scope(id) AS (
+                    SELECT ?1
+                    UNION ALL
+                    SELECT f.id FROM folders f JOIN folder_scope fs ON f.parent_id = fs.id
+                 )
+                 SELECT COUNT(DISTINCT i.id) FROM images i
+                 JOIN image_folders if2 ON i.id = if2.image_id
+                 WHERE if2.folder_id IN (SELECT id FROM folder_scope)",
+                rusqlite::params![fid],
+                |row| row.get(0),
+            )
+        }
     } else {
-        conn.query_row(
-            "SELECT COUNT(*) FROM images",
-            [],
-            |row| row.get(0),
-        )
+        conn.query_row("SELECT COUNT(*) FROM images", [], |row| row.get(0))
     }
 }
 
@@ -172,8 +196,10 @@ pub fn get_images_by_ids(
         placeholders
     );
     let mut stmt = conn.prepare(&sql)?;
-    let params: Vec<&dyn rusqlite::types::ToSql> =
-        ids.iter().map(|id| id as &dyn rusqlite::types::ToSql).collect();
+    let params: Vec<&dyn rusqlite::types::ToSql> = ids
+        .iter()
+        .map(|id| id as &dyn rusqlite::types::ToSql)
+        .collect();
     let items = stmt
         .query_map(params.as_slice(), row_to_image_item)?
         .filter_map(|r| r.ok())
@@ -295,6 +321,19 @@ pub fn move_images(
     Ok(())
 }
 
+pub fn remove_images_from_folders(
+    conn: &Connection,
+    ids: &[String],
+) -> Result<(), rusqlite::Error> {
+    for id in ids {
+        conn.execute(
+            "DELETE FROM image_folders WHERE image_id = ?1",
+            rusqlite::params![id],
+        )?;
+    }
+    Ok(())
+}
+
 pub fn link_image_to_folder(
     conn: &Connection,
     image_id: &str,
@@ -327,4 +366,12 @@ pub fn toggle_favorite(conn: &Connection, id: &str) -> Result<bool, rusqlite::Er
         rusqlite::params![new_val, id],
     )?;
     Ok(new_val)
+}
+
+pub fn set_favorite(conn: &Connection, id: &str, is_favorite: bool) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "UPDATE images SET is_favorite = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2",
+        rusqlite::params![is_favorite, id],
+    )?;
+    Ok(())
 }

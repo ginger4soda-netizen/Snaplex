@@ -47,6 +47,8 @@ pub fn create_library(
 
 /// §5.1 — get_current_library
 #[tauri::command]
-pub fn get_current_library(current: State<'_, CurrentLibrary>) -> Result<Option<LibraryInfo>, String> {
+pub fn get_current_library(
+    current: State<'_, CurrentLibrary>,
+) -> Result<Option<LibraryInfo>, String> {
     Ok(current.info.lock().unwrap().clone())
 }

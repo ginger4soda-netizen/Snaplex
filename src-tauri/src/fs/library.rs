@@ -43,19 +43,13 @@ pub fn open_library(path: &str) -> Result<LibraryInfo, String> {
         return Err(format!("Not a valid .snpx library: {}", path));
     }
 
-    let content =
-        fs::read_to_string(&metadata_path).map_err(|e| format!("Failed to read metadata: {}", e))?;
+    let content = fs::read_to_string(&metadata_path)
+        .map_err(|e| format!("Failed to read metadata: {}", e))?;
     let metadata: serde_json::Value =
         serde_json::from_str(&content).map_err(|e| format!("Invalid metadata: {}", e))?;
 
-    let name = metadata["name"]
-        .as_str()
-        .unwrap_or("Unnamed")
-        .to_string();
-    let created_at = metadata["createdAt"]
-        .as_str()
-        .unwrap_or("")
-        .to_string();
+    let name = metadata["name"].as_str().unwrap_or("Unnamed").to_string();
+    let created_at = metadata["createdAt"].as_str().unwrap_or("").to_string();
 
     // Count images in images/ directory
     let images_dir = lib_path.join("images");
