@@ -298,6 +298,9 @@ pub fn insert_image(
 
 pub fn delete_images(conn: &Connection, ids: &[String]) -> Result<(), rusqlite::Error> {
     for id in ids {
+        // search_index is an FTS5 virtual table — it can't participate in FK cascade,
+        // so its row must be cleared before/with the image deletion.
+        super::search::remove_from_search_index(conn, id)?;
         conn.execute("DELETE FROM images WHERE id = ?1", rusqlite::params![id])?;
     }
     Ok(())
@@ -351,6 +354,7 @@ pub fn update_memo(conn: &Connection, id: &str, memo: &str) -> Result<(), rusqli
         "UPDATE images SET memo = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2",
         rusqlite::params![memo, id],
     )?;
+    super::search::rebuild_search_index_for_image(conn, id)?;
     Ok(())
 }
 

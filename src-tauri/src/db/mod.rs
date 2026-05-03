@@ -4,6 +4,10 @@ pub mod folders;
 pub mod images;
 pub mod schema;
 pub mod search;
+pub mod vector_store;
+
+#[cfg(test)]
+mod search_tests;
 
 use rusqlite::Connection;
 use std::path::Path;

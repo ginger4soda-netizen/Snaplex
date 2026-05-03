@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { SearchResult } from '../../types';
-import { searchImages, visualSearch, isTauri } from '../../services/tauriBridge';
+import { useTauriIPC } from '../../hooks/useTauriIPC';
+import { isTauri } from '../../utils/isTauri';
 import { searchHistory } from '../../services/geminiService';
 import { getTranslation } from '../../translations';
 
@@ -86,6 +87,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef(0); // Incremented to cancel stale searches
 
+  const { searchImages, visualSearch } = useTauriIPC();
   const t = getTranslation(systemLanguage);
 
   const performSearch = useCallback(async (searchQuery: string) => {

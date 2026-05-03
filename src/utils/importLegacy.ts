@@ -6,7 +6,7 @@
 
 import { HistoryItem, AnalysisResult, ImportResult } from '../types';
 import { parseExportedFile } from './importHistory';
-import { isTauri } from '../services/tauriBridge';
+import { isTauri } from './isTauri';
 
 /**
  * Import a legacy .xls export file into the current library.
