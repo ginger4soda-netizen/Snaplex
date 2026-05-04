@@ -88,6 +88,20 @@ pub fn create_tables(conn: &Connection) -> Result<(), rusqlite::Error> {
             PRIMARY KEY (image_id, kind)
         );
 
+        CREATE TABLE IF NOT EXISTS backfill_checkpoints (
+            channel_id TEXT PRIMARY KEY,
+            status TEXT NOT NULL CHECK (status IN ('running', 'done', 'cancelled', 'failed')),
+            current_kind TEXT NOT NULL,
+            last_image_id TEXT,
+            processed INTEGER NOT NULL DEFAULT 0,
+            total INTEGER NOT NULL DEFAULT 0,
+            indexed INTEGER NOT NULL DEFAULT 0,
+            failed INTEGER NOT NULL DEFAULT 0,
+            cancelled BOOLEAN NOT NULL DEFAULT 0,
+            last_error TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
         CREATE TABLE IF NOT EXISTS library_meta (
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL,
@@ -126,6 +140,8 @@ pub fn create_tables(conn: &Connection) -> Result<(), rusqlite::Error> {
             ON visual_embeddings(model_version);
         CREATE INDEX IF NOT EXISTS idx_embedding_failures_kind
             ON embedding_failures(kind);
+        CREATE INDEX IF NOT EXISTS idx_backfill_checkpoints_updated_at
+            ON backfill_checkpoints(updated_at);
         ",
     )
 }

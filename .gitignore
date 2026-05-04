@@ -145,3 +145,6 @@ dist
 
 # Local dev screenshots / scratch files
 /snaplex-current-state.png
+
+# CLIP / ONNX model weights — downloaded at runtime, too large for git
+src-tauri/models/

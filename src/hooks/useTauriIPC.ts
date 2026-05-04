@@ -2,7 +2,8 @@ import { invoke } from '@tauri-apps/api/core';
 import {
   LibraryInfo, FolderNode, ImageItem, ImageDetail,
   ImportResult, AnalysisResult, DimensionKey, DimensionVersion,
-  SearchResult, ColorInfo, UpdateInfo, ChatMessage
+  SearchResult, ColorInfo, UpdateInfo, ChatMessage, TextEmbeddingSettings,
+  IndexHealth, BackfillRun
 } from '@/types';
 
 /**
@@ -57,6 +58,13 @@ const ipc = {
   // Search
   searchImages: (query: string, folderId?: string) => invoke<SearchResult[]>('search_images', { query, folderId }),
   visualSearch: (query: string, limit: number = 50) => invoke<SearchResult[]>('visual_search', { query, limit }),
+  getIndexHealth: () => invoke<IndexHealth>('get_index_health'),
+  startBackfill: () => invoke<BackfillRun>('start_backfill'),
+  cancelBackfill: () => invoke<void>('cancel_backfill'),
+  rebuildTextIndex: () => invoke<void>('rebuild_text_index'),
+  setClipIndexingEnabled: (enabled: boolean) => invoke<void>('set_clip_indexing_enabled', { enabled }),
+  setTextEmbeddingConfig: (config: TextEmbeddingSettings | null) =>
+    invoke<void>('set_text_embedding_config', { config }),
 
   // Image base64 (for AI analysis — bypasses asset:// fetch issues)
   readImageBase64: (id: string) => invoke<string>('read_image_base64', { id }),

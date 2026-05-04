@@ -32,6 +32,14 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "resources": [
+      "models/clip/clip-vit-b-32-int8.onnx",
+      "models/clip/config.json",
+      "models/clip/preprocessor_config.json",
+      "models/clip/tokenizer_config.json",
+      "models/clip/vocab.json",
+      "models/clip/merges.txt"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

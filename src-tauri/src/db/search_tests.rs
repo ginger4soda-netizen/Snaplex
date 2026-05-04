@@ -119,3 +119,77 @@ fn updating_memo_makes_new_memo_text_searchable() {
 
     assert_eq!(hits, 1, "memo updates must propagate into the search index");
 }
+
+#[test]
+fn chinese_text_is_searchable_via_fts() {
+    let conn = fresh_db();
+    insert_image(&conn, "img-cn", "cn.jpg");
+    analysis::save_analysis(
+        &conn,
+        "an-cn",
+        "img-cn",
+        &make_analysis("黄昏时分的海边风景"),
+        "p",
+        "m",
+    )
+    .unwrap();
+
+    // Should match: both 黄 and 海 appear in the indexed text
+    let results = super::search::search_fts(&conn, "黄昏的海", None).unwrap();
+    assert!(
+        results.iter().any(|r| r.image_id == "img-cn"),
+        "Chinese search should find images containing the queried characters"
+    );
+}
+
+#[test]
+fn chinese_single_char_search_finds_match() {
+    let conn = fresh_db();
+    insert_image(&conn, "img-cn2", "cn2.jpg");
+    analysis::save_analysis(
+        &conn,
+        "an-cn2",
+        "img-cn2",
+        &make_analysis("夕阳下的港湾"),
+        "p",
+        "m",
+    )
+    .unwrap();
+
+    let results = super::search::search_fts(&conn, "港", None).unwrap();
+    assert!(
+        results.iter().any(|r| r.image_id == "img-cn2"),
+        "Single Chinese character search should match"
+    );
+}
+
+#[test]
+fn mixed_chinese_english_search() {
+    let conn = fresh_db();
+    insert_image(&conn, "img-mix", "mix.jpg");
+    // Content has both English and Chinese analysis fields indexed
+    conn.execute(
+        "INSERT INTO analysis (id, image_id, description, subject_en, subject_cn,
+         environment_en, environment_cn, composition_en, composition_cn,
+         lighting_en, lighting_cn, mood_en, mood_cn, style_en, style_cn)
+         VALUES ('an-mix', 'img-mix', 'sunset over harbor', 'boat', '船',
+                 'ocean', '海洋', '', '', '', '', '', '', '', '')",
+        [],
+    )
+    .unwrap();
+    super::search::rebuild_search_index_for_image(&conn, "img-mix").unwrap();
+
+    // Search with Chinese should find it
+    let results = super::search::search_fts(&conn, "船", None).unwrap();
+    assert!(
+        results.iter().any(|r| r.image_id == "img-mix"),
+        "Chinese search should match Chinese analysis fields"
+    );
+
+    // Search with English should still work
+    let results = super::search::search_fts(&conn, "sunset", None).unwrap();
+    assert!(
+        results.iter().any(|r| r.image_id == "img-mix"),
+        "English search should still work after the fix"
+    );
+}

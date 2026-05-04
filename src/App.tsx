@@ -1,14 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { get, set } from 'idb-keyval';
 import ThreeColumnLayout from './components/layout/ThreeColumnLayout';
-import { UserSettings, DEFAULT_SETTINGS } from './types';
+import { UserSettings, DEFAULT_SETTINGS, TextEmbeddingSettings } from './types';
 import { useTheme } from './hooks/useTheme';
 import { useTauriIPC } from './hooks/useTauriIPC';
+import { getApiKey, getCurrentProvider, ProviderType } from './services/providers';
 import ToastContainer from './components/common/ToastContainer';
 import { showToast } from './hooks/useToast';
 import { useNavigationHistory, NavEntry } from './hooks/useNavigationHistory';
 
 const DEFAULT_LIBRARY_NAME = 'Default';
+
+/** Provider-to-embedding endpoint mapping.
+ *  Only providers with OpenAI-compatible embedding APIs are listed here.
+ *  Gemini and Claude are intentionally omitted — they fall back to FTS-only search. */
+const EMBEDDING_DEFAULTS: Partial<Record<ProviderType, { endpoint: string; model: string }>> = {
+  openai: { endpoint: 'https://api.openai.com/v1', model: 'text-embedding-3-small' },
+  siliconflow: { endpoint: 'https://api.siliconflow.cn/v1', model: 'BAAI/bge-m3' },
+};
+
+/**
+ * Derive the text-embedding config automatically from the current AI provider
+ * and its API key. No user configuration required — if the provider supports
+ * embeddings and a key is present, semantic search is enabled transparently.
+ */
+const deriveTextEmbeddingConfig = (): TextEmbeddingSettings | null => {
+  const provider = getCurrentProvider();
+  const apiKey = getApiKey(provider);
+  const defaults = EMBEDDING_DEFAULTS[provider];
+
+  if (!defaults || !apiKey?.trim()) return null;
+
+  return {
+    enabled: true,
+    endpoint: defaults.endpoint,
+    apiKey: apiKey.trim(),
+    model: defaults.model,
+  };
+};
 
 const App: React.FC = () => {
   const nav = useNavigationHistory({ type: 'folder', id: undefined });
@@ -22,12 +51,13 @@ const App: React.FC = () => {
   const [initState, setInitState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [initError, setInitError] = useState<string>('');
   const { theme } = useTheme();
-  const { getCurrentLibrary, createLibrary } = useTauriIPC();
+  const { getCurrentLibrary, createLibrary, setTextEmbeddingConfig, setClipIndexingEnabled } = useTauriIPC();
 
   // Initialize: load settings + ensure library exists
   useEffect(() => {
     const init = async () => {
       // Load user settings + always apply system language detection on desktop
+      let loadedSettings: UserSettings = DEFAULT_SETTINGS;
       try {
         const stored = await get('visionLearnSettings');
         const detected = detectSystemLanguage();
@@ -41,11 +71,13 @@ const App: React.FC = () => {
           };
           setSettings(updated);
           await set('visionLearnSettings', updated);
+          loadedSettings = updated;
         } else {
           // First launch — use defaults + detected language
           const autoSettings = { ...DEFAULT_SETTINGS, systemLanguage: detected, cardBackLanguage: detected };
           setSettings(autoSettings);
           await set('visionLearnSettings', autoSettings);
+          loadedSettings = autoSettings;
         }
       } catch {
         // idb-keyval may fail in Tauri, non-critical
@@ -60,6 +92,8 @@ const App: React.FC = () => {
           const libPath = `${homePath}/Snaplex Libraries/${DEFAULT_LIBRARY_NAME}.snpx`;
           lib = await createLibrary(libPath, DEFAULT_LIBRARY_NAME);
         }
+        await setTextEmbeddingConfig(deriveTextEmbeddingConfig());
+        await setClipIndexingEnabled(loadedSettings.clipIndexingEnabled ?? true);
         setInitState('ready');
       } catch (e) {
         const msg = String(e);
@@ -74,6 +108,12 @@ const App: React.FC = () => {
   const handleSaveSettings = (newSettings: UserSettings) => {
     setSettings(newSettings);
     set('visionLearnSettings', newSettings);
+    setTextEmbeddingConfig(deriveTextEmbeddingConfig()).catch((error) => {
+      console.warn('Failed to sync text embedding config:', error);
+    });
+    setClipIndexingEnabled(newSettings.clipIndexingEnabled ?? true).catch((error) => {
+      console.warn('Failed to sync CLIP indexing config:', error);
+    });
   };
 
   const handleNavigate = (target: string) => {

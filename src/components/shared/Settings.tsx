@@ -59,11 +59,15 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
         const defaultModel = PROVIDER_MODELS[newProvider][0]?.id || '';
         setModel(defaultModel);
         localStorage.setItem(STORAGE_KEYS.MODEL, defaultModel);
+        // Trigger settings save so App re-derives embedding config
+        onSave({ ...settings });
     };
 
     const handleApiKeyChange = (val: string) => {
         setApiKey(val);
         saveApiKey(provider, val);
+        // Trigger settings save so App re-derives embedding config
+        onSave({ ...settings });
     };
 
     const handleModelChange = (val: string) => {
@@ -116,6 +120,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
             onSave({ ...settings, copyIncludedModules: [...current, modKey] });
         }
     };
+
 
     return (
         <div className="min-h-screen md:pt-40 pb-10 animate-[fadeIn_0.3s_ease-out]">
@@ -215,6 +220,8 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                             </div>
                         </div>
                     </div>
+
+
 
                     {/* 2. Copy Config */}
                     <div className="space-y-6">

@@ -3,6 +3,9 @@ mod db;
 mod fs;
 
 use commands::library_commands::CurrentLibrary;
+use commands::search_commands::BackfillControl;
+use db::cross_modal_embedder::ClipOnnxEmbedder;
+use db::text_embedder::TextEmbeddingConfig;
 use db::Database;
 use std::sync::Mutex;
 
@@ -10,6 +13,10 @@ use std::sync::Mutex;
 pub fn run() {
     tauri::Builder::default()
         .manage(Mutex::new(None::<Database>))
+        .manage(Mutex::new(None::<TextEmbeddingConfig>))
+        .manage(Mutex::new(None::<ClipOnnxEmbedder>))
+        .manage(Mutex::new(true))
+        .manage(BackfillControl::default())
         .manage(CurrentLibrary {
             info: Mutex::new(None),
         })
@@ -57,8 +64,13 @@ pub fn run() {
             commands::analysis_commands::save_dimension_version,
             // §5.5 Search
             commands::search_commands::search_images,
-            commands::search_commands::save_text_embedding,
             commands::search_commands::visual_search,
+            commands::search_commands::get_index_health,
+            commands::search_commands::start_backfill,
+            commands::search_commands::cancel_backfill,
+            commands::search_commands::set_clip_indexing_enabled,
+            commands::search_commands::rebuild_text_index,
+            commands::search_commands::set_text_embedding_config,
             // §5.6 Color
             commands::image_commands::read_image_base64,
             commands::image_commands::extract_color_palette,

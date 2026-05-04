@@ -1,3 +1,73 @@
+export interface TextEmbeddingSettings {
+  enabled: boolean;
+  endpoint: string;
+  apiKey: string;
+  model: string;
+  dimensions?: number;
+}
+
+export interface IndexKindHealth {
+  indexed: number;
+  failed: number;
+  modelVersion: string | null;
+  lastFailure: IndexFailureInfo | null;
+}
+
+export interface IndexHealth {
+  totalImages: number;
+  text: IndexKindHealth;
+  visual: IndexKindHealth;
+  latestBackfill: BackfillCheckpoint | null;
+}
+
+export interface IndexFailureInfo {
+  imageId: string;
+  lastError: string;
+  retryCount: number;
+  lastAttemptAt: string;
+}
+
+export interface BackfillCheckpoint {
+  channelId: string;
+  status: 'running' | 'done' | 'cancelled' | 'failed';
+  currentKind: string;
+  lastImageId: string | null;
+  processed: number;
+  total: number;
+  indexed: number;
+  failed: number;
+  cancelled: boolean;
+  lastError: string | null;
+}
+
+export interface BackfillRun {
+  channelId: string;
+  alreadyRunning: boolean;
+}
+
+export interface BackfillSummary {
+  channelId: string;
+  processed: number;
+  total: number;
+  indexed: number;
+  failed: number;
+  cancelled: boolean;
+  errors: string[];
+}
+
+export interface BackfillProgress {
+  channelId: string;
+  processed: number;
+  total: number;
+  indexed: number;
+  failed: number;
+  cancelled: boolean;
+  currentKind: string;
+  currentFile: string | null;
+  etaSeconds: number | null;
+  lastError: string | null;
+}
+
 export interface UserSettings {
   persona: string;
   descriptionStyle: string; // e.g., "Standard", "Artistic", "Cinematic"
@@ -5,6 +75,8 @@ export interface UserSettings {
   cardBackLanguage?: string; // Default 'CN'
   systemLanguage?: string; // Default 'EN'
   copyIncludedModules?: string[]; // E.g., ['Subject', 'Style']
+  textEmbedding?: TextEmbeddingSettings;
+  clipIndexingEnabled?: boolean;
 }
 
 export interface PromptSegment {
@@ -144,5 +216,12 @@ export const DEFAULT_SETTINGS: UserSettings = {
   cardFrontLanguage: "English",
   cardBackLanguage: "Chinese",
   systemLanguage: "English",
-  copyIncludedModules: ["Subject", "Environment", "Composition", "Lighting", "Mood", "Style"]
+  copyIncludedModules: ["Subject", "Environment", "Composition", "Lighting", "Mood", "Style"],
+  clipIndexingEnabled: true,
+  textEmbedding: {
+    enabled: false,
+    endpoint: "https://api.openai.com/v1",
+    apiKey: "",
+    model: "text-embedding-3-small",
+  }
 };

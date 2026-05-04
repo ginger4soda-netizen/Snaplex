@@ -1,9 +1,13 @@
 pub mod analysis;
 pub mod chat;
+pub mod cross_modal_embedder;
 pub mod folders;
 pub mod images;
+pub mod indexer;
 pub mod schema;
 pub mod search;
+pub mod search_service;
+pub mod text_embedder;
 pub mod vector_store;
 
 #[cfg(test)]
@@ -30,6 +34,8 @@ impl Database {
 
     fn initialize(&self) -> Result<(), rusqlite::Error> {
         let conn = self.conn.lock().unwrap();
-        schema::create_tables(&conn)
+        schema::create_tables(&conn)?;
+        search::migrate_search_index_cjk(&conn)?;
+        Ok(())
     }
 }

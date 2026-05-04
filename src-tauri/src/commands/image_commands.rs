@@ -1,4 +1,9 @@
+use crate::db::cross_modal_embedder::{
+    resolve_clip_model_path, ClipOnnxEmbedder, CrossModalEmbedder,
+};
 use crate::db::images::{self, ColorInfo, ImageDetail, ImageItem, ImportResult};
+use crate::db::indexer;
+use crate::db::vector_store::{self, VectorKind};
 use crate::db::Database;
 use rusqlite::OptionalExtension;
 use std::sync::Mutex;
@@ -55,6 +60,8 @@ pub fn import_images(
     folder_id: Option<String>,
     db_state: State<'_, Mutex<Option<Database>>>,
     current: State<'_, crate::commands::library_commands::CurrentLibrary>,
+    clip_indexing_state: State<'_, Mutex<bool>>,
+    app: tauri::AppHandle,
 ) -> Result<ImportResult, String> {
     let lib_info = current.info.lock().unwrap();
     let lib_path = lib_info.as_ref().ok_or("No library open")?.path.clone();
@@ -66,6 +73,8 @@ pub fn import_images(
     let mut imported = 0;
     let mut failed = 0;
     let mut errors = Vec::new();
+    let clip_indexing_enabled = *clip_indexing_state.lock().unwrap();
+    let mut visual_index_candidates = Vec::new();
 
     for src_path in &file_paths {
         let src = std::path::Path::new(src_path);
@@ -134,7 +143,15 @@ pub fn import_images(
         });
 
         match result {
-            Ok(()) => imported += 1,
+            Ok(()) => {
+                imported += 1;
+                if clip_indexing_enabled {
+                    visual_index_candidates.push(indexer::ImageIndexCandidate {
+                        image_id: id.clone(),
+                        file_path: dest.to_string_lossy().to_string(),
+                    });
+                }
+            }
             Err(e) => {
                 failed += 1;
                 errors.push(format!("DB insert failed {}: {}", filename, e));
@@ -142,11 +159,85 @@ pub fn import_images(
         }
     }
 
+    if clip_indexing_enabled && !visual_index_candidates.is_empty() {
+        let db_path = std::path::Path::new(&lib_path).join("snaplex.db");
+        let app_for_thread = app.clone();
+        std::thread::spawn(move || {
+            index_imported_images_background(db_path, visual_index_candidates, app_for_thread);
+        });
+    }
+
     Ok(ImportResult {
         imported,
         failed,
         errors,
     })
+}
+
+fn index_imported_images_background(
+    db_path: std::path::PathBuf,
+    candidates: Vec<indexer::ImageIndexCandidate>,
+    app: tauri::AppHandle,
+) {
+    let db = match Database::new(&db_path) {
+        Ok(db) => db,
+        Err(error) => {
+            log::warn!("visual import indexing disabled: {error}");
+            return;
+        }
+    };
+    let clip_model_path = resolve_clip_model_path(&app);
+    let embedder = match ClipOnnxEmbedder::from_model_file(&clip_model_path) {
+        Ok(embedder) => embedder,
+        Err(error) => {
+            let conn = db.conn.lock().unwrap();
+            let message = format!("CLIP model unavailable: {error}");
+            for candidate in candidates {
+                let _ =
+                    indexer::record_visual_embedding_failure(&conn, &candidate.image_id, &message);
+            }
+            return;
+        }
+    };
+
+    for candidate in candidates {
+        let image_path = std::path::Path::new(&candidate.file_path);
+        let should_index = {
+            let conn = db.conn.lock().unwrap();
+            vector_store::has_vector(
+                &conn,
+                &candidate.image_id,
+                VectorKind::Visual,
+                embedder.model_version(),
+            )
+            .map(|has_vector| !has_vector)
+            .unwrap_or(true)
+        };
+
+        if !should_index {
+            continue;
+        }
+
+        match embedder.encode_image(image_path) {
+            Ok(vector) => {
+                let conn = db.conn.lock().unwrap();
+                let _ = indexer::store_visual_embedding(
+                    &conn,
+                    &candidate.image_id,
+                    &vector,
+                    embedder.model_version(),
+                );
+            }
+            Err(error) => {
+                let conn = db.conn.lock().unwrap();
+                let _ = indexer::record_visual_embedding_failure(
+                    &conn,
+                    &candidate.image_id,
+                    &error.to_string(),
+                );
+            }
+        }
+    }
 }
 
 /// §5.3 — delete_images

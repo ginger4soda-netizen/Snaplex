@@ -201,6 +201,34 @@ const commands: Record<string, (...args: any[]) => any> = {
     return [] as SearchResult[];
   },
 
+  get_index_health: () => {
+    requireLibrary();
+    return {
+      totalImages: state.images.length,
+      text: {
+        indexed: 0,
+        failed: 0,
+        modelVersion: null,
+        lastFailure: null,
+      },
+      visual: {
+        indexed: 0,
+        failed: 0,
+        modelVersion: 'clip-vit-b-32-int8',
+        lastFailure: null,
+      },
+      latestBackfill: null,
+    };
+  },
+
+  start_backfill: () => {
+    requireLibrary();
+    return {
+      channelId: 'backfill-test',
+      alreadyRunning: false,
+    };
+  },
+
   extract_color_palette: ({ imageId, colorCount }: { imageId: string; colorCount?: number }) => {
     requireLibrary();
     return [] as ColorInfo[];
@@ -223,7 +251,10 @@ const commands: Record<string, (...args: any[]) => any> = {
   link_image_to_folder: () => { requireLibrary(); },
   open_image_in_finder: () => { requireLibrary(); },
   export_images: () => { requireLibrary(); return ''; },
-  save_text_embedding: () => { requireLibrary(); },
+  cancel_backfill: () => {},
+  rebuild_text_index: () => { requireLibrary(); },
+  set_clip_indexing_enabled: () => {},
+  set_text_embedding_config: () => {},
   check_for_update: () => null,
   install_update: () => {},
 };
@@ -252,6 +283,10 @@ export function setupTauriMocks() {
 
   vi.mock('@tauri-apps/api/path', () => ({
     homeDir: vi.fn(async () => '/tmp/test-home/'),
+  }));
+
+  vi.mock('@tauri-apps/api/event', () => ({
+    listen: vi.fn(async () => () => {}),
   }));
 
   vi.mock('@tauri-apps/api/webviewWindow', () => ({

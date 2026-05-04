@@ -28,3 +28,5 @@ dirs = "5"
 tauri-plugin-dialog = "2.6.0"
 base64 = "0.22"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp", "bmp"] }
+reqwest = { version = "0.13.2", default-features = false, features = ["blocking", "json", "rustls"] }
+ort = "2.0.0-rc.12"
