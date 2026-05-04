@@ -45,6 +45,13 @@ export interface BackfillRun {
   alreadyRunning: boolean;
 }
 
+export interface ClipModelStatus {
+  available: boolean;
+  expectedPath: string;
+  modelVersion: string;
+  error: string | null;
+}
+
 export interface BackfillSummary {
   channelId: string;
   processed: number;

@@ -66,6 +66,7 @@ pub fn run() {
             commands::search_commands::search_images,
             commands::search_commands::visual_search,
             commands::search_commands::get_index_health,
+            commands::search_commands::clip_model_status,
             commands::search_commands::start_backfill,
             commands::search_commands::cancel_backfill,
             commands::search_commands::set_clip_indexing_enabled,

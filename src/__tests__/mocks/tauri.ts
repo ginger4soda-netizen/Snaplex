@@ -221,6 +221,13 @@ const commands: Record<string, (...args: any[]) => any> = {
     };
   },
 
+  clip_model_status: () => ({
+    available: true,
+    expectedPath: 'models/clip/clip-vit-b-32-int8.onnx',
+    modelVersion: 'clip-vit-b-32-int8',
+    error: null,
+  }),
+
   start_backfill: () => {
     requireLibrary();
     return {

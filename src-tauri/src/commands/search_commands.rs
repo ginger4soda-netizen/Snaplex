@@ -247,6 +247,50 @@ pub fn get_index_health(
     })
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClipModelStatus {
+    pub available: bool,
+    pub expected_path: String,
+    pub model_version: String,
+    pub error: Option<String>,
+}
+
+/// Probes the CLIP ONNX weights so the frontend can warn the user when the
+/// model is missing or unloadable. Visual search silently degrades to empty
+/// results without this signal.
+#[tauri::command]
+pub fn clip_model_status(app: tauri::AppHandle) -> ClipModelStatus {
+    let path = resolve_clip_model_path(&app);
+    let expected_path = path.display().to_string();
+    let model_version = ClipOnnxEmbedder::MODEL_VERSION.to_string();
+
+    if !path.exists() {
+        let error = format!("CLIP model file not found at {expected_path}");
+        return ClipModelStatus {
+            available: false,
+            expected_path,
+            model_version,
+            error: Some(error),
+        };
+    }
+
+    match ClipOnnxEmbedder::from_model_file(&path) {
+        Ok(_) => ClipModelStatus {
+            available: true,
+            expected_path,
+            model_version,
+            error: None,
+        },
+        Err(error) => ClipModelStatus {
+            available: false,
+            expected_path,
+            model_version,
+            error: Some(error.to_string()),
+        },
+    }
+}
+
 /// §5.5 / Slice 6 — starts a background backfill run and returns its event channel id.
 #[tauri::command]
 pub fn start_backfill(

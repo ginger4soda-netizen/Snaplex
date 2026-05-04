@@ -3,7 +3,7 @@ import {
   LibraryInfo, FolderNode, ImageItem, ImageDetail,
   ImportResult, AnalysisResult, DimensionKey, DimensionVersion,
   SearchResult, ColorInfo, UpdateInfo, ChatMessage, TextEmbeddingSettings,
-  IndexHealth, BackfillRun
+  IndexHealth, BackfillRun, ClipModelStatus
 } from '@/types';
 
 /**
@@ -59,6 +59,7 @@ const ipc = {
   searchImages: (query: string, folderId?: string) => invoke<SearchResult[]>('search_images', { query, folderId }),
   visualSearch: (query: string, limit: number = 50) => invoke<SearchResult[]>('visual_search', { query, limit }),
   getIndexHealth: () => invoke<IndexHealth>('get_index_health'),
+  clipModelStatus: () => invoke<ClipModelStatus>('clip_model_status'),
   startBackfill: () => invoke<BackfillRun>('start_backfill'),
   cancelBackfill: () => invoke<void>('cancel_backfill'),
   rebuildTextIndex: () => invoke<void>('rebuild_text_index'),
