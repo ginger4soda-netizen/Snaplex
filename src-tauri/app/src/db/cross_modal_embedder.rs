@@ -282,6 +282,7 @@ pub fn resolve_clip_model_path(app: &tauri::AppHandle) -> PathBuf {
 
     for candidate in [
         PathBuf::from("models/clip/clip-vit-b-32-int8.onnx"),
+        PathBuf::from("src-tauri/app/models/clip/clip-vit-b-32-int8.onnx"),
         PathBuf::from("src-tauri/models/clip/clip-vit-b-32-int8.onnx"),
     ] {
         if candidate.exists() {

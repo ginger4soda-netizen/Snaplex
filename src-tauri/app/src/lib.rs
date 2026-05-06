@@ -1,12 +1,16 @@
 mod commands;
 mod db;
 mod fs;
+mod services;
+mod transport;
 
 use commands::library_commands::CurrentLibrary;
 use commands::search_commands::BackfillControl;
+use commands::settings_commands::SettingsState;
 use db::cross_modal_embedder::ClipOnnxEmbedder;
 use db::text_embedder::TextEmbeddingConfig;
 use db::Database;
+use services::capture_log::CaptureLog;
 use std::sync::Mutex;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -17,6 +21,8 @@ pub fn run() {
         .manage(Mutex::new(None::<ClipOnnxEmbedder>))
         .manage(Mutex::new(true))
         .manage(BackfillControl::default())
+        .manage(SettingsState::default())
+        .manage(CaptureLog::default())
         .manage(CurrentLibrary {
             info: Mutex::new(None),
         })
@@ -28,6 +34,27 @@ pub fn run() {
                         .level(log::LevelFilter::Info)
                         .build(),
                 )?;
+            }
+            if let Err(error) = transport::local_socket::start(app.handle().clone()) {
+                log::warn!("failed to start Snaplex local socket transport: {error}");
+            }
+            if !cfg!(debug_assertions) {
+                match transport::manifest::install_native_messaging_manifests(app.handle()) {
+                    Ok(paths) if !paths.is_empty() => {
+                        log::info!(
+                            "installed Snaplex Native Messaging manifests: {}",
+                            paths
+                                .iter()
+                                .map(|path| path.display().to_string())
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        );
+                    }
+                    Ok(_) => {}
+                    Err(error) => {
+                        log::warn!("failed to install Snaplex Native Messaging manifest: {error}");
+                    }
+                }
             }
             Ok(())
         })
@@ -52,6 +79,7 @@ pub fn run() {
             commands::image_commands::remove_images_from_folders,
             commands::image_commands::link_image_to_folder,
             commands::image_commands::get_image_detail,
+            commands::image_commands::get_image_sources,
             commands::image_commands::update_image_memo,
             commands::image_commands::toggle_favorite,
             commands::image_commands::set_favorites,
@@ -85,6 +113,10 @@ pub fn run() {
             commands::fs_commands::write_text_file,
             commands::fs_commands::debug_log,
             commands::fs_commands::write_clipboard_text,
+            commands::fs_commands::export_capture_diagnostics,
+            // §5.8 Settings
+            commands::settings_commands::get_current_locale,
+            commands::settings_commands::set_current_locale,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

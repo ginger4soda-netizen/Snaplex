@@ -1,4 +1,5 @@
 use rusqlite::Connection;
+use rusqlite::OptionalExtension;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -264,6 +265,7 @@ pub fn get_image_detail(conn: &Connection, id: &str) -> Result<ImageDetail, rusq
 }
 
 /// Check if an image with the same filename and file_size already exists
+#[allow(dead_code)]
 pub fn image_exists_by_name_size(
     conn: &Connection,
     filename: &str,
@@ -287,13 +289,39 @@ pub fn insert_image(
     height: i32,
     file_size: i64,
     format: &str,
+    source_url: Option<&str>,
+    content_sha256: Option<&str>,
 ) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO images (id, filename, file_path, thumb_path, width, height, file_size, format)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-        rusqlite::params![id, filename, file_path, thumb_path, width, height, file_size, format],
+        "INSERT INTO images (
+            id, filename, file_path, thumb_path, width, height, file_size, format, source_url, content_sha256
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        rusqlite::params![
+            id,
+            filename,
+            file_path,
+            thumb_path,
+            width,
+            height,
+            file_size,
+            format,
+            source_url,
+            content_sha256
+        ],
     )?;
     Ok(())
+}
+
+pub fn find_by_sha256(
+    conn: &Connection,
+    content_sha256: &str,
+) -> Result<Option<String>, rusqlite::Error> {
+    conn.query_row(
+        "SELECT id FROM images WHERE content_sha256 = ?1",
+        rusqlite::params![content_sha256],
+        |row| row.get(0),
+    )
+    .optional()
 }
 
 pub fn delete_images(conn: &Connection, ids: &[String]) -> Result<(), rusqlite::Error> {

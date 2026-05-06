@@ -1,10 +1,12 @@
 use crate::db::cross_modal_embedder::{
     resolve_clip_model_path, ClipOnnxEmbedder, CrossModalEmbedder,
 };
+use crate::db::image_sources::{self, ImageSource};
 use crate::db::images::{self, ColorInfo, ImageDetail, ImageItem, ImportResult};
 use crate::db::indexer;
 use crate::db::vector_store::{self, VectorKind};
 use crate::db::Database;
+use crate::services::ingest::{self, IngestOutcome};
 use rusqlite::OptionalExtension;
 use std::sync::Mutex;
 use tauri::State;
@@ -53,7 +55,8 @@ pub fn count_images(
 }
 
 /// §5.3 — import_images
-/// Phase 0: basic import — copies files into library, creates DB records
+/// Imports files through the shared ingest path so local imports and browser captures
+/// use the same content-hash deduplication behavior.
 #[tauri::command]
 pub fn import_images(
     file_paths: Vec<String>,
@@ -67,9 +70,6 @@ pub fn import_images(
     let lib_path = lib_info.as_ref().ok_or("No library open")?.path.clone();
     drop(lib_info);
 
-    let images_dir = std::path::Path::new(&lib_path).join("images");
-    let thumbs_dir = std::path::Path::new(&lib_path).join("thumbnails");
-
     let mut imported = 0;
     let mut failed = 0;
     let mut errors = Vec::new();
@@ -78,83 +78,43 @@ pub fn import_images(
 
     for src_path in &file_paths {
         let src = std::path::Path::new(src_path);
-        let filename = match src.file_name().and_then(|f| f.to_str()) {
-            Some(f) => f.to_string(),
-            None => {
+
+        let request = match ingest::request_from_file(
+            src,
+            std::path::PathBuf::from(&lib_path),
+            folder_id.clone(),
+        ) {
+            Ok(request) => request,
+            Err(error) => {
                 failed += 1;
-                errors.push(format!("Invalid filename: {}", src_path));
+                errors.push(format!("Import failed {}: {}", src_path, error));
                 continue;
             }
         };
 
-        // Deduplicate: skip if same filename + file_size already in library
-        let src_size = std::fs::metadata(src).map(|m| m.len() as i64).unwrap_or(0);
-        let already_exists = with_db(&db_state, |conn| {
-            images::image_exists_by_name_size(conn, &filename, src_size)
-        })
-        .unwrap_or(false);
-        if already_exists {
-            // Skip silently — not an error, just a duplicate
-            continue;
-        }
-
-        let id = uuid::Uuid::new_v4().to_string();
-        // Use UUID prefix to avoid filename collisions
-        let _ext = src.extension().and_then(|e| e.to_str()).unwrap_or("jpg");
-        let stored_filename = format!("{}_{}", &id[..8], filename);
-        let dest = images_dir.join(&stored_filename);
-        let thumb_dest = thumbs_dir.join(format!("{}.webp", id));
-
-        // Copy file
-        if let Err(e) = std::fs::copy(src, &dest) {
-            failed += 1;
-            errors.push(format!("Copy failed {}: {}", filename, e));
-            continue;
-        }
-
-        let file_size = std::fs::metadata(&dest)
-            .map(|m| m.len() as i64)
-            .unwrap_or(0);
-        let (width, height) = image::image_dimensions(&dest).unwrap_or((0, 0));
-        let format = src
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("unknown")
-            .to_string();
-
-        // Insert into DB
-        let result = with_db(&db_state, |conn| {
-            images::insert_image(
-                conn,
-                &id,
-                &filename,
-                dest.to_str().unwrap_or(""),
-                thumb_dest.to_str(),
-                width as i32,
-                height as i32,
-                file_size,
-                &format,
-            )?;
-            // Link to folder if specified
-            if let Some(ref fid) = folder_id {
-                images::link_image_to_folder(conn, &id, fid)?;
-            }
-            Ok(())
-        });
+        let result = with_db(&db_state, |conn| ingest::ingest(conn, request));
 
         match result {
-            Ok(()) => {
+            Ok(IngestOutcome::Saved {
+                image_id,
+                file_path,
+            }) => {
                 imported += 1;
                 if clip_indexing_enabled {
                     visual_index_candidates.push(indexer::ImageIndexCandidate {
-                        image_id: id.clone(),
-                        file_path: dest.to_string_lossy().to_string(),
+                        image_id,
+                        file_path,
                     });
                 }
             }
+            Ok(IngestOutcome::Duplicate { .. }) => {}
+            Ok(IngestOutcome::Rejected { reason }) => {
+                failed += 1;
+                errors.push(format!("Import rejected {}: {}", src_path, reason.code()));
+            }
             Err(e) => {
                 failed += 1;
-                errors.push(format!("DB insert failed {}: {}", filename, e));
+                errors.push(format!("DB insert failed {}: {}", src_path, e));
             }
         }
     }
@@ -296,6 +256,16 @@ pub fn get_image_detail(
     db_state: State<'_, Mutex<Option<Database>>>,
 ) -> Result<ImageDetail, String> {
     with_db(&db_state, |conn| images::get_image_detail(conn, &id))
+}
+
+#[tauri::command]
+pub fn get_image_sources(
+    image_id: String,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<Vec<ImageSource>, String> {
+    with_db(&db_state, |conn| {
+        image_sources::list_sources_for_image(conn, &image_id)
+    })
 }
 
 /// §5.3 — update_image_memo

@@ -241,10 +241,7 @@ fn sanitize_fts_query(query: &str) -> String {
 
     for word in query.split_whitespace() {
         // Remove FTS5 syntax characters
-        let cleaned: String = word
-            .chars()
-            .filter(|c| !is_fts5_metachar(*c))
-            .collect();
+        let cleaned: String = word.chars().filter(|c| !is_fts5_metachar(*c)).collect();
 
         if cleaned.is_empty() {
             continue;
@@ -350,18 +347,12 @@ mod tests {
     #[test]
     fn cjk_with_embedded_digits() {
         // e.g. "第3版" → "第" "3" "版"
-        assert_eq!(
-            sanitize_fts_query("第3版"),
-            "\"第\" \"3\" \"版\""
-        );
+        assert_eq!(sanitize_fts_query("第3版"), "\"第\" \"3\" \"版\"");
     }
 
     #[test]
     fn japanese_hiragana_split() {
-        assert_eq!(
-            sanitize_fts_query("さくら"),
-            "\"さ\" \"く\" \"ら\""
-        );
+        assert_eq!(sanitize_fts_query("さくら"), "\"さ\" \"く\" \"ら\"");
     }
 
     #[test]

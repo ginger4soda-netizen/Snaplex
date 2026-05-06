@@ -1,13 +1,13 @@
 {
-  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "$schema": "../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Snaplex",
   "version": "0.1.0",
   "identifier": "com.snaplex.app",
   "build": {
-    "frontendDist": "../dist",
+    "frontendDist": "../../dist",
     "devUrl": "http://localhost:3000",
     "beforeDevCommand": "pnpm dev",
-    "beforeBuildCommand": "pnpm build"
+    "beforeBuildCommand": "node scripts/build-tauri-app.mjs"
   },
   "app": {
     "windows": [
@@ -32,14 +32,19 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "resources": [
-      "models/clip/clip-vit-b-32-int8.onnx",
-      "models/clip/config.json",
-      "models/clip/preprocessor_config.json",
-      "models/clip/tokenizer_config.json",
-      "models/clip/vocab.json",
-      "models/clip/merges.txt"
-    ],
+    "resources": {
+      "resources/": "",
+      "models/clip/clip-vit-b-32-int8.onnx": "models/clip/clip-vit-b-32-int8.onnx",
+      "models/clip/config.json": "models/clip/config.json",
+      "models/clip/preprocessor_config.json": "models/clip/preprocessor_config.json",
+      "models/clip/tokenizer_config.json": "models/clip/tokenizer_config.json",
+      "models/clip/vocab.json": "models/clip/vocab.json",
+      "models/clip/merges.txt": "models/clip/merges.txt"
+    },
+    "macOS": {
+      "signingIdentity": "-",
+      "hardenedRuntime": false
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
