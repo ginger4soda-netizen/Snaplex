@@ -51,7 +51,7 @@ const App: React.FC = () => {
   const [initState, setInitState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [initError, setInitError] = useState<string>('');
   const { theme } = useTheme();
-  const { getCurrentLibrary, createLibrary, setTextEmbeddingConfig, setClipIndexingEnabled } = useTauriIPC();
+  const { getCurrentLibrary, createLibrary, setTextEmbeddingConfig, setClipIndexingEnabled, setCurrentLocale } = useTauriIPC();
 
   // Initialize: load settings + ensure library exists
   useEffect(() => {
@@ -85,6 +85,7 @@ const App: React.FC = () => {
 
       // Ensure a library is open
       try {
+        await setCurrentLocale(loadedSettings.systemLanguage || DEFAULT_SETTINGS.systemLanguage || 'English');
         let lib = await getCurrentLibrary();
         if (!lib) {
           // First launch — create default library
@@ -108,6 +109,9 @@ const App: React.FC = () => {
   const handleSaveSettings = (newSettings: UserSettings) => {
     setSettings(newSettings);
     set('visionLearnSettings', newSettings);
+    setCurrentLocale(newSettings.systemLanguage || DEFAULT_SETTINGS.systemLanguage || 'English').catch((error) => {
+      console.warn('Failed to sync current locale:', error);
+    });
     setTextEmbeddingConfig(deriveTextEmbeddingConfig()).catch((error) => {
       console.warn('Failed to sync text embedding config:', error);
     });

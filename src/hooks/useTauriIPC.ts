@@ -3,7 +3,7 @@ import {
   LibraryInfo, FolderNode, ImageItem, ImageDetail,
   ImportResult, AnalysisResult, DimensionKey, DimensionVersion,
   SearchResult, ColorInfo, UpdateInfo, ChatMessage, TextEmbeddingSettings,
-  IndexHealth, BackfillRun, ClipModelStatus
+  IndexHealth, BackfillRun, ClipModelStatus, ImageSource
 } from '@/types';
 
 /**
@@ -45,6 +45,7 @@ const ipc = {
     invoke<void>('set_favorites', { ids, isFavorite }),
   openImageInFinder: (id: string) => invoke<void>('open_image_in_finder', { id }),
   exportImages: (ids: string[], format: string) => invoke<string>('export_images', { ids, format }),
+  getImageSources: (imageId: string) => invoke<ImageSource[]>('get_image_sources', { imageId }),
 
   // Analysis
   getAnalysis: (imageId: string) => invoke<AnalysisResult | null>('get_analysis', { imageId }),
@@ -66,6 +67,8 @@ const ipc = {
   setClipIndexingEnabled: (enabled: boolean) => invoke<void>('set_clip_indexing_enabled', { enabled }),
   setTextEmbeddingConfig: (config: TextEmbeddingSettings | null) =>
     invoke<void>('set_text_embedding_config', { config }),
+  setCurrentLocale: (locale: string) => invoke<void>('set_current_locale', { locale }),
+  getCurrentLocale: () => invoke<string>('get_current_locale'),
 
   // Image base64 (for AI analysis — bypasses asset:// fetch issues)
   readImageBase64: (id: string) => invoke<string>('read_image_base64', { id }),
@@ -86,6 +89,7 @@ const ipc = {
   // File system
   writeTextFile: (path: string, content: string) => invoke<void>('write_text_file', { path, content }),
   writeClipboardText: (text: string) => invoke<void>('write_clipboard_text', { text }),
+  exportCaptureDiagnostics: (path: string) => invoke<void>('export_capture_diagnostics', { path }),
 
   // System
   checkForUpdate: () => invoke<UpdateInfo | null>('check_for_update'),

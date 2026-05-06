@@ -163,6 +163,19 @@ export interface ImageDetail extends ImageItem {
   folderIds: string[];
 }
 
+export interface ImageSource {
+  id: number;
+  imageId: string;
+  captureType: 'image' | 'screenshot_visible' | 'screenshot_region' | 'video_frame' | string;
+  sourceUrl: string | null;
+  pageUrl: string | null;
+  pageTitle: string | null;
+  sourceDomain: string | null;
+  capturedAt: string;
+  clientId: string;
+  metadataJson: string | null;
+}
+
 export interface ImportResult {
   imported: number;
   failed: number;

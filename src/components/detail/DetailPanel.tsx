@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTauriIPC } from '@/hooks/useTauriIPC';
-import { ImageDetail, AnalysisResult, DimensionKey, DEFAULT_SETTINGS } from '@/types';
+import { ImageDetail, DimensionKey, DEFAULT_SETTINGS, ImageSource } from '@/types';
 import ImagePreview from './ImagePreview';
 import ColorPalette from './ColorPalette';
 import DimensionCards from './DimensionCards';
@@ -22,6 +22,13 @@ const PROMPT_DIMS: { key: DimensionKey; label: string }[] = [
   { key: 'style', label: 'Style' },
 ];
 
+const CAPTURE_TYPE_LABELS: Record<string, string> = {
+  image: 'Image',
+  screenshot_visible: 'Visible area',
+  screenshot_region: 'Region',
+  video_frame: 'Video frame',
+};
+
 // Module-level cache keyed by "imageId:colorCount"
 const colorCache = new Map<string, ExtractedColor[]>();
 
@@ -31,8 +38,9 @@ interface DetailPanelProps {
 }
 
 const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
-  const { getImageDetail, updateImageMemo, getColorPalette, saveColorPalette } = useTauriIPC();
+  const { getImageDetail, getImageSources, updateImageMemo, getColorPalette, saveColorPalette } = useTauriIPC();
   const [detail, setDetail] = useState<ImageDetail | null>(null);
+  const [imageSources, setImageSources] = useState<ImageSource[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'chat'>('info');
   const [colorCount, setColorCount] = useState(8);
@@ -40,11 +48,13 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
   useEffect(() => {
     if (!imageId) {
       setDetail(null);
+      setImageSources([]);
       return;
     }
 
     // Clear stale detail immediately so Info tab shows loading, not the previous image's data
     setDetail(null);
+    setImageSources([]);
     setLoading(true);
 
     let cancelled = false;
@@ -54,6 +64,13 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
         if (!cancelled) setDetail(result);
       } catch (err) {
         console.error("Failed to load image detail", err);
+      }
+
+      try {
+        const sources = await getImageSources(imageId);
+        if (!cancelled) setImageSources(sources);
+      } catch (err) {
+        console.error("Failed to load image sources", err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -129,6 +146,12 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
 
   const handleColorCountChange = useCallback((count: number) => {
     setColorCount(count);
+  }, []);
+
+  const formatCapturedAt = useCallback((capturedAt: string) => {
+    const date = new Date(capturedAt);
+    if (Number.isNaN(date.getTime())) return capturedAt;
+    return date.toLocaleString();
   }, []);
 
   const handleMemoChange = async (memo: string) => {
@@ -237,12 +260,47 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
           <div className="px-5 py-6 space-y-8 pb-12">
             <ColorPalette colors={detail.colorPalette} colorCount={colorCount} onColorCountChange={handleColorCountChange} />
 
-            {detail.sourceUrl && (
+            {(imageSources.length > 0 || detail.sourceUrl) && (
               <section>
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Source</h3>
-                <a href={detail.sourceUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline truncate block">
-                  {detail.sourceUrl}
-                </a>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Sources</h3>
+                {imageSources.length > 0 ? (
+                  <div className="space-y-3">
+                    {imageSources.map((source) => {
+                      const primaryUrl = source.pageUrl || source.sourceUrl;
+                      const title = source.pageTitle || source.sourceDomain || primaryUrl || 'Captured source';
+                      const sourceUrl = source.sourceUrl && source.sourceUrl !== primaryUrl ? source.sourceUrl : null;
+
+                      return (
+                        <div key={source.id} className="rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950/40 p-3">
+                          <div className="flex items-center justify-between gap-3 mb-2">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">
+                              {CAPTURE_TYPE_LABELS[source.captureType] || source.captureType}
+                            </span>
+                            <span className="text-[10px] font-bold text-stone-400 whitespace-nowrap">
+                              {formatCapturedAt(source.capturedAt)}
+                            </span>
+                          </div>
+                          {primaryUrl ? (
+                            <a href={primaryUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-500 hover:underline truncate block">
+                              {title}
+                            </a>
+                          ) : (
+                            <p className="text-xs font-bold text-stone-500 truncate">{title}</p>
+                          )}
+                          {sourceUrl && (
+                            <a href={sourceUrl} target="_blank" rel="noreferrer" className="mt-1 text-[11px] text-stone-500 dark:text-stone-400 hover:underline truncate block">
+                              {sourceUrl}
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : detail.sourceUrl ? (
+                  <a href={detail.sourceUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline truncate block">
+                    {detail.sourceUrl}
+                  </a>
+                ) : null}
               </section>
             )}
 

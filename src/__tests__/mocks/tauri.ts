@@ -13,7 +13,7 @@
 import { vi } from 'vitest';
 import type {
   LibraryInfo, FolderNode, ImageItem, ImageDetail,
-  ImportResult, AnalysisResult, SearchResult, ColorInfo,
+  ImportResult, AnalysisResult, SearchResult, ColorInfo, ImageSource,
 } from '../../types';
 
 // ---- In-memory state (mirrors Rust's Mutex<Option<Database>>) ----
@@ -177,6 +177,11 @@ const commands: Record<string, (...args: any[]) => any> = {
     return detail;
   },
 
+  get_image_sources: ({ imageId }: { imageId: string }) => {
+    requireLibrary();
+    return [] as ImageSource[];
+  },
+
   update_image_memo: ({ id, memo }: { id: string; memo: string }) => {
     requireLibrary();
     const img = state.images.find(i => i.id === id);
@@ -258,10 +263,13 @@ const commands: Record<string, (...args: any[]) => any> = {
   link_image_to_folder: () => { requireLibrary(); },
   open_image_in_finder: () => { requireLibrary(); },
   export_images: () => { requireLibrary(); return ''; },
+  export_capture_diagnostics: () => {},
   cancel_backfill: () => {},
   rebuild_text_index: () => { requireLibrary(); },
   set_clip_indexing_enabled: () => {},
   set_text_embedding_config: () => {},
+  set_current_locale: () => {},
+  get_current_locale: () => 'en',
   check_for_update: () => null,
   install_update: () => {},
 };
@@ -304,6 +312,7 @@ export function setupTauriMocks() {
 
   vi.mock('@tauri-apps/plugin-dialog', () => ({
     open: vi.fn(async () => null),
+    save: vi.fn(async () => null),
   }));
 
   vi.mock('idb-keyval', () => ({
