@@ -30,6 +30,18 @@
         gap: 12px;
       }
 
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+        gap: 8px;
+      }
+
+      .brand img {
+        flex: 0 0 auto;
+        display: block;
+      }
+
       h1 {
         margin: 0;
         font-size: 16px;
@@ -57,9 +69,9 @@
       }
 
       .status[data-tone="connecting"] {
-        color: #664d03;
-        background: #fff1c7;
-        border-color: #ead07b;
+        color: #34513a;
+        background: #e9efe7;
+        border-color: #c6d7bf;
       }
 
       .status[data-tone="error"] {
@@ -137,7 +149,10 @@
   <body>
     <main>
       <header>
-        <h1>Snaplex</h1>
+        <div class="brand">
+          <img src="icons/popup-logo.png" alt="" width="24" height="24" />
+          <h1>Snaplex</h1>
+        </div>
         <div id="status" class="status" data-tone="connecting">Connecting...</div>
       </header>
 
