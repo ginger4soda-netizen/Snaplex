@@ -1,0 +1,22 @@
+# Desktop app and native build artifacts are not part of the web deployment.
+src-tauri/
+
+# Browser extension package is distributed separately.
+extension/
+
+# Documentation, release assets, and local design sources are not needed at runtime.
+docs/
+branding/
+scripts/
+
+# Local/generated artifacts.
+dist/
+coverage/
+.playwright-mcp/
+snaplex-current-state.png
+snaplex-logo.png
+*.log
+.DS_Store
+
+# Dependency installs happen on Vercel.
+node_modules/

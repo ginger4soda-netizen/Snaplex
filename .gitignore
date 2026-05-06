@@ -148,3 +148,4 @@ dist
 
 # CLIP / ONNX model weights — downloaded at runtime, too large for git
 src-tauri/models/
+.vercel
