@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppMode } from '../../types';
+import Logo from '../shared/Logo';
 
 interface HeaderProps {
     currentMode: AppMode;
@@ -31,7 +32,8 @@ const Header: React.FC<HeaderProps> = ({ currentMode, setMode }) => {
                         className="flex items-center gap-2 cursor-pointer group"
                         onClick={() => setMode('home')}
                     >
-                        <div className="px-3 py-1 border-2 border-softblue rounded-lg flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(17,138,178,1)] bg-white group-active:translate-y-0.5 group-active:shadow-none transition-all">
+                        <div className="px-3 py-1 border-2 border-softblue rounded-lg flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(17,138,178,1)] bg-white group-active:translate-y-0.5 group-active:shadow-none transition-all">
+                            <Logo variant="mark" size={24} alt="" />
                             <h1 className="font-extrabold text-xl text-softblue tracking-tight">Snaplex</h1>
                         </div>
                     </div>

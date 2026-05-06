@@ -16,6 +16,7 @@ import { getCurrentProvider, getCurrentModel } from '@/services/providers/types'
 import { getImageBase64 } from '@/utils/imageToBase64';
 import { get } from 'idb-keyval';
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+import Logo from '@/components/shared/Logo';
 
 // macOS treats Ctrl+click as a right-click but ALSO emits a synthetic click
 // with ctrlKey=true. Without platform-aware handling, that click toggles the
@@ -1031,13 +1032,13 @@ const ImageGrid: React.FC<ImageGridProps> = ({
           <div className="p-6 h-full">
             <div
               onClick={handleClickUpload}
-              className="flex flex-col items-center justify-center h-full text-stone-400 gap-4 opacity-60 hover:opacity-80 cursor-pointer transition-opacity"
+              className="flex flex-col items-center justify-center h-full text-stone-400 gap-5 cursor-pointer transition-opacity hover:opacity-90"
             >
-              <div className="p-6 bg-stone-50 dark:bg-stone-800/50 rounded-3xl">
-                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              <div className="flex h-28 w-28 items-center justify-center rounded-2xl border border-mascot/15 bg-cream shadow-pop-sm dark:border-mascot/30 dark:bg-stone-800">
+                <Logo variant="mark" size={96} className="drop-shadow-sm" />
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold">{searchResultIds !== null ? 'No results match your search' : 'No images found'}</p>
+                <p className="text-lg font-bold text-mascot">{searchResultIds !== null ? 'No results match your search' : 'No images found'}</p>
                 <p className="text-sm">{searchResultIds !== null ? 'Try different keywords or filters' : 'Drag & drop images or click to import'}</p>
               </div>
             </div>

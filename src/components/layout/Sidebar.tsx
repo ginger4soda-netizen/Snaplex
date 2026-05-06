@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import FolderTree from '../folders/FolderTree';
+import Logo from '../shared/Logo';
 import { useTauriIPC } from '@/hooks/useTauriIPC';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -278,7 +279,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
     <div className="flex flex-col h-full bg-cream dark:bg-stone-900">
       {/* App Header / Logo + Collapse button */}
       <div className="p-4 flex items-center gap-2">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20">S</div>
+        <Logo variant="mark" size={32} alt="" />
         <h1 className="font-bold text-lg tracking-tight dark:text-white">Snaplex</h1>
         <div className="flex-1" />
         <button
