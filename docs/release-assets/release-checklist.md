@@ -32,7 +32,7 @@
 - [ ] [`privacy-policy-zh.md`](./privacy-policy-zh.md) 同上
 - [ ] 隐私政策已托管为公开 URL（GitHub Pages / 自有域名都可），点开能正常访问
 - [ ] 5 张商店截图全部产出，尺寸 1280×800（参见 [`screenshot-checklist.md`](./screenshot-checklist.md)）
-- [ ] Promo tile 440×280（可选）已产出
+- [ ] Promo tile 440×280 / 920×680 / 1400×560 已产出（参见 [`promo/`](./promo/)）
 
 ## D. Native Messaging 配套校验（防"扩展能装但永远连不上"）
 

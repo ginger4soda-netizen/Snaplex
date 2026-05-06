@@ -106,5 +106,13 @@ snaplex/docs/release-assets/screenshots/
 
 ## Promo tile（可选但建议）
 
-- **Small promo tile**: 440×280 PNG。建议用 popup 连接成功 + 一张精美保存图叠加，作为首图。
-- **Marquee tile**: 1400×560 PNG。仅在 Editor's Pick / 首页推广时被用到，可后补。
+- **Small promo tile**: [`promo/small-promo-440x280.png`](./promo/small-promo-440x280.png)。
+- **Large promo tile**: [`promo/large-promo-920x680.png`](./promo/large-promo-920x680.png)。
+- **Marquee tile**: [`promo/marquee-promo-1400x560.png`](./promo/marquee-promo-1400x560.png)。仅在 Editor's Pick / 首页推广时被用到，可后补。
+
+重新生成：
+
+```bash
+cd snaplex
+node scripts/generate-release-promos.mjs
+```

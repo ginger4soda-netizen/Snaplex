@@ -1,4 +1,6 @@
 <div align="center">
+<img width="128" alt="Snaplex Logo" src="branding/exports/full/256.png" />
+
 <img width="1200" alt="Snaplex Home" src="public/screenshots/home.png" />
 
 # Snaplex - AI Image Analysis & Prompt Reverse Studio

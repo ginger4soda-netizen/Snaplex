@@ -22,18 +22,22 @@ The loadable extension is written to `extension/dist`.
 
 ## Native Messaging Dev Manifest
 
+All paths below are relative to the `snaplex/` directory.
+
 Build the desktop workspace first:
 
 ```sh
-cd snaplex/src-tauri
-cargo build
+cd src-tauri
+cargo build -p snaplex-bridge
 ```
 
 Then install a development Native Messaging manifest with the extension ID from Chrome:
 
 ```sh
-cd ../..
-scripts/install-dev-manifest.sh --bridge snaplex/src-tauri/target/debug/snaplex-bridge --ext-id <extension-id>
+cd ..   # back to snaplex/
+scripts/install-dev-manifest.sh \
+  --bridge src-tauri/target/debug/snaplex-bridge \
+  --ext-id <extension-id>
 ```
 
 The Phase 4 script owns the final manifest installation behavior. The production manifest must include the Chrome Web Store extension ID before release.

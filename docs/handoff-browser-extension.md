@@ -1,5 +1,7 @@
 # 交接文档 — Snaplex 浏览器插件 v1（打包前）
 
+**Status: Done — superseded**
+
 **Status:** Ready for pre-release fixes
 **Last updated:** 2026-05-05
 **Source PRD:** [`docs/prd-browser-extension.md`](./prd-browser-extension.md)

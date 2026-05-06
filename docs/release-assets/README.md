@@ -13,12 +13,14 @@ Chrome Web Store 上架所需的全部文案与素材清单。等 trader account
 | [`privacy-policy-zh.md`](./privacy-policy-zh.md) | 中文隐私政策 | 草稿就绪 |
 | [`permissions-justification.md`](./permissions-justification.md) | Web Store 隐私页签需要逐项填写的权限用途 | 草稿就绪 |
 | [`screenshot-checklist.md`](./screenshot-checklist.md) | 5 张商店截图的拍摄脚本 + 规格 | 待拍摄 |
+| [`promo/`](./promo/) | Chrome Web Store promo 图（440×280 / 920×680 / 1400×560） | 已生成 |
 | [`release-checklist.md`](./release-checklist.md) | 提交前的最终核对清单 | 草稿就绪 |
 
 ## 已打包产物
 
 - 扩展 zip：[`extension/snaplex-extension-v0.1.0.zip`](../../extension/snaplex-extension-v0.1.0.zip) — 38 KB / 27 文件
 - 构建命令：`cd extension && node scripts/build.mjs && (cd dist && zip -r ../snaplex-extension-v0.1.0.zip . -x ".*" "__MACOSX*")`
+- Promo 图：[`promo/small-promo-440x280.png`](./promo/small-promo-440x280.png)、[`promo/large-promo-920x680.png`](./promo/large-promo-920x680.png)、[`promo/marquee-promo-1400x560.png`](./promo/marquee-promo-1400x560.png)
 
 ## 提交流程概览（参考）
 
@@ -27,7 +29,7 @@ Chrome Web Store 上架所需的全部文案与素材清单。等 trader account
 3. 按 [`store-listing-en.md`](./store-listing-en.md) 填写 Store listing
 4. 按 [`permissions-justification.md`](./permissions-justification.md) 填 Privacy practices
 5. 隐私政策 URL 填托管后的 [`privacy-policy-en.md`](./privacy-policy-en.md) 渲染地址
-6. 上传 [`screenshot-checklist.md`](./screenshot-checklist.md) 中产出的 5 张截图
+6. 上传 [`screenshot-checklist.md`](./screenshot-checklist.md) 中产出的 5 张截图，并按需上传 [`promo/`](./promo/) 中的 promo 图
 7. **首次以 Unlisted 提交** → 拿 production extension ID → 回填 P1 → 重打 Desktop → 切 Public
 
 ## 阻塞项提醒
