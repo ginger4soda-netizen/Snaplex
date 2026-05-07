@@ -107,6 +107,7 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
           onFolderSelect={onFolderSelect}
           onNavigate={onNavigate}
           refreshTrigger={folderRefreshTrigger}
+          systemLanguage={settings.systemLanguage}
           onImagesChanged={() => {
             setImageRefreshTrigger(prev => prev + 1);
             setFolderRefreshTrigger(prev => prev + 1);
@@ -133,6 +134,7 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
             isDetailVisible={isDetailVisible}
             nav={nav}
             refreshTrigger={imageRefreshTrigger}
+            systemLanguage={settings.systemLanguage}
             onImagesChanged={() => setFolderRefreshTrigger(prev => prev + 1)}
           />
         ) : centerView === 'settings' ? (
@@ -145,7 +147,7 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
           </div>
         ) : centerView === 'about' ? (
           <div className="h-full overflow-y-auto">
-            <About />
+            <About systemLanguage={settings.systemLanguage} />
           </div>
         ) : null}
       </div>
@@ -165,6 +167,7 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
             <DetailPanel
               imageId={selectedImageId}
               onClose={() => setIsDetailVisible(false)}
+              systemLanguage={settings.systemLanguage}
             />
           </div>
         </>

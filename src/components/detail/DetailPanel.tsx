@@ -12,7 +12,11 @@ import { getCorrectDisplayOrder } from '@/utils/languageDetect';
 import { copyToClipboard } from '@/utils/clipboard';
 import { showToast } from '@/hooks/useToast';
 import { get } from 'idb-keyval';
+import { getTranslation } from '@/translations';
 
+// Labels here feed the structured-prompt copy template (`[label]` blocks are
+// kept English so generated prompts stay portable across providers). The
+// on-screen dimension labels are translated separately via `t['prompt.section.*']`.
 const PROMPT_DIMS: { key: DimensionKey; label: string }[] = [
   { key: 'subject', label: 'Subject' },
   { key: 'environment', label: 'Environment' },
@@ -22,23 +26,24 @@ const PROMPT_DIMS: { key: DimensionKey; label: string }[] = [
   { key: 'style', label: 'Style' },
 ];
 
-const CAPTURE_TYPE_LABELS: Record<string, string> = {
-  image: 'Image',
-  screenshot_visible: 'Visible area',
-  screenshot_region: 'Region',
-  video_frame: 'Video frame',
-};
-
 // Module-level cache keyed by "imageId:colorCount"
 const colorCache = new Map<string, ExtractedColor[]>();
 
 interface DetailPanelProps {
   imageId?: string;
   onClose: () => void;
+  systemLanguage?: string;
 }
 
-const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
+const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLanguage }) => {
   const { getImageDetail, getImageSources, updateImageMemo, getColorPalette, saveColorPalette } = useTauriIPC();
+  const t = getTranslation(systemLanguage);
+  const captureTypeLabels: Record<string, string> = {
+    image: t['captureType.image'],
+    screenshot_visible: t['captureType.screenshotVisible'],
+    screenshot_region: t['captureType.screenshotRegion'],
+    video_frame: t['captureType.videoFrame'],
+  };
   const [detail, setDetail] = useState<ImageDetail | null>(null);
   const [imageSources, setImageSources] = useState<ImageSource[]>([]);
   const [loading, setLoading] = useState(false);
@@ -201,7 +206,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
     return (
       <div className="h-full flex flex-col items-center justify-center text-stone-400 p-8 text-center gap-4 opacity-50">
         <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        <p className="text-sm font-medium leading-relaxed">Select an image to view<br/>details and analysis</p>
+        <p className="text-sm font-medium leading-relaxed whitespace-pre-line">{t['detail.empty']}</p>
       </div>
     );
   }
@@ -229,17 +234,17 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
       {/* Header Tabs */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100 dark:border-stone-800 shrink-0">
         <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-lg">
-          <button 
+          <button
             onClick={() => setActiveTab('info')}
             className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === 'info' ? 'bg-white dark:bg-stone-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'}`}
           >
-            Info
+            {t['detail.tab.info']}
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('chat')}
             className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === 'chat' ? 'bg-white dark:bg-stone-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'}`}
           >
-            Chat
+            {t['detail.tab.chat']}
           </button>
         </div>
         <button 
@@ -262,19 +267,19 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
 
             {(imageSources.length > 0 || detail.sourceUrl) && (
               <section>
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Sources</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">{t['detail.section.sources']}</h3>
                 {imageSources.length > 0 ? (
                   <div className="space-y-3">
                     {imageSources.map((source) => {
                       const primaryUrl = source.pageUrl || source.sourceUrl;
-                      const title = source.pageTitle || source.sourceDomain || primaryUrl || 'Captured source';
+                      const title = source.pageTitle || source.sourceDomain || primaryUrl || t['detail.capturedSource'];
                       const sourceUrl = source.sourceUrl && source.sourceUrl !== primaryUrl ? source.sourceUrl : null;
 
                       return (
                         <div key={source.id} className="rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950/40 p-3">
                           <div className="flex items-center justify-between gap-3 mb-2">
                             <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">
-                              {CAPTURE_TYPE_LABELS[source.captureType] || source.captureType}
+                              {captureTypeLabels[source.captureType] || source.captureType}
                             </span>
                             <span className="text-[10px] font-bold text-stone-400 whitespace-nowrap">
                               {formatCapturedAt(source.capturedAt)}
@@ -306,11 +311,11 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
 
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">Prompt</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400">{t['detail.section.prompt']}</h3>
                 {detail.analysis && (
                   <button
                     onClick={handleCopyAllPrompts}
-                    title="Copy all prompts"
+                    title={t['detail.copyAllPrompts']}
                     className="p-1 rounded-md text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
                   >
                     {promptCopied ? (
@@ -329,6 +334,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
                 imageId={detail.id}
                 analysis={detail.analysis}
                 image={fullUrl}
+                systemLanguage={systemLanguage}
                 onAnalysisComplete={(analysis) => {
                   setDetail(prev => prev ? { ...prev, analysis, hasAnalysis: true } : null);
                 }}
@@ -336,10 +342,11 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose }) => {
             </section>
 
             <section>
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Notes</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">{t['detail.section.notes']}</h3>
               <MemoCard
                 memo={detail.memo}
                 onMemoChange={handleMemoChange}
+                systemLanguage={systemLanguage}
               />
             </section>
           </div>

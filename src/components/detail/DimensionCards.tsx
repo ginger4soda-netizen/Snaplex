@@ -6,6 +6,7 @@ import { getCurrentProvider, getCurrentModel } from '@/services/providers/types'
 import { getImageBase64 } from '@/utils/imageToBase64';
 import { translatePromptDimensions } from '@/services/googleTranslate';
 import { get } from 'idb-keyval';
+import { getTranslation } from '@/translations';
 
 const ALL_DIMS: DimensionKey[] = ['subject', 'environment', 'composition', 'lighting', 'mood', 'style'];
 
@@ -14,18 +15,28 @@ interface DimensionCardsProps {
   analysis: AnalysisResult | null;
   image: string; // asset:// URL from convertFileSrc
   onAnalysisComplete?: (analysis: AnalysisResult) => void;
+  systemLanguage?: string;
 }
 
-const DIMENSIONS: { key: DimensionKey; label: string; color: string; icon: string }[] = [
-  { key: 'subject', label: 'Subject', color: 'text-coral', icon: '👤' },
-  { key: 'environment', label: 'Environment', color: 'text-mint', icon: '🌍' },
-  { key: 'composition', label: 'Composition', color: 'text-softblue', icon: '📐' },
-  { key: 'lighting', label: 'Lighting', color: 'text-sunny', icon: '💡' },
-  { key: 'mood', label: 'Mood', color: 'text-softblue', icon: '✨' },
-  { key: 'style', label: 'Style', color: 'text-stone-500', icon: '🎨' },
+type PromptSectionKey =
+  | 'prompt.section.subject'
+  | 'prompt.section.environment'
+  | 'prompt.section.composition'
+  | 'prompt.section.lighting'
+  | 'prompt.section.mood'
+  | 'prompt.section.style';
+
+const DIMENSIONS: { key: DimensionKey; labelKey: PromptSectionKey; color: string; icon: string }[] = [
+  { key: 'subject', labelKey: 'prompt.section.subject', color: 'text-coral', icon: '👤' },
+  { key: 'environment', labelKey: 'prompt.section.environment', color: 'text-mint', icon: '🌍' },
+  { key: 'composition', labelKey: 'prompt.section.composition', color: 'text-softblue', icon: '📐' },
+  { key: 'lighting', labelKey: 'prompt.section.lighting', color: 'text-sunny', icon: '💡' },
+  { key: 'mood', labelKey: 'prompt.section.mood', color: 'text-softblue', icon: '✨' },
+  { key: 'style', labelKey: 'prompt.section.style', color: 'text-stone-500', icon: '🎨' },
 ];
 
-const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, image, onAnalysisComplete }) => {
+const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, image, onAnalysisComplete, systemLanguage }) => {
+  const t = getTranslation(systemLanguage);
   const [expandedKey, setExpandedKey] = useState<DimensionKey | null>('subject');
   const [analyzing, setAnalyzing] = useState(false);
   const [refreshingDim, setRefreshingDim] = useState<DimensionKey | null>(null);
@@ -247,7 +258,7 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
   if (!currentAnalysis) {
     return (
       <div className="bg-stone-50 dark:bg-stone-800/50 rounded-2xl p-6 text-center border-2 border-dashed border-stone-200 dark:border-stone-700">
-        <p className="text-xs text-stone-400 font-medium">No analysis available for this image</p>
+        <p className="text-xs text-stone-400 font-medium">{t['prompt.noAnalysis']}</p>
         {error && (
           <p className="mt-2 text-xs text-red-500 font-medium">{error}</p>
         )}
@@ -259,9 +270,9 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
           {analyzing ? (
             <span className="flex items-center gap-2">
               <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Analyzing...
+              {t['prompt.analyzing']}
             </span>
-          ) : 'Analyze Now'}
+          ) : t['prompt.analyzeNow']}
         </button>
       </div>
     );
@@ -291,7 +302,7 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
             >
               <div className="flex items-center gap-2.5">
                 <span className="text-sm">{dim.icon}</span>
-                <span className={`text-[11px] font-black uppercase tracking-widest ${dim.color}`}>{dim.label}</span>
+                <span className={`text-[11px] font-black uppercase tracking-widest ${dim.color}`}>{t[dim.labelKey]}</span>
                 {hasHistory && (
                   <span className="text-[10px] text-stone-400 font-mono tabular-nums">
                     {currentIndex + 1}/{versions.length}
