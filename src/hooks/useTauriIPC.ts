@@ -89,7 +89,6 @@ const ipc = {
   // File system
   writeTextFile: (path: string, content: string) => invoke<void>('write_text_file', { path, content }),
   writeClipboardText: (text: string) => invoke<void>('write_clipboard_text', { text }),
-  exportCaptureDiagnostics: (path: string) => invoke<void>('export_capture_diagnostics', { path }),
 
   // System
   checkForUpdate: () => invoke<UpdateInfo | null>('check_for_update'),

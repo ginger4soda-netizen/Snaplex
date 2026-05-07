@@ -8,8 +8,38 @@ const elements = {
   captureVisible: document.getElementById("captureVisible"),
   selectArea: document.getElementById("selectArea"),
   hint: document.getElementById("hint"),
-  privacy: document.getElementById("privacy")
+  privacy: document.getElementById("privacy"),
+  shortcutLabel: document.getElementById("shortcutLabel"),
+  shortcutValue: document.getElementById("shortcutValue"),
+  customizeShortcut: document.getElementById("customizeShortcut")
 };
+
+const SHORTCUTS_URLS = ["chrome://extensions/shortcuts", "edge://extensions/shortcuts"];
+
+function isEdgeBrowser() {
+  return /\bEdg\//i.test(navigator.userAgent);
+}
+
+async function readRegionShortcut() {
+  try {
+    const commands = await chrome.commands.getAll();
+    const cmd = commands.find((c) => c.name === "start-region-screenshot");
+    return cmd?.shortcut?.trim() || "";
+  } catch {
+    return "";
+  }
+}
+
+async function renderShortcut() {
+  const shortcut = await readRegionShortcut();
+  if (shortcut) {
+    elements.shortcutValue.textContent = shortcut;
+    elements.shortcutValue.dataset.state = "set";
+  } else {
+    elements.shortcutValue.textContent = t("shortcut.notSet");
+    elements.shortcutValue.dataset.state = "unset";
+  }
+}
 
 const DESKTOP_UNREACHABLE_CODES = new Set([
   "desktop_disconnected",
@@ -72,6 +102,9 @@ function render() {
   elements.selectArea.textContent = t("action.selectArea");
   elements.hint.textContent = t("hint.rightClick");
   elements.privacy.textContent = t("privacy.localOnly");
+  elements.shortcutLabel.textContent = t("shortcut.label");
+  elements.customizeShortcut.textContent = t("shortcut.customize");
+  void renderShortcut();
 }
 
 async function sendMessage(type) {
@@ -117,6 +150,17 @@ elements.selectArea.addEventListener("click", () => {
   void sendMessage("snaplex:start-region-screenshot").then((response) => {
     if (response?.message) {
       console.info("[Snaplex]", response.message);
+    }
+  });
+});
+
+elements.customizeShortcut.addEventListener("click", () => {
+  const url = isEdgeBrowser() ? SHORTCUTS_URLS[1] : SHORTCUTS_URLS[0];
+  chrome.tabs.create({ url }, () => {
+    if (chrome.runtime.lastError) {
+      // Some browsers reject chrome:// scheme; try the alternate.
+      const fallback = url === SHORTCUTS_URLS[0] ? SHORTCUTS_URLS[1] : SHORTCUTS_URLS[0];
+      chrome.tabs.create({ url: fallback });
     }
   });
 });

@@ -144,6 +144,55 @@
         padding-top: 2px;
         border-top: 1px solid #e2e6e6;
       }
+
+      .shortcut {
+        display: grid;
+        gap: 6px;
+        padding: 10px 12px;
+        border: 1px solid #d9dfdf;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      .shortcut-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .shortcut-label {
+        color: #5c686b;
+        font-size: 11px;
+        font-weight: 650;
+        text-transform: uppercase;
+      }
+
+      .shortcut-value {
+        color: #172026;
+        font-size: 12px;
+        font-weight: 650;
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      .shortcut-value[data-state="unset"] {
+        color: #879294;
+        font-family: inherit;
+        font-style: italic;
+      }
+
+      .shortcut-link {
+        all: unset;
+        cursor: pointer;
+        color: #126466;
+        font-size: 12px;
+        font-weight: 650;
+        text-align: left;
+      }
+
+      .shortcut-link:hover {
+        text-decoration: underline;
+      }
     </style>
   </head>
   <body>
@@ -167,8 +216,16 @@
         <button id="selectArea" type="button">Select area</button>
       </section>
 
+      <section class="shortcut" aria-live="polite">
+        <div class="shortcut-row">
+          <span id="shortcutLabel" class="shortcut-label">Region screenshot shortcut</span>
+          <span id="shortcutValue" class="shortcut-value" data-state="unset">Not set</span>
+        </div>
+        <button id="customizeShortcut" type="button" class="shortcut-link">Customize shortcut</button>
+      </section>
+
       <p id="hint" class="hint">
-        Right-click any image or video on a page to save it directly. Press Cmd+Shift+S to start region screenshot.
+        Right-click any image or video on a page to save it directly.
       </p>
       <p id="privacy" class="privacy">
         Captured content is stored only on your computer. Snaplex never sends it to a server.
