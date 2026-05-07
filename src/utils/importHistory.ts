@@ -5,49 +5,78 @@ import { HistoryItem, AnalysisResult, PromptSegment } from '../types';
 
 /**
  * Parse an exported Snaplex .xls file (HTML table format) back into HistoryItem[].
- * The export format has 3 columns: Image | Front Prompt | Back Prompt
+ * The export format has 3 columns: Image | Front Prompt | Back Prompt.
+ *
+ * Older Snaplex exports often use Excel-compatible HTML with one image cell
+ * spanning six prompt rows. Newer/simple exports may keep all six dimensions
+ * in one row separated by <br>. This parser supports both forms.
  */
 export async function parseExportedFile(file: File): Promise<HistoryItem[]> {
   const html = await file.text();
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
-  const rows = doc.querySelectorAll('tbody tr');
+  const rows = Array.from(doc.querySelectorAll('tr'));
 
   const items: HistoryItem[] = [];
+  let current: ImportDraft | null = null;
 
-  rows.forEach((row) => {
-    const cells = row.querySelectorAll('td');
-    if (cells.length < 3) return;
+  const flush = () => {
+    if (!current || (!current.imageUrl && !hasAnyPromptText(current.structuredPrompts))) {
+      current = null;
+      return;
+    }
 
-    // Extract image
-    const img = cells[0].querySelector('img');
-    const imageUrl = img?.getAttribute('src') || '';
-    if (!imageUrl) return; // Skip rows without images
-
-    // Extract front and back prompts
-    const frontHtml = cells[1].innerHTML;
-    const backHtml = cells[2].innerHTML;
-
-    // Parse structured prompts from the [DIMENSION]: format
-    const structuredPrompts = parseDimensionsFromHtml(frontHtml, backHtml);
-
-    const item: HistoryItem = {
+    items.push({
       id: `import_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       timestamp: Date.now(),
-      imageUrl,
+      imageUrl: current.imageUrl,
       analysis: {
-        description: '',
-        structuredPrompts,
+        description: descriptionFromPrompts(current.structuredPrompts),
+        structuredPrompts: current.structuredPrompts,
       },
       isFavorite: false,
       chatHistory: [],
       read: true,
-      lastExported: Date.now(), // Mark as already exported since it came from export
-    };
+      lastExported: Date.now(),
+    });
+    current = null;
+  };
 
-    items.push(item);
+  rows.forEach((row) => {
+    const cells = Array.from(row.querySelectorAll('th,td'));
+    if (cells.length === 0 || isHeaderRow(cells)) return;
+
+    const imageCellIndex = cells.findIndex(cell => !!cell.querySelector('img'));
+    const imageUrl = imageCellIndex >= 0
+      ? cells[imageCellIndex].querySelector('img')?.getAttribute('src') || ''
+      : '';
+
+    if (imageUrl) {
+      flush();
+      current = {
+        imageUrl,
+        structuredPrompts: emptyStructuredPrompts(),
+      };
+    } else if (!current) {
+      current = {
+        imageUrl: '',
+        structuredPrompts: emptyStructuredPrompts(),
+      };
+    }
+
+    const promptCells = imageCellIndex >= 0
+      ? cells.filter((_, index) => index !== imageCellIndex)
+      : cells;
+    const frontHtml = promptCells[0]?.innerHTML || '';
+    const backHtml = promptCells[1]?.innerHTML || '';
+
+    mergeStructuredPrompts(
+      current.structuredPrompts,
+      parseDimensionsFromHtml(frontHtml, backHtml)
+    );
   });
 
+  flush();
   return items;
 }
 
@@ -61,12 +90,16 @@ const DIMENSION_MAP: Record<string, keyof AnalysisResult['structuredPrompts']> =
   'STYLE': 'style',
 };
 
-function parseDimensionsFromHtml(
-  frontHtml: string,
-  backHtml: string
-): AnalysisResult['structuredPrompts'] {
+type StructuredPrompts = AnalysisResult['structuredPrompts'];
+
+type ImportDraft = {
+  imageUrl: string;
+  structuredPrompts: StructuredPrompts;
+};
+
+function emptyStructuredPrompts(): StructuredPrompts {
   const emptySegment = (): PromptSegment => ({ original: '', translated: '' });
-  const result: AnalysisResult['structuredPrompts'] = {
+  return {
     subject: emptySegment(),
     environment: emptySegment(),
     composition: emptySegment(),
@@ -74,16 +107,24 @@ function parseDimensionsFromHtml(
     mood: emptySegment(),
     style: emptySegment(),
   };
+}
+
+function parseDimensionsFromHtml(
+  frontHtml: string,
+  backHtml: string
+): StructuredPrompts {
+  const result = emptyStructuredPrompts();
 
   const extractDimensions = (html: string): Record<string, string> => {
-    // Convert <br> to newlines for easier parsing
     const text = html
       .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<[^>]+>/g, '') // strip remaining HTML tags
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/gi, ' ')
       .trim();
 
     const sections: Record<string, string> = {};
-    const regex = /\[(\w+)\]:\s*([\s\S]*?)(?=\[\w+\]:|$)/g;
+    const dimensionAlternation = DIMENSION_KEYS.join('|');
+    const regex = new RegExp(`\\[(${dimensionAlternation})\\]\\s*:?\\s*([\\s\\S]*?)(?=\\[(${dimensionAlternation})\\]\\s*:?|$)`, 'gi');
     let match;
     while ((match = regex.exec(text)) !== null) {
       sections[match[1].toUpperCase()] = match[2].trim();
@@ -96,13 +137,48 @@ function parseDimensionsFromHtml(
 
   for (const key of DIMENSION_KEYS) {
     const dimKey = DIMENSION_MAP[key];
-    if (dimKey) {
-      result[dimKey] = {
-        original: frontDims[key] || '',
-        translated: backDims[key] || '',
-      };
-    }
+    result[dimKey] = {
+      original: frontDims[key] || '',
+      translated: backDims[key] || '',
+    };
   }
 
   return result;
+}
+
+function mergeStructuredPrompts(target: StructuredPrompts, patch: StructuredPrompts) {
+  for (const key of Object.values(DIMENSION_MAP)) {
+    if (patch[key].original) {
+      target[key].original = appendPromptText(target[key].original, patch[key].original);
+    }
+    if (patch[key].translated) {
+      target[key].translated = appendPromptText(target[key].translated, patch[key].translated);
+    }
+  }
+}
+
+function appendPromptText(existing: string, next: string): string {
+  if (!existing) return next;
+  if (!next) return existing;
+  return `${existing}\n${next}`;
+}
+
+function hasAnyPromptText(prompts: StructuredPrompts): boolean {
+  return Object.values(prompts).some(segment => segment.original || segment.translated);
+}
+
+function descriptionFromPrompts(prompts: StructuredPrompts): string {
+  return [
+    prompts.subject.original,
+    prompts.environment.original,
+    prompts.composition.original,
+    prompts.lighting.original,
+    prompts.mood.original,
+    prompts.style.original,
+  ].filter(Boolean).join(' ').slice(0, 500);
+}
+
+function isHeaderRow(cells: Element[]): boolean {
+  const text = cells.map(cell => (cell.textContent || '').trim().toLowerCase()).join('|');
+  return text.includes('image') && text.includes('front prompt') && text.includes('back prompt');
 }

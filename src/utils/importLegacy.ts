@@ -23,7 +23,14 @@ export async function importLegacyFile(file: File): Promise<{
   items: HistoryItem[];
   result: ImportResult;
 }> {
+  if (file.name.toLowerCase().endsWith('.xlsx')) {
+    throw new Error('Binary .xlsx legacy imports are not supported yet. Please use the legacy Snaplex .xls HTML export format.');
+  }
+
   const items = await parseExportedFile(file);
+  if (items.length === 0) {
+    throw new Error('No valid legacy Snaplex export rows found');
+  }
 
   if (!isTauri()) {
     // Web fallback: return items for direct idb-keyval storage

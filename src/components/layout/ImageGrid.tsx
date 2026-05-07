@@ -849,10 +849,15 @@ const ImageGrid: React.FC<ImageGridProps> = ({
       setLoading(true);
       try {
         const { result } = await importLegacyFile(file);
-        showToast(`Imported ${result.imported} items (${result.failed} failed)`, result.failed > 0 ? 'error' : 'success');
+        showToast(
+          t['import.xls.result']
+            .replace('{imported}', String(result.imported))
+            .replace('{failed}', String(result.failed)),
+          result.failed > 0 ? 'error' : 'success'
+        );
         await loadImages();
       } catch (err) {
-        showToast(`XLS import failed: ${err}`, 'error');
+        showToast(`${t['import.xls.failed']}: ${err}`, 'error');
       } finally {
         setLoading(false);
       }
