@@ -21,9 +21,15 @@ import type {
 interface MockState {
   currentLibrary: LibraryInfo | null;
   folders: FolderNode[];
-  images: ImageItem[];
+  images: MockImageItem[];
   imageDetails: Map<string, ImageDetail>;
   nextId: number;
+}
+
+interface MockImageItem extends ImageItem {
+  folderId: string | null;
+  fullUrl: string;
+  fileSize: number;
 }
 
 let state: MockState = createFreshState();
@@ -131,9 +137,9 @@ const commands: Record<string, (...args: any[]) => any> = {
 
   import_images: ({ filePaths, folderId }: { filePaths: string[]; folderId?: string }) => {
     requireLibrary();
-    const imported: ImageItem[] = filePaths.map(fp => {
+    const imported: MockImageItem[] = filePaths.map(fp => {
       const filename = fp.split('/').pop() || 'unknown.jpg';
-      const item: ImageItem = {
+      const item: MockImageItem = {
         id: `img-${state.nextId++}`,
         filename,
         thumbUrl: `file://${fp}`,
@@ -144,7 +150,7 @@ const commands: Record<string, (...args: any[]) => any> = {
         folderId: folderId || null,
         isFavorite: false,
         hasAnalysis: false,
-        createdAt: Date.now(),
+        createdAt: new Date().toISOString(),
       };
       state.images.push(item);
       return item;
@@ -173,6 +179,7 @@ const commands: Record<string, (...args: any[]) => any> = {
       analysis: null,
       colorPalette: null,
       sourceUrl: null,
+      folderIds: img.folderId ? [img.folderId] : [],
     };
     return detail;
   },

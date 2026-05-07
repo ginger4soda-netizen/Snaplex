@@ -347,7 +347,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                 importingRef.current = false;
               }
             }, 150);
-          } else if (event.payload.type === 'cancel' || event.payload.type === 'leave') {
+          } else if (event.payload.type === 'leave') {
             setIsDragOver(false);
             dragHasImageFiles = false;
           }

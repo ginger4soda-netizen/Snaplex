@@ -260,7 +260,7 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
       } : null;
       if (updated) {
         setLocalAnalysis(updated);
-        onAnalysisComplete?.(updated);
+        onAnalysisComplete?.(imageId, updated);
       }
       // Append the new version to history. Functional update so concurrent
       // refreshes on different dims don't clobber each other.

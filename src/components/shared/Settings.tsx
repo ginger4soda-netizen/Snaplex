@@ -222,14 +222,14 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                             <h3 className="text-stone-800 dark:text-stone-100 font-bold text-lg">{t.lblCopyConfig}</h3>
                             <div className="h-px bg-stone-200 dark:bg-stone-700 flex-1 ml-4" />
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                             {STORED_MODULE_KEYS.map(modKey => {
                                 const isActive = (settings.copyIncludedModules || STORED_MODULE_KEYS).includes(modKey);
                                 return (
                                     <button
                                         key={modKey}
                                         onClick={() => toggleModule(modKey)}
-                                        className={`px-3 py-2 rounded-lg text-sm font-bold border transition-all ${isActive ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 border-stone-800 dark:border-stone-200' : 'bg-white dark:bg-stone-800 text-stone-500 dark:text-stone-400 border-stone-200 dark:border-stone-700'}`}
+                                        className={`flex min-h-12 min-w-0 items-center justify-center px-2 py-2 rounded-lg text-[11px] sm:text-xs leading-tight font-bold border transition-all whitespace-normal [overflow-wrap:anywhere] text-center ${isActive ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 border-stone-800 dark:border-stone-200' : 'bg-white dark:bg-stone-800 text-stone-500 dark:text-stone-400 border-stone-200 dark:border-stone-700'}`}
                                     >
                                         {MODULE_LABEL_MAP[modKey] || modKey}
                                     </button>

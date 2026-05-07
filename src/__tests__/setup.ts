@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import { beforeEach } from 'vitest';
 import { setupTauriMocks, resetMockState } from './mocks/tauri';
 
 // Mock browser APIs not available in jsdom

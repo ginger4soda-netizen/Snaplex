@@ -7,7 +7,7 @@
  * 3. All IPC commands must fail gracefully without a library
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import App from '../App';
