@@ -33,22 +33,38 @@ class AnalyzeManager {
     const existing = this.inFlight.get(imageId);
     if (existing) return existing;
 
-    const promise = (async () => {
-      this.emit({ imageId, state: 'started' });
+    // Set up the externally-resolvable promise BEFORE running the IIFE so the
+    // map is populated before any subscriber reads from it. Subscribers query
+    // `isAnalyzing(imageId)` to derive UI state, so the order of map mutations
+    // and `emit` calls is load-bearing.
+    let resolve!: (v: AnalysisResult | null) => void;
+    let reject!: (e: unknown) => void;
+    const promise = new Promise<AnalysisResult | null>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    this.inFlight.set(imageId, promise);
+    this.emit({ imageId, state: 'started' });
+
+    (async () => {
+      let result: AnalysisResult | null = null;
+      let error: unknown = null;
+      let finalState: AnalyzeState = 'completed';
       try {
-        const result = await runner();
-        this.emit({ imageId, state: 'completed' });
-        return result;
+        result = await runner();
       } catch (e) {
         console.error(`Background analyze failed for ${imageId}:`, e);
-        this.emit({ imageId, state: 'failed' });
-        return null;
-      } finally {
-        this.inFlight.delete(imageId);
+        error = e;
+        finalState = 'failed';
       }
+      // Delete BEFORE emitting so subscribers that re-read isAnalyzing()
+      // observe the post-completion state, never the in-between state.
+      this.inFlight.delete(imageId);
+      this.emit({ imageId, state: finalState });
+      if (finalState === 'failed') reject(error);
+      else resolve(result);
     })();
 
-    this.inFlight.set(imageId, promise);
     return promise;
   }
 

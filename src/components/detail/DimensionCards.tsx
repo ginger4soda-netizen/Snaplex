@@ -73,7 +73,7 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
       if (currentImageIdRef.current === imageId) {
         setLocalAnalysis(result);
       }
-    });
+    }).catch(() => { /* error already surfaced via setError in handleAnalyze */ });
     return () => { cancelled = true; };
   }, [imageId]);
 
