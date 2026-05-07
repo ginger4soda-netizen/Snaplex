@@ -33,9 +33,10 @@ interface DetailPanelProps {
   imageId?: string;
   onClose: () => void;
   systemLanguage?: string;
+  onAnalysisChanged?: (imageId: string) => void;
 }
 
-const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLanguage }) => {
+const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLanguage, onAnalysisChanged }) => {
   const { getImageDetail, getImageSources, updateImageMemo, getColorPalette, saveColorPalette } = useTauriIPC();
   const t = getTranslation(systemLanguage);
   const captureTypeLabels: Record<string, string> = {
@@ -335,8 +336,14 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLangu
                 analysis={detail.analysis}
                 image={fullUrl}
                 systemLanguage={systemLanguage}
-                onAnalysisComplete={(analysis) => {
-                  setDetail(prev => prev ? { ...prev, analysis, hasAnalysis: true } : null);
+                onAnalysisComplete={(completedId, analysis) => {
+                  // Only refresh the visible Info panel if the completed
+                  // analysis belongs to the image still being shown.
+                  setDetail(prev => prev && prev.id === completedId
+                    ? { ...prev, analysis, hasAnalysis: true }
+                    : prev
+                  );
+                  onAnalysisChanged?.(completedId);
                 }}
               />
             </section>

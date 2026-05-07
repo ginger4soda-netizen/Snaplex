@@ -42,6 +42,8 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
 
+    const abortRef = useRef<AbortController | null>(null);
+
     const t = getTranslation(systemLanguage);
     const defaultChipsFromTranslation: ChipData[] = t.chatChips || [];
 
@@ -145,16 +147,43 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
         onUpdateMessages([...newHistory, modelMsg]);
         setInput('');
         setLoading(true);
+
+        const controller = new AbortController();
+        abortRef.current = controller;
+        let lastText = '';
+
         try {
             await sendChatMessageStream(newHistory, textToSend, imageContext, (streamedText) => {
+                if (controller.signal.aborted) return;
+                lastText = streamedText;
                 onUpdateMessages([...newHistory, { ...modelMsg, text: streamedText }]);
-            }, settings);
-        } catch (err) {
-            console.error('Chat stream failed:', err);
-            onUpdateMessages([...newHistory, { ...modelMsg, text: '⚠ Error: failed to get a response. Please check your API settings.' }]);
+            }, settings, controller.signal);
+
+            if (controller.signal.aborted) {
+                const stoppedSuffix = lastText ? `\n\n${t.chatStopped}` : t.chatStopped;
+                onUpdateMessages([...newHistory, { ...modelMsg, text: `${lastText}${stoppedSuffix}` }]);
+            }
+        } catch (err: any) {
+            if (err?.name === 'AbortError' || controller.signal.aborted) {
+                const stoppedSuffix = lastText ? `\n\n${t.chatStopped}` : t.chatStopped;
+                onUpdateMessages([...newHistory, { ...modelMsg, text: `${lastText}${stoppedSuffix}` }]);
+            } else {
+                console.error('Chat stream failed:', err);
+                onUpdateMessages([...newHistory, { ...modelMsg, text: '⚠ Error: failed to get a response. Please check your API settings.' }]);
+            }
         } finally {
+            if (abortRef.current === controller) abortRef.current = null;
             setLoading(false);
         }
+    };
+
+    const handleStop = () => {
+        const controller = abortRef.current;
+        if (!controller) return;
+        // Reset UI immediately; provider loop polls signal between chunks and exits.
+        abortRef.current = null;
+        controller.abort();
+        setLoading(false);
     };
 
     const handleSendInput = () => processSend(input);
@@ -233,6 +262,9 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
     const handleExitDeleteMode = () => setDeleteMode(false);
 
     const handleDragStart = (e: React.DragEvent, chipId: string) => {
+        // Stop propagation so a chip drag never bubbles up to outer dropzones
+        // (e.g. the image grid's file-import overlay).
+        e.stopPropagation();
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', chipId);
         setDraggedId(chipId);
@@ -240,12 +272,14 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
 
     const handleDragOver = (e: React.DragEvent, chipId: string) => {
         e.preventDefault();
+        e.stopPropagation();
         e.dataTransfer.dropEffect = 'move';
         if (chipId !== draggedId) setDragOverId(chipId);
     };
 
     const handleDrop = (e: React.DragEvent, targetId: string) => {
         e.preventDefault();
+        e.stopPropagation();
         const sourceId = e.dataTransfer.getData('text/plain') || draggedId;
         if (!sourceId || sourceId === targetId) { setDraggedId(null); setDragOverId(null); return; }
         const sourceIdx = allChips.findIndex(c => c.id === sourceId);
@@ -259,7 +293,11 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
         setDragOverId(null);
     };
 
-    const handleDragEnd = () => { setDraggedId(null); setDragOverId(null); };
+    const handleDragEnd = (e: React.DragEvent) => {
+        e.stopPropagation();
+        setDraggedId(null);
+        setDragOverId(null);
+    };
 
     return (
         <div className="flex flex-col h-full bg-stone-50 dark:bg-stone-900 overflow-hidden transition-colors" onClick={deleteMode ? handleExitDeleteMode : undefined}>
@@ -331,9 +369,24 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
                 <div className="px-4 pb-2 pt-1 transition-all">
                     <div className="flex items-end gap-2 bg-stone-100/80 dark:bg-stone-800/80 p-2 rounded-[1.5rem] border border-stone-200 dark:border-stone-700 focus-within:border-stone-400 dark:focus-within:border-stone-500 focus-within:bg-white dark:focus-within:bg-stone-800 transition-all shadow-sm">
                         <textarea className="flex-1 bg-transparent px-4 py-3 outline-none text-stone-800 dark:text-stone-200 placeholder-stone-400 dark:placeholder-stone-600 resize-none max-h-32 min-h-[44px] text-sm" placeholder={t.chatPlaceholder} rows={1} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendInput(); } }} />
-                        <button onClick={handleSendInput} disabled={loading || !input.trim()} className="w-10 h-10 mb-1 mr-1 bg-coral text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none hover:bg-red-400">
-                            {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <svg className="w-5 h-5 transform rotate-90 translate-x-[1px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19V5m0 0l-7 7m7-7l7 7" /></svg>}
-                        </button>
+                        {loading ? (
+                            <button
+                                onClick={handleStop}
+                                aria-label={t.chatStop}
+                                title={t.chatStop}
+                                className="w-10 h-10 mb-1 mr-1 bg-coral text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-all hover:bg-red-400"
+                            >
+                                <span className="w-3 h-3 bg-white rounded-sm" />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleSendInput}
+                                disabled={!input.trim()}
+                                className="w-10 h-10 mb-1 mr-1 bg-coral text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none hover:bg-red-400"
+                            >
+                                <svg className="w-5 h-5 transform rotate-90 translate-x-[1px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19V5m0 0l-7 7m7-7l7 7" /></svg>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

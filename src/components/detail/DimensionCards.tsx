@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AnalysisResult, DimensionKey, PromptSegment, UserSettings, DEFAULT_SETTINGS, DimensionHistories } from '@/types';
 import { useTauriIPC } from '@/hooks/useTauriIPC';
 import { analyzeImage, regenerateDimension } from '@/services/geminiService';
@@ -14,7 +14,7 @@ interface DimensionCardsProps {
   imageId: string;
   analysis: AnalysisResult | null;
   image: string; // asset:// URL from convertFileSrc
-  onAnalysisComplete?: (analysis: AnalysisResult) => void;
+  onAnalysisComplete?: (imageId: string, analysis: AnalysisResult) => void;
   systemLanguage?: string;
 }
 
@@ -38,17 +38,26 @@ const DIMENSIONS: { key: DimensionKey; labelKey: PromptSectionKey; color: string
 const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, image, onAnalysisComplete, systemLanguage }) => {
   const t = getTranslation(systemLanguage);
   const [expandedKey, setExpandedKey] = useState<DimensionKey | null>('subject');
-  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
   const [refreshingDim, setRefreshingDim] = useState<DimensionKey | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [localAnalysis, setLocalAnalysis] = useState<AnalysisResult | null>(null);
   const [dimensionHistories, setDimensionHistories] = useState<DimensionHistories>({});
   const { saveAnalysis, saveDimensionVersion, getDimensionHistory } = useTauriIPC();
 
-  // Reset local state when image changes
+  // Track the currently-displayed imageId so async callbacks can decide
+  // whether their result still matches the active image.
+  const currentImageIdRef = useRef(imageId);
+  useEffect(() => { currentImageIdRef.current = imageId; }, [imageId]);
+
+  const analyzing = analyzingIds.has(imageId);
+
+  // Reset per-image local state when image changes; do NOT clear analyzingIds —
+  // that set tracks all in-flight analyses across image switches.
   useEffect(() => {
     setLocalAnalysis(null);
     setDimensionHistories({});
+    setError(null);
   }, [imageId]);
 
   const currentAnalysis = localAnalysis || analysis;
@@ -154,12 +163,19 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
   };
 
   const handleAnalyze = async () => {
-    setAnalyzing(true);
+    // Capture imageId at start so late completions write to the right image
+    // even if the user has switched to a different one mid-analysis.
+    const targetId = imageId;
+    setAnalyzingIds(prev => {
+      const next = new Set(prev);
+      next.add(targetId);
+      return next;
+    });
     setError(null);
     try {
       const [settings, base64] = await Promise.all([
         loadSettings(),
-        getImageBase64(imageId, image),
+        getImageBase64(targetId, image),
       ]);
       const result = await analyzeImage(base64, settings);
       // Ensure description exists (some AI responses omit it)
@@ -168,7 +184,7 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
       }
       const provider = getCurrentProvider();
       const model = getCurrentModel();
-      await saveAnalysis(imageId, result, provider, model);
+      await saveAnalysis(targetId, result, provider, model);
       // Persist each dimension as version 1 so the initial analysis is preserved
       // across reloads (otherwise the very first prompt is lost as soon as the
       // user refreshes any single dimension).
@@ -176,18 +192,30 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
         ALL_DIMS.map(d => {
           const seg = result.structuredPrompts?.[d];
           if (!seg) return Promise.resolve();
-          return saveDimensionVersion(imageId, d, seg.original || '', seg.translated || '')
+          return saveDimensionVersion(targetId, d, seg.original || '', seg.translated || '')
             .catch(err => console.warn(`Failed to persist initial ${d}:`, err));
         })
       );
-      setLocalAnalysis(result);
-      onAnalysisComplete?.(result);
+      // Only update the visible card if the user is still on this image.
+      if (currentImageIdRef.current === targetId) {
+        setLocalAnalysis(result);
+      }
+      // Always notify parent so the AI badge in the grid refreshes regardless
+      // of which image is currently selected.
+      onAnalysisComplete?.(targetId, result);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
+      if (currentImageIdRef.current === targetId) {
+        setError(msg);
+      }
       console.error('Analysis failed:', e);
     } finally {
-      setAnalyzing(false);
+      setAnalyzingIds(prev => {
+        if (!prev.has(targetId)) return prev;
+        const next = new Set(prev);
+        next.delete(targetId);
+        return next;
+      });
     }
   };
 

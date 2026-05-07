@@ -168,6 +168,7 @@ const ThreeColumnLayout: React.FC<ThreeColumnLayoutProps> = ({
               imageId={selectedImageId}
               onClose={() => setIsDetailVisible(false)}
               systemLanguage={settings.systemLanguage}
+              onAnalysisChanged={() => setImageRefreshTrigger(prev => prev + 1)}
             />
           </div>
         </>

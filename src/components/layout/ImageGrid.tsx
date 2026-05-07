@@ -298,20 +298,30 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   // Tauri native drag-and-drop listener
   useEffect(() => {
     let unlisten: (() => void) | undefined;
+    // Track whether the current OS drag actually carries image files. Tauri 2
+    // can fire events for in-app HTML5 drags (e.g. chat chips) where `paths`
+    // is empty — we must not show the file-import overlay in that case.
+    let dragHasImageFiles = false;
+    const IMAGE_RE = /\.(png|jpe?g|gif|webp|bmp|svg|tiff?)$/i;
 
     const setupDragDrop = async () => {
       try {
         const webview = getCurrentWebviewWindow();
         unlisten = await webview.onDragDropEvent(async (event) => {
-          if (event.payload.type === 'over') {
-            setIsDragOver(true);
+          if (event.payload.type === 'enter') {
+            const paths = (event.payload as any).paths as string[] | undefined;
+            dragHasImageFiles = !!paths && paths.some((p: string) => IMAGE_RE.test(p));
+            if (dragHasImageFiles) setIsDragOver(true);
+          } else if (event.payload.type === 'over') {
+            if (dragHasImageFiles) setIsDragOver(true);
           } else if (event.payload.type === 'drop') {
             setIsDragOver(false);
+            const wasFileDrag = dragHasImageFiles;
+            dragHasImageFiles = false;
+            if (!wasFileDrag) return;
             // Collect paths from potentially multiple drop events
             const paths = event.payload.paths;
-            const imagePaths = paths.filter((p: string) =>
-              /\.(png|jpe?g|gif|webp|bmp|svg|tiff?)$/i.test(p)
-            );
+            const imagePaths = paths.filter((p: string) => IMAGE_RE.test(p));
             imagePaths.forEach((p: string) => dropPathsRef.current.add(p));
 
             // Debounce: wait 150ms for any more drop events, then import once
@@ -333,8 +343,9 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                 importingRef.current = false;
               }
             }, 150);
-          } else if (event.payload.type === 'cancel') {
+          } else if (event.payload.type === 'cancel' || event.payload.type === 'leave') {
             setIsDragOver(false);
+            dragHasImageFiles = false;
           }
         });
       } catch (err) {

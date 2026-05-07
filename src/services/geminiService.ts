@@ -113,7 +113,8 @@ export const sendChatMessageStream = async (
   message: string,
   image: string | undefined,
   onUpdate: (text: string) => void,
-  settings?: UserSettings
+  settings?: UserSettings,
+  signal?: AbortSignal
 ): Promise<void> => {
   const providerName = getCurrentProvider();
   const modelName = getCurrentModel();
@@ -125,13 +126,14 @@ export const sendChatMessageStream = async (
   try {
     const provider = getProvider();
     await provider.chatStream(history, message, image, (text) => {
+      if (signal?.aborted) return;
       // 🔭 Track time to first token
       if (firstToken && text.length > 0) {
         trackPerformance.chatFirstToken();
         firstToken = false;
       }
       onUpdate(text);
-    }, settings);
+    }, settings, signal);
 
     // 🔭 Track chat completion
     trackPerformance.chatMessageEnd();
@@ -139,6 +141,12 @@ export const sendChatMessageStream = async (
 
   } catch (e: any) {
     trackPerformance.chatMessageEnd();
+
+    // User-initiated cancellation: swallow silently
+    if (e?.name === 'AbortError' || signal?.aborted) {
+      return;
+    }
+
     trackApiStatus(providerName, modelName, 'error', e.status);
 
     trackError(e, {

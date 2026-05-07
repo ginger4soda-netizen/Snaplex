@@ -138,7 +138,8 @@ Output strictly JSON:
         message: string,
         image: string | undefined,
         onUpdate: (text: string) => void,
-        settings?: UserSettings
+        settings?: UserSettings,
+        signal?: AbortSignal
     ): Promise<void> {
         const { ai, modelName } = this.getClient();
 
@@ -208,6 +209,9 @@ If the user asks for specific prompts, prompt breakdown, or detailed analysis of
 
         let accumulatedText = "";
         for await (const chunk of resultStream) {
+            // Gemini SDK does not accept AbortSignal directly; check between chunks
+            // and discard further updates. Late chunks are dropped silently.
+            if (signal?.aborted) break;
             const chunkText = chunk.text;
             if (chunkText) {
                 accumulatedText += chunkText;

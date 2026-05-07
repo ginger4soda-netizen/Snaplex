@@ -183,6 +183,8 @@ export const translations = {
     chatGreeting: "What else do you want to know about this image?",
     chatPlaceholder: "Ask something...",
     chatThinking: "AI is thinking...",
+    chatStop: "Stop generating",
+    chatStopped: "[stopped]",
 
     // ✅ 新增：Chat Chips (English Prompts)
     chatChips: [
@@ -496,6 +498,8 @@ export const translations = {
     chatGreeting: "对这张图你还有什么想了解的？",
     chatPlaceholder: "输入你的问题...",
     chatThinking: "AI 思考中...",
+    chatStop: "停止生成",
+    chatStopped: "[已停止]",
 
     // ✅ 新增：Chat Chips (中文 Prompt)
     chatChips: [
