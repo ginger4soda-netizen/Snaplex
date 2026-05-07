@@ -45,5 +45,11 @@
   "status.ready": "已连接",
   "toast.duplicate": "图库中已存在",
   "toast.duplicateSource": "图库中已存在，已追加新来源",
-  "toast.saved": "已保存到 Snaplex"
+  "toast.saved": "已保存到 Snaplex",
+  "toast.xhsFallback": "原图无法获取，已截图发送",
+  "xhs.button.capture": "保存到 Snaplex",
+  "xhs.button.sending": "发送中…",
+  "xhs.button.sent": "已发送",
+  "xhs.button.fallback": "原图不可用，已截图",
+  "xhs.button.failed": "发送失败"
 }

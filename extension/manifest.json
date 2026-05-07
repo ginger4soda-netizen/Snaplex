@@ -12,6 +12,18 @@
     "nativeMessaging"
   ],
   "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.xiaohongshu.com/*",
+        "https://*.xhscdn.com/*"
+      ],
+      "js": ["content/xhs/xhs-hover.js"],
+      "css": ["content/xhs/xhs-hover.css"],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    }
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"

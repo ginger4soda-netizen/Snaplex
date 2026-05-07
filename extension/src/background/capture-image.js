@@ -17,6 +17,52 @@ const SUPPORTED_IMAGE_TYPES = new Set([
   "image/jpg"
 ]);
 
+export async function captureXhsImage({ srcUrl, pageUrl, pageTitle, candidateSource, rect, tab, sendNativeRequest }) {
+  if (!srcUrl) {
+    return { kind: "error", code: "image_fetch_failed", message: "Missing image URL" };
+  }
+
+  try {
+    const asset = await loadImageAsset(srcUrl, tab);
+    if (asset.bytes.byteLength > MAX_CAPTURE_BYTES) {
+      return { kind: "error", code: "payload_too_large", message: "Image is larger than 50 MB" };
+    }
+
+    const payloadRef = await payloadRefForBytes(asset.bytes, asset.contentType, sendNativeRequest);
+    return await sendNativeRequest(
+      {
+        kind: "capture",
+        envelope: {
+          type: "image",
+          payload_ref: payloadRef,
+          metadata: {
+            source_url: srcUrl,
+            page_url: pageUrl || tab?.url || "",
+            page_title: pageTitle || tab?.title || "",
+            filename_hint: filenameHintFromUrl(srcUrl),
+            captured_at: new Date().toISOString(),
+            capture_kind: "original_image",
+            type_specific: {
+              original_image_url: srcUrl,
+              candidate_source: candidateSource || null,
+              site: "xiaohongshu",
+              hover_rect: rect || null
+            }
+          }
+        }
+      },
+      ["capture_result"],
+      60000
+    );
+  } catch (error) {
+    return {
+      kind: "error",
+      code: error.code || "image_fetch_failed",
+      message: error.message || "Could not read image bytes"
+    };
+  }
+}
+
 export async function captureImageFromContextMenu({ info, tab, sendNativeRequest, showFeedback, getTranslator }) {
   const startedAtMs = performance.now();
   const t = await getTranslator();
