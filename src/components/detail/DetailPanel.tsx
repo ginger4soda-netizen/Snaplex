@@ -14,6 +14,7 @@ import { showToast } from '@/hooks/useToast';
 import { analyzeManager } from '@/utils/analyzeManager';
 import { get } from 'idb-keyval';
 import { getTranslation } from '@/translations';
+import { dedupSources } from '@/utils/dedupSources';
 
 // Labels here feed the structured-prompt copy template (`[label]` blocks are
 // kept English so generated prompts stay portable across providers). The
@@ -75,7 +76,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLangu
 
       try {
         const sources = await getImageSources(imageId);
-        if (!cancelled) setImageSources(sources);
+        if (!cancelled) setImageSources(dedupSources(sources));
       } catch (err) {
         console.error("Failed to load image sources", err);
       } finally {
