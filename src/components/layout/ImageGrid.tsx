@@ -17,6 +17,7 @@ import { getImageBase64 } from '@/utils/imageToBase64';
 import { get } from 'idb-keyval';
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import Logo from '@/components/shared/Logo';
+import { getTranslation } from '@/translations';
 
 // macOS treats Ctrl+click as a right-click but ALSO emits a synthetic click
 // with ctrlKey=true. Without platform-aware handling, that click toggles the
@@ -70,6 +71,7 @@ interface ImageGridProps {
   nav?: { goBack: () => void; goForward: () => void; canGoBack: boolean; canGoForward: boolean };
   refreshTrigger?: number;
   onImagesChanged?: () => void;
+  systemLanguage?: string;
 }
 
 const ImageGrid: React.FC<ImageGridProps> = ({
@@ -80,8 +82,10 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   isDetailVisible,
   nav,
   refreshTrigger,
-  onImagesChanged
+  onImagesChanged,
+  systemLanguage,
 }) => {
+  const t = getTranslation(systemLanguage);
   const { getImages, getImageDetail, getImagesByIds, countImages, importImages, deleteImages, toggleFavorite, setFavorites, openImageInFinder, moveImages, removeImagesFromFolders, linkImageToFolder, getFolderTree, saveAnalysis, saveDimensionVersion } = useTauriIPC();
   const [images, setImages] = useState<ImageItem[]>([]);
   // Slider drives column count directly. Min cols = biggest cards (slider far right);
@@ -917,6 +921,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
               onSearchResults={handleSearchResults}
               onSearchClear={handleSearchClear}
               onSearching={setIsSearching}
+              systemLanguage={systemLanguage}
             />
           </div>
 
@@ -1016,7 +1021,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
           <div className="absolute inset-4 border-2 border-dashed border-blue-400 rounded-2xl bg-blue-50/80 dark:bg-blue-900/30 flex items-center justify-center z-20 pointer-events-none">
             <div className="flex flex-col items-center gap-3 text-blue-500">
               <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-              <p className="font-bold text-lg">Drop images here to import</p>
+              <p className="font-bold text-lg">{t['grid.dropToImport']}</p>
             </div>
           </div>
         )}
@@ -1025,7 +1030,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
           <div className="p-6 h-full">
             <div className="flex flex-col items-center justify-center h-full text-stone-400 gap-3">
               <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm font-medium">Loading...</p>
+              <p className="text-sm font-medium">{t['grid.loading']}</p>
             </div>
           </div>
         ) : images.length === 0 ? (
@@ -1038,8 +1043,8 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                 <Logo variant="mark" size={96} className="drop-shadow-sm" />
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-mascot">{searchResultIds !== null ? 'No results match your search' : 'No images found'}</p>
-                <p className="text-sm">{searchResultIds !== null ? 'Try different keywords or filters' : 'Drag & drop images or click to import'}</p>
+                <p className="text-lg font-bold text-mascot">{searchResultIds !== null ? t['grid.empty.noSearchResults'] : t['grid.empty.title']}</p>
+                <p className="text-sm">{searchResultIds !== null ? t['grid.empty.noSearchHint'] : t['grid.empty.hint']}</p>
               </div>
             </div>
           </div>
@@ -1139,7 +1144,9 @@ const ImageGrid: React.FC<ImageGridProps> = ({
           <div className="bg-white dark:bg-stone-800 rounded-xl shadow-2xl w-72 max-h-80 flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="px-4 py-3 border-b border-stone-200 dark:border-stone-700">
               <h3 className="text-sm font-bold text-stone-700 dark:text-stone-200">
-                Move {moveToFolderTargets.length > 1 ? `${moveToFolderTargets.length} images` : 'image'} to Folder
+                {moveToFolderTargets.length > 1
+                  ? t['moveToFolder.title.many'].replace('{count}', String(moveToFolderTargets.length))
+                  : t['moveToFolder.title.one']}
               </h3>
             </div>
             <div className="flex-1 overflow-y-auto p-2">
@@ -1151,12 +1158,12 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                   <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                   </svg>
-                  <span className="truncate">All Images</span>
-                  <span className="ml-auto text-[10px] text-stone-400">remove from folder</span>
+                  <span className="truncate">{t['sidebar.allImages']}</span>
+                  <span className="ml-auto text-[10px] text-stone-400">{t['moveToFolder.removeFromFolder']}</span>
                 </button>
               )}
               {folderList.length === 0 ? (
-                <p className="text-xs text-stone-400 px-2 py-4 text-center">No folders available</p>
+                <p className="text-xs text-stone-400 px-2 py-4 text-center">{t['moveToFolder.empty']}</p>
               ) : (
                 folderList.map(folder => (
                   <FolderPickerItem key={folder.id} folder={folder} onSelect={confirmMoveToFolder} currentFolderId={folderId} />
@@ -1164,7 +1171,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
               )}
             </div>
             <div className="px-4 py-2 border-t border-stone-200 dark:border-stone-700">
-              <button onClick={() => setMoveToFolderTargets(null)} className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300">Cancel</button>
+              <button onClick={() => setMoveToFolderTargets(null)} className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300">{t['common.cancel']}</button>
             </div>
           </div>
         </div>

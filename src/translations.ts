@@ -40,6 +40,67 @@ export const translations = {
     btnDelete: "Delete",
     emptyHistory: "No history yet. Snap a shot!",
     noMatches: "No matches found.",
+
+    // Wave 2 i18n keys — dot-namespaced. Pre-existing camelCase keys above
+    // are kept as-is to avoid breaking the rest of the app.
+    "common.cancel": "Cancel",
+
+    "sidebar.library": "Library",
+    "sidebar.folders": "Folders",
+    "sidebar.tools": "Tools",
+    "sidebar.allImages": "All Images",
+    "sidebar.favorites": "Favorites",
+    "sidebar.stylePrinter": "Style Printer",
+    "sidebar.settings": "Settings",
+    "sidebar.about": "About",
+    "sidebar.newFolder": "New Folder",
+    "sidebar.newFolderDefault": "New Folder",
+    "sidebar.expand": "Expand sidebar",
+    "sidebar.collapse": "Collapse sidebar",
+
+    "grid.empty.title": "No images found",
+    "grid.empty.hint": "Drag & drop images or click to import",
+    "grid.empty.noSearchResults": "No results match your search",
+    "grid.empty.noSearchHint": "Try different keywords or filters",
+    "grid.dropToImport": "Drop images here to import",
+    "grid.loading": "Loading...",
+
+    "moveToFolder.title.one": "Move image to Folder",
+    "moveToFolder.title.many": "Move {count} images to Folder",
+    "moveToFolder.removeFromFolder": "remove from folder",
+    "moveToFolder.empty": "No folders available",
+
+    "detail.tab.info": "Info",
+    "detail.tab.chat": "Chat",
+    "detail.empty": "Select an image to view\ndetails and analysis",
+    "detail.section.sources": "Sources",
+    "detail.section.prompt": "Prompt",
+    "detail.section.notes": "Notes",
+    "notes.placeholder": "Add your personal notes here...",
+    "detail.copyAllPrompts": "Copy all prompts",
+    "detail.capturedSource": "Captured source",
+    "captureType.image": "Image",
+    "captureType.screenshotVisible": "Visible area",
+    "captureType.screenshotRegion": "Region",
+    "captureType.videoFrame": "Video frame",
+
+    "prompt.section.subject": "Subject",
+    "prompt.section.environment": "Environment",
+    "prompt.section.composition": "Composition",
+    "prompt.section.lighting": "Lighting",
+    "prompt.section.mood": "Mood",
+    "prompt.section.style": "Style",
+    "prompt.noAnalysis": "No analysis available for this image",
+    "prompt.analyzeNow": "Analyze Now",
+    "prompt.analyzing": "Analyzing...",
+
+    "about.title": "Snaplex",
+    "about.description": "AI-powered image prompt analysis tool. Break any image into structured, reusable prompt dimensions — Subject, Environment, Composition, Lighting, Mood, and Style.",
+    "about.builtWith.label": "Built with",
+    "about.builtWith.value": "Tauri v2 + React",
+    "about.license.label": "License",
+    "about.license.value": "MIT",
+
     sectionNew: "New Snaps",
     sectionRecent: "Recent",
     sectionExported: "Exported Library",
@@ -300,6 +361,66 @@ export const translations = {
     btnDelete: "删除",
     emptyHistory: "暂无记录，快去拍一张吧！",
     noMatches: "没有找到匹配的图片。",
+
+    // Wave 2 i18n keys — dot-namespaced.
+    "common.cancel": "取消",
+
+    "sidebar.library": "图库",
+    "sidebar.folders": "文件夹",
+    "sidebar.tools": "工具",
+    "sidebar.allImages": "全部图片",
+    "sidebar.favorites": "收藏",
+    "sidebar.stylePrinter": "风格打印机",
+    "sidebar.settings": "设置",
+    "sidebar.about": "关于",
+    "sidebar.newFolder": "新建文件夹",
+    "sidebar.newFolderDefault": "新文件夹",
+    "sidebar.expand": "展开侧边栏",
+    "sidebar.collapse": "收起侧边栏",
+
+    "grid.empty.title": "未找到图片",
+    "grid.empty.hint": "拖放图片或点击导入",
+    "grid.empty.noSearchResults": "没有匹配的搜索结果",
+    "grid.empty.noSearchHint": "试试其他关键词或筛选条件",
+    "grid.dropToImport": "拖放图片到此处即可导入",
+    "grid.loading": "加载中...",
+
+    "moveToFolder.title.one": "移动图片到文件夹",
+    "moveToFolder.title.many": "移动 {count} 张图片到文件夹",
+    "moveToFolder.removeFromFolder": "移出文件夹",
+    "moveToFolder.empty": "暂无文件夹",
+
+    "detail.tab.info": "信息",
+    "detail.tab.chat": "对话",
+    "detail.empty": "选择一张图片以\n查看详情与分析",
+    "detail.section.sources": "来源",
+    "detail.section.prompt": "提示词",
+    "detail.section.notes": "笔记",
+    "notes.placeholder": "在这里添加你的个人笔记...",
+    "detail.copyAllPrompts": "复制全部提示词",
+    "detail.capturedSource": "捕获来源",
+    "captureType.image": "图片",
+    "captureType.screenshotVisible": "可见区域",
+    "captureType.screenshotRegion": "选区",
+    "captureType.videoFrame": "视频帧",
+
+    "prompt.section.subject": "主体",
+    "prompt.section.environment": "环境",
+    "prompt.section.composition": "构图",
+    "prompt.section.lighting": "光影/色彩",
+    "prompt.section.mood": "情绪/氛围",
+    "prompt.section.style": "美学风格",
+    "prompt.noAnalysis": "这张图片暂无分析结果",
+    "prompt.analyzeNow": "立即分析",
+    "prompt.analyzing": "分析中...",
+
+    "about.title": "Snaplex",
+    "about.description": "AI 驱动的图片提示词分析工具。将任意图片拆解为结构化、可复用的提示词维度 —— 主体、环境、构图、光影、氛围与风格。",
+    "about.builtWith.label": "技术栈",
+    "about.builtWith.value": "Tauri v2 + React",
+    "about.license.label": "开源协议",
+    "about.license.value": "MIT",
+
     sectionNew: "新上传",
     sectionRecent: "最近浏览",
     sectionExported: "已归档",
@@ -1409,8 +1530,13 @@ export const translations = {
 };
 
 // 2. 智能匹配助手
+// Falls back to English for any key missing in the active language so
+// non-English UIs don't render empty strings when only EN/ZH have been
+// translated for a feature.
 export const getTranslation = (langString: string | undefined) => {
   if (!langString) return translations.English;
   const key = langString.split(' ')[0]; // 例如 "Chinese (中文)" -> "Chinese"
-  return (translations as any)[key] || translations.English;
+  const active = (translations as any)[key];
+  if (!active || active === translations.English) return translations.English;
+  return { ...translations.English, ...active };
 };

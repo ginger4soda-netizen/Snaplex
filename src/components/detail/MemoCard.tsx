@@ -1,11 +1,14 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { getTranslation } from '@/translations';
 
 interface MemoCardProps {
   memo: string;
   onMemoChange: (memo: string) => void;
+  systemLanguage?: string;
 }
 
-const MemoCard: React.FC<MemoCardProps> = ({ memo, onMemoChange }) => {
+const MemoCard: React.FC<MemoCardProps> = ({ memo, onMemoChange, systemLanguage }) => {
+  const t = getTranslation(systemLanguage);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const composingRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,7 +74,7 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onMemoChange }) => {
         onChange={handleChange}
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
-        placeholder="Add your personal notes here..."
+        placeholder={t['notes.placeholder']}
         className="w-full bg-transparent text-sm text-stone-700 dark:text-stone-300 leading-relaxed outline-none resize-none placeholder:text-stone-400 dark:placeholder:text-stone-600 font-sans min-h-[80px]"
       />
     </div>
