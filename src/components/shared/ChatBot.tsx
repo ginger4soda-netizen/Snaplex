@@ -41,6 +41,9 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
 
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
+    // Source-of-truth for the chip currently being dragged. Refs survive
+    // re-renders and don't lag behind state updates the way `draggedId` can.
+    const draggedIdRef = useRef<string | null>(null);
 
     const abortRef = useRef<AbortController | null>(null);
 
@@ -266,35 +269,39 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
         // (e.g. the image grid's file-import overlay).
         e.stopPropagation();
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', chipId);
+        try { e.dataTransfer.setData('text/plain', chipId); } catch { /* WebKit edge cases */ }
+        draggedIdRef.current = chipId;
         setDraggedId(chipId);
     };
 
     const handleDragOver = (e: React.DragEvent, chipId: string) => {
+        // preventDefault is REQUIRED for the drop target to accept the drop.
         e.preventDefault();
         e.stopPropagation();
         e.dataTransfer.dropEffect = 'move';
-        if (chipId !== draggedId) setDragOverId(chipId);
+        if (chipId !== draggedIdRef.current) setDragOverId(chipId);
     };
 
     const handleDrop = (e: React.DragEvent, targetId: string) => {
         e.preventDefault();
         e.stopPropagation();
-        const sourceId = e.dataTransfer.getData('text/plain') || draggedId;
-        if (!sourceId || sourceId === targetId) { setDraggedId(null); setDragOverId(null); return; }
+        const sourceId = draggedIdRef.current || e.dataTransfer.getData('text/plain');
+        draggedIdRef.current = null;
+        setDraggedId(null);
+        setDragOverId(null);
+        if (!sourceId || sourceId === targetId) return;
         const sourceIdx = allChips.findIndex(c => c.id === sourceId);
         const targetIdx = allChips.findIndex(c => c.id === targetId);
-        if (sourceIdx === -1 || targetIdx === -1) { setDraggedId(null); setDragOverId(null); return; }
+        if (sourceIdx === -1 || targetIdx === -1) return;
         const newChips = [...allChips];
         const [removed] = newChips.splice(sourceIdx, 1);
         newChips.splice(targetIdx, 0, removed);
         saveChips(newChips);
-        setDraggedId(null);
-        setDragOverId(null);
     };
 
     const handleDragEnd = (e: React.DragEvent) => {
         e.stopPropagation();
+        draggedIdRef.current = null;
         setDraggedId(null);
         setDragOverId(null);
     };
@@ -332,13 +339,16 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
                 )}
                 <div className="flex gap-2 px-4 py-3 overflow-x-auto no-scrollbar mask-gradient-right">
                     {allChips.map((chip) => (
-                        <div key={chip.id} className="relative">
+                        <div
+                            key={chip.id}
+                            className="relative"
+                            draggable={!loading}
+                            onDragStart={(e) => handleDragStart(e, chip.id)}
+                            onDragOver={(e) => handleDragOver(e, chip.id)}
+                            onDrop={(e) => handleDrop(e, chip.id)}
+                            onDragEnd={handleDragEnd}
+                        >
                             <button
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, chip.id)}
-                                onDragOver={(e) => handleDragOver(e, chip.id)}
-                                onDrop={(e) => handleDrop(e, chip.id)}
-                                onDragEnd={handleDragEnd}
                                 onClick={() => handleChipClick(chip.prompt)}
                                 onMouseDown={handlePressStart}
                                 onMouseMove={handlePressMove}

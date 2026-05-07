@@ -5,6 +5,7 @@ import { analyzeImage, regenerateDimension } from '@/services/geminiService';
 import { getCurrentProvider, getCurrentModel } from '@/services/providers/types';
 import { getImageBase64 } from '@/utils/imageToBase64';
 import { translatePromptDimensions } from '@/services/googleTranslate';
+import { analyzeManager, useAnalyzing } from '@/utils/analyzeManager';
 import { get } from 'idb-keyval';
 import { getTranslation } from '@/translations';
 
@@ -38,7 +39,6 @@ const DIMENSIONS: { key: DimensionKey; labelKey: PromptSectionKey; color: string
 const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, image, onAnalysisComplete, systemLanguage }) => {
   const t = getTranslation(systemLanguage);
   const [expandedKey, setExpandedKey] = useState<DimensionKey | null>('subject');
-  const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
   const [refreshingDim, setRefreshingDim] = useState<DimensionKey | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [localAnalysis, setLocalAnalysis] = useState<AnalysisResult | null>(null);
@@ -50,14 +50,31 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
   const currentImageIdRef = useRef(imageId);
   useEffect(() => { currentImageIdRef.current = imageId; }, [imageId]);
 
-  const analyzing = analyzingIds.has(imageId);
+  // In-flight analysis state lives in the module-level manager so it
+  // survives DimensionCards unmounts when the user navigates between images.
+  const analyzing = useAnalyzing(imageId);
 
-  // Reset per-image local state when image changes; do NOT clear analyzingIds —
-  // that set tracks all in-flight analyses across image switches.
+  // Reset per-image local UI state when image changes.
   useEffect(() => {
     setLocalAnalysis(null);
     setDimensionHistories({});
     setError(null);
+  }, [imageId]);
+
+  // If we mount on (or navigate back to) an image whose analysis is still
+  // running in the background, await its result and surface it locally.
+  useEffect(() => {
+    if (!imageId) return;
+    const inFlight = analyzeManager.await(imageId);
+    if (!inFlight) return;
+    let cancelled = false;
+    inFlight.then(result => {
+      if (cancelled || !result) return;
+      if (currentImageIdRef.current === imageId) {
+        setLocalAnalysis(result);
+      }
+    });
+    return () => { cancelled = true; };
   }, [imageId]);
 
   const currentAnalysis = localAnalysis || analysis;
@@ -162,17 +179,14 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
     }
   };
 
-  const handleAnalyze = async () => {
-    // Capture imageId at start so late completions write to the right image
-    // even if the user has switched to a different one mid-analysis.
+  const handleAnalyze = () => {
+    // Capture imageId at start so the runner writes to the right record even
+    // if the user navigates away mid-analysis.
     const targetId = imageId;
-    setAnalyzingIds(prev => {
-      const next = new Set(prev);
-      next.add(targetId);
-      return next;
-    });
+    if (analyzeManager.isAnalyzing(targetId)) return;
     setError(null);
-    try {
+
+    void analyzeManager.start(targetId, async () => {
       const [settings, base64] = await Promise.all([
         loadSettings(),
         getImageBase64(targetId, image),
@@ -196,27 +210,18 @@ const DimensionCards: React.FC<DimensionCardsProps> = ({ imageId, analysis, imag
             .catch(err => console.warn(`Failed to persist initial ${d}:`, err));
         })
       );
-      // Only update the visible card if the user is still on this image.
+      // Notify parent so the AI badge / detail panel can refresh, regardless
+      // of which image is currently selected.
+      onAnalysisComplete?.(targetId, result);
+      // Surface result locally only if the user is still on this image.
       if (currentImageIdRef.current === targetId) {
         setLocalAnalysis(result);
       }
-      // Always notify parent so the AI badge in the grid refreshes regardless
-      // of which image is currently selected.
-      onAnalysisComplete?.(targetId, result);
-    } catch (e) {
+      return result;
+    }).catch(e => {
       const msg = e instanceof Error ? e.message : String(e);
-      if (currentImageIdRef.current === targetId) {
-        setError(msg);
-      }
-      console.error('Analysis failed:', e);
-    } finally {
-      setAnalyzingIds(prev => {
-        if (!prev.has(targetId)) return prev;
-        const next = new Set(prev);
-        next.delete(targetId);
-        return next;
-      });
-    }
+      if (currentImageIdRef.current === targetId) setError(msg);
+    });
   };
 
   const handleCopy = async (dim: DimensionKey) => {
