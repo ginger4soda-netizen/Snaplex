@@ -105,3 +105,15 @@ Red line:
   - whether screenshot fallback would have a visible rect
 - Repeat one protected/paid/DRM sample only to verify the extension refuses with DRM messaging.
 
+## Decision (2026-05-07)
+
+Confirmed by user:
+
+- **Route**: Option C (combined: direct extraction first, screenshot fallback)
+- **Site bias**:
+  - YouTube non-DRM: try direct frame extraction (Route A)
+  - Twitter/X, Bilibili, TikTok: skip direct extraction, go straight to region screenshot fallback (Route B)
+- **DRM red line preserved**: detect protected/black-frame, return `video_drm_protected`, do not attempt bypass
+
+Implementation tracked in `docs/wave-6-hitl-implementation-plan.md` (T13).
+
