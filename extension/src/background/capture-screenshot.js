@@ -69,6 +69,60 @@ export async function captureVisibleScreenshot({ tab, sendNativeRequest, showFee
   }
 }
 
+export async function captureXhsRegionFallback({ tab, rect, dpr, candidateSource, srcUrl, pageUrl, pageTitle, fallbackReason, sendNativeRequest }) {
+  try {
+    if (typeof tab?.windowId !== "number") {
+      return { kind: "error", code: "screenshot_failed", message: "No active browser window" };
+    }
+
+    const normalizedRect = normalizeRect(rect);
+    if (!normalizedRect || normalizedRect.w < 8 || normalizedRect.h < 8) {
+      return { kind: "error", code: "selection_too_small", message: "Selection is too small" };
+    }
+
+    const scale = typeof dpr === "number" && dpr > 0 ? dpr : 1;
+    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
+    const cropped = await cropDataUrl(dataUrl, normalizedRect, scale);
+    if (cropped.bytes.byteLength > MAX_CAPTURE_BYTES) {
+      return { kind: "error", code: "payload_too_large", message: "Screenshot is larger than 50 MB" };
+    }
+
+    const payloadRef = await payloadRefForBytes(cropped.bytes, "image/png", sendNativeRequest);
+    return await sendNativeRequest(
+      {
+        kind: "capture",
+        envelope: {
+          type: "screenshot_region",
+          payload_ref: payloadRef,
+          metadata: {
+            source_url: srcUrl || null,
+            page_url: pageUrl || tab.url || "",
+            page_title: pageTitle || tab.title || "",
+            filename_hint: null,
+            captured_at: new Date().toISOString(),
+            capture_kind: "screenshot_fallback",
+            type_specific: {
+              rect: normalizedRect,
+              dpr: scale,
+              candidate_source: candidateSource || null,
+              fallback_reason: fallbackReason || null,
+              site: "xiaohongshu"
+            }
+          }
+        }
+      },
+      ["capture_result"],
+      60000
+    );
+  } catch (error) {
+    return {
+      kind: "error",
+      code: error.code || "screenshot_failed",
+      message: error.message || "Could not capture screenshot"
+    };
+  }
+}
+
 export async function captureRegionScreenshot({ tab, rect, dpr, sendNativeRequest, showFeedback, getTranslator }) {
   const startedAtMs = performance.now();
   const t = await getTranslator();

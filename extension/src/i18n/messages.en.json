@@ -45,5 +45,11 @@
   "status.ready": "Connected",
   "toast.duplicate": "Already in your library",
   "toast.duplicateSource": "Already in your library - added new source",
-  "toast.saved": "Saved to Snaplex"
+  "toast.saved": "Saved to Snaplex",
+  "toast.xhsFallback": "Original image unavailable, captured screenshot instead",
+  "xhs.button.capture": "Save to Snaplex",
+  "xhs.button.sending": "Sending…",
+  "xhs.button.sent": "Sent",
+  "xhs.button.fallback": "Image unavailable — screenshot sent",
+  "xhs.button.failed": "Send failed"
 }

@@ -1,0 +1,4 @@
+/* All hover-button styles live inside the shadow root rendered by xhs-hover.js.
+   This file exists so the manifest content_scripts entry has a real stylesheet
+   handle and so future site-level CSS hooks (e.g. body-class isolation) have a
+   home that doesn't pollute the shadow DOM. */

@@ -2,6 +2,7 @@ import { getStoredLocale, getTranslator } from "../i18n/i18n.js";
 import { captureImageFromContextMenu } from "./capture-image.js";
 import { captureRegionScreenshot, captureVisibleScreenshot } from "./capture-screenshot.js";
 import { captureVideoFrameFromContextMenu } from "./capture-video-frame.js";
+import { getXhsLabels, handleXhsCapture } from "./capture-xhs.js";
 import { showFeedback } from "./feedback.js";
 import { isRestrictedPageUrl } from "../util/url.js";
 
@@ -535,6 +536,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (message?.type === "snaplex:start-region-screenshot") {
       sendResponse(await startRegionScreenshot(await getActiveTab(), "popup"));
+      return;
+    }
+
+    if (message?.type === "snaplex:get-xhs-labels") {
+      const t = await getCurrentTranslator();
+      sendResponse({ ok: true, labels: getXhsLabels(t) });
+      return;
+    }
+
+    if (message?.type === "xhs:capture") {
+      const tab = sender.tab || (await getActiveTab());
+      if (!tab) {
+        sendResponse({ ok: false, code: "no_active_tab" });
+        return;
+      }
+      if (isRestrictedPageUrl(tab.url)) {
+        sendResponse(await showRestrictedFeedback(tab, "image"));
+        return;
+      }
+      sendResponse(
+        await handleXhsCapture({
+          payload: message.payload,
+          tab,
+          sendNativeRequest,
+          showFeedback,
+          getTranslator: getCurrentTranslator
+        })
+      );
       return;
     }
 
