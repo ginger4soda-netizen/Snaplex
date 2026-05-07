@@ -22,7 +22,8 @@ export interface AIProvider {
         message: string,
         image: string | undefined,
         onUpdate: (text: string) => void,
-        settings?: UserSettings
+        settings?: UserSettings,
+        signal?: AbortSignal
     ): Promise<void>;
 
     // Translate text

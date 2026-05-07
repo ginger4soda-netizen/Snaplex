@@ -118,7 +118,8 @@ Output JSON: { "def": "...", "app": "..." }`;
         message: string,
         image: string | undefined,
         onUpdate: (text: string) => void,
-        settings?: UserSettings
+        settings?: UserSettings,
+        signal?: AbortSignal
     ): Promise<void> {
         const modelName = getCurrentModel();
         const messages: any[] = [];
@@ -174,7 +175,8 @@ Output JSON: { "def": "...", "app": "..." }`;
                 model: modelName,
                 messages,
                 stream: true
-            })
+            }),
+            signal
         });
 
         if (!response.ok) {
@@ -188,25 +190,30 @@ Output JSON: { "def": "...", "app": "..." }`;
         let accumulatedText = "";
 
         if (reader) {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+            try {
+                while (true) {
+                    if (signal?.aborted) break;
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
 
-                for (const line of lines) {
-                    const data = line.slice(6);
-                    if (data === '[DONE]') break;
-                    try {
-                        const parsed = JSON.parse(data);
-                        const content = parsed.choices?.[0]?.delta?.content;
-                        if (content) {
-                            accumulatedText += content;
-                            onUpdate(accumulatedText);
-                        }
-                    } catch { }
+                    for (const line of lines) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') break;
+                        try {
+                            const parsed = JSON.parse(data);
+                            const content = parsed.choices?.[0]?.delta?.content;
+                            if (content) {
+                                accumulatedText += content;
+                                onUpdate(accumulatedText);
+                            }
+                        } catch { }
+                    }
                 }
+            } finally {
+                try { reader.cancel(); } catch { }
             }
         }
     }

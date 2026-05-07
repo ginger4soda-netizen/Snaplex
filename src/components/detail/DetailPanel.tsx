@@ -11,6 +11,7 @@ import { extractColors, ExtractedColor } from '@/utils/colorExtract';
 import { getCorrectDisplayOrder } from '@/utils/languageDetect';
 import { copyToClipboard } from '@/utils/clipboard';
 import { showToast } from '@/hooks/useToast';
+import { analyzeManager } from '@/utils/analyzeManager';
 import { get } from 'idb-keyval';
 import { getTranslation } from '@/translations';
 
@@ -33,9 +34,10 @@ interface DetailPanelProps {
   imageId?: string;
   onClose: () => void;
   systemLanguage?: string;
+  onAnalysisChanged?: (imageId: string) => void;
 }
 
-const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLanguage }) => {
+const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLanguage, onAnalysisChanged }) => {
   const { getImageDetail, getImageSources, updateImageMemo, getColorPalette, saveColorPalette } = useTauriIPC();
   const t = getTranslation(systemLanguage);
   const captureTypeLabels: Record<string, string> = {
@@ -84,6 +86,23 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLangu
 
     return () => { cancelled = true; };
   }, [imageId]);
+
+  // Re-fetch detail whenever a background analysis completes for the image
+  // currently on screen. This closes the race where the runner finishes
+  // saving to the DB after DetailPanel has already loaded `detail` (without
+  // analysis) — without this, returning from another image during in-flight
+  // analyze can briefly show "Analyze prompt" again after the spinner clears.
+  useEffect(() => {
+    if (!imageId) return;
+    return analyzeManager.subscribe(({ imageId: changedId, state }) => {
+      if (state !== 'completed' || changedId !== imageId) return;
+      getImageDetail(imageId)
+        .then(result => {
+          setDetail(prev => prev && prev.id === imageId ? result : prev);
+        })
+        .catch(err => console.warn('Refetch after analyze failed:', err));
+    });
+  }, [imageId, getImageDetail]);
 
   // Helper to resolve asset URL
   const resolveAssetUrl = useCallback((url: string) => {
@@ -335,8 +354,14 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLangu
                 analysis={detail.analysis}
                 image={fullUrl}
                 systemLanguage={systemLanguage}
-                onAnalysisComplete={(analysis) => {
-                  setDetail(prev => prev ? { ...prev, analysis, hasAnalysis: true } : null);
+                onAnalysisComplete={(completedId, analysis) => {
+                  // Only refresh the visible Info panel if the completed
+                  // analysis belongs to the image still being shown.
+                  setDetail(prev => prev && prev.id === completedId
+                    ? { ...prev, analysis, hasAnalysis: true }
+                    : prev
+                  );
+                  onAnalysisChanged?.(completedId);
                 }}
               />
             </section>

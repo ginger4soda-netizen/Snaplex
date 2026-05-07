@@ -120,7 +120,8 @@ Output JSON only (no markdown): { "def": "...", "app": "..." }`;
         message: string,
         image: string | undefined,
         onUpdate: (text: string) => void,
-        settings?: UserSettings
+        settings?: UserSettings,
+        signal?: AbortSignal
     ): Promise<void> {
         const modelName = getCurrentModel();
         const messages: any[] = [];
@@ -172,7 +173,8 @@ Output JSON only (no markdown): { "def": "...", "app": "..." }`;
                 stream: true,
                 system: `You are an AI assistant analyzing images. Use ${settings?.systemLanguage || 'English'}. Be direct and technical.`,
                 messages
-            })
+            }),
+            signal
         });
 
         if (!response.ok) {
@@ -186,22 +188,27 @@ Output JSON only (no markdown): { "def": "...", "app": "..." }`;
         let accumulatedText = "";
 
         if (reader) {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+            try {
+                while (true) {
+                    if (signal?.aborted) break;
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
 
-                for (const line of lines) {
-                    try {
-                        const data = JSON.parse(line.slice(6));
-                        if (data.type === 'content_block_delta' && data.delta?.text) {
-                            accumulatedText += data.delta.text;
-                            onUpdate(accumulatedText);
-                        }
-                    } catch { }
+                    for (const line of lines) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.type === 'content_block_delta' && data.delta?.text) {
+                                accumulatedText += data.delta.text;
+                                onUpdate(accumulatedText);
+                            }
+                        } catch { }
+                    }
                 }
+            } finally {
+                try { reader.cancel(); } catch { }
             }
         }
     }
