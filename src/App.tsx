@@ -37,7 +37,7 @@ const App: React.FC = () => {
   const [initState, setInitState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [initError, setInitError] = useState<string>('');
   const { theme } = useTheme();
-  const { getCurrentLibrary, createLibrary, setTextEmbeddingConfig, setClipIndexingEnabled } = useTauriIPC();
+  const { getCurrentLibrary, createLibrary, setTextEmbeddingConfig, setClipIndexingEnabled, startBackfill } = useTauriIPC();
 
   // Initialize: load settings + ensure library exists
   useEffect(() => {
@@ -79,7 +79,10 @@ const App: React.FC = () => {
           lib = await createLibrary(libPath, DEFAULT_LIBRARY_NAME);
         }
         await setTextEmbeddingConfig(toTextEmbeddingConfig(loadedSettings));
-        await setClipIndexingEnabled(loadedSettings.clipIndexingEnabled ?? true);
+        await setClipIndexingEnabled(true);
+        startBackfill().catch((error) => {
+          console.warn('Failed to start visual search backfill:', error);
+        });
         setInitState('ready');
       } catch (e) {
         const msg = String(e);
@@ -97,8 +100,8 @@ const App: React.FC = () => {
     setTextEmbeddingConfig(toTextEmbeddingConfig(newSettings)).catch((error) => {
       console.warn('Failed to sync text embedding config:', error);
     });
-    setClipIndexingEnabled(newSettings.clipIndexingEnabled ?? true).catch((error) => {
-      console.warn('Failed to sync CLIP indexing config:', error);
+    setClipIndexingEnabled(true).catch((error) => {
+      console.warn('Failed to enable visual search indexing:', error);
     });
   };
 

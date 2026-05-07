@@ -106,7 +106,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         // Tauri mode: parallel FTS + CLIP search via IPC
         const [ftsResults, clipResults] = await Promise.all([
           searchImages(trimmed, folderId),
-          visualSearch(trimmed, 50),
+          visualSearch(trimmed, 50, folderId),
         ]);
 
         // Check if this search is still current

@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { listen } from '@tauri-apps/api/event';
-import { BackfillProgress, IndexFailureInfo, IndexHealth, UserSettings } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { UserSettings } from '../../types';
 import { getTranslation } from '../../translations';
-import { useTauriIPC } from '../../hooks/useTauriIPC';
 import {
     ProviderType,
     PROVIDER_MODELS,
@@ -38,38 +36,14 @@ const PROVIDER_KEY_LINKS: Record<ProviderType, { url: string; label: string }> =
 };
 
 const STORED_MODULE_KEYS = ["Subject", "Environment", "Composition", "Lighting", "Mood", "Style"];
-const DEFAULT_TEXT_EMBEDDING = {
-    enabled: false,
-    endpoint: 'https://api.openai.com/v1',
-    apiKey: '',
-    model: 'text-embedding-3-small',
-    dimensions: undefined as number | undefined,
-};
 
 const Settings: React.FC<Props> = ({ settings, onSave }) => {
     const t = getTranslation(settings.systemLanguage);
-    const { getIndexHealth, startBackfill, cancelBackfill, rebuildTextIndex } = useTauriIPC();
 
     // --- Provider & API State ---
     const [provider, setProvider] = useState<ProviderType>('gemini');
     const [apiKey, setApiKey] = useState('');
     const [model, setModel] = useState('gemini-2.5-flash');
-    const [indexHealth, setIndexHealth] = useState<IndexHealth | null>(null);
-    const [indexHealthError, setIndexHealthError] = useState<string | null>(null);
-    const [isBackfilling, setIsBackfilling] = useState(false);
-    const [backfillProgress, setBackfillProgress] = useState<BackfillProgress | null>(null);
-    const textEmbedding = settings.textEmbedding || DEFAULT_TEXT_EMBEDDING;
-
-    const refreshIndexHealth = useCallback(async () => {
-        try {
-            const health = await getIndexHealth();
-            setIndexHealth(health);
-            setIndexHealthError(null);
-        } catch (error) {
-            setIndexHealth(null);
-            setIndexHealthError(error instanceof Error ? error.message : String(error));
-        }
-    }, [getIndexHealth]);
 
     useEffect(() => {
         const loadedProvider = getCurrentProvider();
@@ -77,36 +51,6 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
         setApiKey(getApiKey(loadedProvider) || '');
         setModel(getCurrentModel());
     }, []);
-
-    useEffect(() => {
-        refreshIndexHealth();
-    }, [refreshIndexHealth]);
-
-    useEffect(() => {
-        let cancelled = false;
-        let unlisten: (() => void) | undefined;
-
-        listen<BackfillProgress>('backfill-progress', (event) => {
-            if (!cancelled) {
-                setBackfillProgress(event.payload);
-                if (['done', 'cancelled', 'failed'].includes(event.payload.currentKind)) {
-                    setIsBackfilling(false);
-                    refreshIndexHealth();
-                }
-            }
-        }).then((cleanup) => {
-            if (cancelled) {
-                cleanup();
-            } else {
-                unlisten = cleanup;
-            }
-        });
-
-        return () => {
-            cancelled = true;
-            unlisten?.();
-        };
-    }, [refreshIndexHealth]);
 
     const handleProviderChange = (newProvider: ProviderType) => {
         setProvider(newProvider);
@@ -172,101 +116,6 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
             onSave({ ...settings, copyIncludedModules: [...current, modKey] });
         }
     };
-
-    const updateTextEmbedding = (patch: Partial<typeof DEFAULT_TEXT_EMBEDDING>) => {
-        onSave({
-            ...settings,
-            textEmbedding: {
-                ...DEFAULT_TEXT_EMBEDDING,
-                ...textEmbedding,
-                ...patch,
-            },
-        });
-    };
-
-    const handleStartBackfill = async () => {
-        setIsBackfilling(true);
-        setBackfillProgress({
-            channelId: '',
-            processed: 0,
-            total: 0,
-            indexed: 0,
-            failed: 0,
-            cancelled: false,
-            currentKind: 'start',
-            currentFile: null,
-            etaSeconds: null,
-            lastError: null,
-        });
-        try {
-            const run = await startBackfill();
-            setBackfillProgress({
-                channelId: run.channelId,
-                processed: 0,
-                total: 0,
-                indexed: 0,
-                failed: 0,
-                cancelled: false,
-                currentKind: run.alreadyRunning ? 'running' : 'queued',
-                currentFile: null,
-                etaSeconds: null,
-                lastError: null,
-            });
-        } catch (error) {
-            setIndexHealthError(error instanceof Error ? error.message : String(error));
-            setIsBackfilling(false);
-        }
-    };
-
-    const handleCancelBackfill = async () => {
-        try {
-            await cancelBackfill();
-        } catch (error) {
-            setIndexHealthError(error instanceof Error ? error.message : String(error));
-        }
-    };
-
-    const handleRebuildTextIndex = async () => {
-        setIndexHealthError(null);
-        try {
-            await rebuildTextIndex();
-            await refreshIndexHealth();
-            await handleStartBackfill();
-        } catch (error) {
-            setIndexHealthError(error instanceof Error ? error.message : String(error));
-        }
-    };
-
-    const renderIndexMetric = (label: string, indexed: number, failed: number, total: number, modelVersion: string | null, lastFailure: IndexFailureInfo | null) => (
-        <div className="rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 p-4">
-            <div className="flex items-center justify-between gap-3">
-                <span className="font-bold text-sm text-stone-700 dark:text-stone-200">{label}</span>
-                <span className="text-xs font-mono text-stone-500 dark:text-stone-400">{indexed}/{total}</span>
-            </div>
-            <div className="mt-3 h-2 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
-                <div
-                    className="h-full bg-stone-800 dark:bg-stone-200 transition-all"
-                    style={{ width: `${total > 0 ? Math.min(100, Math.round((indexed / total) * 100)) : 0}%` }}
-                />
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-3 text-[11px] text-stone-500 dark:text-stone-400">
-                <span>Failed: {failed}</span>
-                <span className="truncate font-mono" title={modelVersion || 'Not configured'}>
-                    {modelVersion || 'Not configured'}
-                </span>
-            </div>
-            {lastFailure && (
-                <div className="mt-2 truncate text-[11px] text-red-500" title={lastFailure.lastError}>
-                    Last failure: {lastFailure.lastError}
-                </div>
-            )}
-        </div>
-    );
-
-    const progressTotal = backfillProgress?.total || 0;
-    const progressPercent = progressTotal > 0
-        ? Math.min(100, Math.round((backfillProgress!.processed / progressTotal) * 100))
-        : 0;
 
     return (
         <div className="min-h-screen pt-6 md:pt-8 pb-10 animate-[fadeIn_0.3s_ease-out]">
@@ -364,153 +213,6 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                     </a>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    {/* 2. Search Indexing */}
-                    <div className="bg-white dark:bg-stone-900 p-6 rounded-2xl border border-stone-200 dark:border-stone-700">
-                        <div className="flex items-center justify-between gap-4 mb-6">
-                            <div>
-                                <h3 className="text-stone-800 dark:text-stone-100 font-bold text-lg">Search Indexing</h3>
-                                <p className="text-xs text-stone-400 mt-1">Optional semantic search via an OpenAI-compatible embeddings API.</p>
-                            </div>
-                            <label className="inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={!!textEmbedding.enabled}
-                                    onChange={(e) => updateTextEmbedding({ enabled: e.target.checked })}
-                                    className="sr-only peer"
-                                />
-                                <span className="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer dark:bg-stone-700 peer-checked:after:translate-x-5 after:content-[''] after:absolute after:mt-0.5 after:ml-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-stone-800 relative" />
-                            </label>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">Embeddings Endpoint</label>
-                                <input
-                                    type="text"
-                                    value={textEmbedding.endpoint}
-                                    onChange={(e) => updateTextEmbedding({ endpoint: e.target.value })}
-                                    placeholder="https://api.openai.com/v1"
-                                    className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-3 font-mono text-stone-700 dark:text-stone-200 text-sm outline-none shadow-sm focus:border-softblue"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">Embedding Model</label>
-                                <input
-                                    type="text"
-                                    value={textEmbedding.model}
-                                    onChange={(e) => updateTextEmbedding({ model: e.target.value })}
-                                    placeholder="text-embedding-3-small"
-                                    className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-3 font-mono text-stone-700 dark:text-stone-200 text-sm outline-none shadow-sm focus:border-softblue"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">Embeddings API Key</label>
-                                <input
-                                    type="text"
-                                    value={textEmbedding.apiKey}
-                                    onChange={(e) => updateTextEmbedding({ apiKey: e.target.value })}
-                                    placeholder="sk-..."
-                                    autoComplete="off"
-                                    data-lpignore="true"
-                                    className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-3 font-mono text-stone-700 dark:text-stone-200 text-sm outline-none shadow-sm focus:border-softblue"
-                                    style={{ WebkitTextSecurity: 'disc' } as any}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-stone-400 font-bold text-[10px] uppercase tracking-wider mb-2">Dimensions</label>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    value={textEmbedding.dimensions || ''}
-                                    onChange={(e) => updateTextEmbedding({ dimensions: e.target.value ? Number(e.target.value) : undefined })}
-                                    placeholder="Default"
-                                    className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-3 font-mono text-stone-700 dark:text-stone-200 text-sm outline-none shadow-sm focus:border-softblue"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="mt-6 pt-6 border-t border-stone-200 dark:border-stone-700">
-                            <div className="flex items-center justify-between gap-4 mb-4">
-                                <div>
-                                    <h4 className="font-bold text-sm text-stone-800 dark:text-stone-100">Index Health</h4>
-                                    <p className="text-xs text-stone-400 mt-1">Visual CLIP index and optional text embedding coverage.</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleRebuildTextIndex}
-                                        disabled={isBackfilling || !textEmbedding.enabled}
-                                        className="px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        Rebuild text
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={isBackfilling ? handleCancelBackfill : handleStartBackfill}
-                                        className="px-4 py-2 rounded-lg bg-stone-800 dark:bg-stone-100 text-white dark:text-stone-900 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {isBackfilling ? 'Cancel' : 'Start backfill'}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <label className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-stone-200 dark:border-stone-700 px-4 py-3">
-                                <span className="text-sm font-bold text-stone-700 dark:text-stone-200">CLIP indexing</span>
-                                <input
-                                    type="checkbox"
-                                    checked={settings.clipIndexingEnabled ?? true}
-                                    onChange={(e) => onSave({ ...settings, clipIndexingEnabled: e.target.checked })}
-                                    className="h-4 w-4 accent-stone-800"
-                                />
-                            </label>
-
-                            {indexHealthError && (
-                                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
-                                    {indexHealthError}
-                                </div>
-                            )}
-
-                            {indexHealth && (
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    {renderIndexMetric('Text', indexHealth.text.indexed, indexHealth.text.failed, indexHealth.totalImages, indexHealth.text.modelVersion, indexHealth.text.lastFailure)}
-                                    {renderIndexMetric('Visual', indexHealth.visual.indexed, indexHealth.visual.failed, indexHealth.totalImages, indexHealth.visual.modelVersion, indexHealth.visual.lastFailure)}
-                                </div>
-                            )}
-
-                            {indexHealth?.latestBackfill && !backfillProgress && (
-                                <div className="mt-4 rounded-xl border border-stone-200 dark:border-stone-700 px-4 py-3 text-xs text-stone-500 dark:text-stone-400">
-                                    Last backfill: {indexHealth.latestBackfill.status} · {indexHealth.latestBackfill.processed}/{indexHealth.latestBackfill.total}
-                                </div>
-                            )}
-
-                            {backfillProgress && (
-                                <div className="mt-4 rounded-xl border border-stone-200 dark:border-stone-700 p-4">
-                                    <div className="flex items-center justify-between gap-3 text-xs font-bold text-stone-600 dark:text-stone-300">
-                                        <span>{backfillProgress.currentKind}</span>
-                                        <span>{backfillProgress.processed}/{backfillProgress.total}</span>
-                                    </div>
-                                    <div className="mt-3 h-2 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
-                                        <div className="h-full bg-softblue transition-all" style={{ width: `${progressPercent}%` }} />
-                                    </div>
-                                    <div className="mt-3 text-[11px] text-stone-500 dark:text-stone-400">
-                                        Indexed: {backfillProgress.indexed} / Failed: {backfillProgress.failed}
-                                        {backfillProgress.etaSeconds !== null ? ` / ETA: ${backfillProgress.etaSeconds}s` : ''}
-                                    </div>
-                                    {backfillProgress.currentFile && (
-                                        <div className="mt-1 truncate text-[11px] text-stone-500 dark:text-stone-400" title={backfillProgress.currentFile}>
-                                            Current: {backfillProgress.currentFile}
-                                        </div>
-                                    )}
-                                    {backfillProgress.lastError && (
-                                        <div className="mt-1 truncate text-[11px] text-red-500" title={backfillProgress.lastError}>
-                                            Last error: {backfillProgress.lastError}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                         </div>
                     </div>
 

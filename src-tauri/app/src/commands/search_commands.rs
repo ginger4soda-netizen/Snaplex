@@ -186,6 +186,7 @@ pub fn search_images(
 pub fn visual_search(
     query: String,
     limit: i32,
+    folder_id: Option<String>,
     db_state: State<'_, Mutex<Option<Database>>>,
     clip_indexing_state: State<'_, Mutex<bool>>,
     clip_embedder_state: State<'_, Mutex<Option<ClipOnnxEmbedder>>>,
@@ -229,11 +230,10 @@ pub fn visual_search(
     drop(embedder_guard);
 
     with_db(&db_state, |conn| {
-        search_service::visual_search(conn, &visual_query, limit as usize).map_err(|error| {
-            match error {
+        search_service::visual_search(conn, &visual_query, folder_id.as_deref(), limit as usize)
+            .map_err(|error| match error {
                 search_service::SearchServiceError::Sql(sql) => sql,
-            }
-        })
+            })
     })
 }
 
