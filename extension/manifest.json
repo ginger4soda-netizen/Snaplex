@@ -24,6 +24,15 @@
       "world": "ISOLATED"
     }
   ],
+  "web_accessible_resources": [
+    {
+      "resources": ["content/xhs/snake-mark.png"],
+      "matches": [
+        "https://*.xiaohongshu.com/*",
+        "https://*.xhscdn.com/*"
+      ]
+    }
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"

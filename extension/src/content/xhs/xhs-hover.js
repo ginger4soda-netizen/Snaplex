@@ -7,10 +7,14 @@
   const PROBE_THROTTLE_MS = 60;
   const HIDE_DELAY_MS = 200;
   const RESULT_LINGER_MS = 1100;
-  const BUTTON_HEIGHT = 28;
+  const BUTTON_SIZE = 32;
   const BUTTON_OFFSET = 8;
   const MIN_CANDIDATE_SIZE = 64;
   const ANCESTOR_LIMIT = 8;
+
+  // Snaplex mascot mark, copied from branding/exports/mark/48.png.
+  // Loaded via chrome.runtime.getURL — see web_accessible_resources in manifest.
+  const SNAKE_MARK_URL = chrome.runtime.getURL("content/xhs/snake-mark.png");
 
   const DEFAULT_LABELS = {
     capture: "保存到 Snaplex / Save to Snaplex",
@@ -29,7 +33,6 @@
   let host = null;
   let shadow = null;
   let buttonEl = null;
-  let buttonStateEl = null;
   let busy = false;
 
   void requestLabels();
@@ -273,23 +276,26 @@
     button.type = "button";
     button.className = "snaplex-cap";
     button.title = labels.capture;
+    button.setAttribute("aria-label", labels.capture);
     button.dataset.state = "idle";
-    button.innerHTML = `<span class="ico" aria-hidden="true"></span><span class="state"></span>`;
+    const ico = document.createElement("span");
+    ico.className = "ico";
+    ico.setAttribute("aria-hidden", "true");
+    button.append(ico);
     button.addEventListener("click", onButtonClick);
     button.addEventListener("mousedown", (event) => event.stopPropagation());
     button.addEventListener("contextmenu", (event) => event.stopPropagation());
     shadow.append(style, button);
     document.documentElement.append(host);
     buttonEl = button;
-    buttonStateEl = button.querySelector(".state");
   }
 
   function showButton(candidate) {
     ensureHost();
     cancelHide();
     buttonEl.dataset.state = "idle";
-    buttonStateEl.textContent = "";
     buttonEl.title = labels.capture;
+    buttonEl.setAttribute("aria-label", labels.capture);
     buttonEl.style.display = "inline-flex";
     positionButton(candidate.rect);
   }
@@ -300,9 +306,10 @@
     }
     const viewportW = window.innerWidth;
     const viewportH = window.innerHeight;
-    const buttonWidth = buttonEl.offsetWidth || BUTTON_HEIGHT;
-    const top = Math.max(BUTTON_OFFSET, Math.min(rect.top + BUTTON_OFFSET, viewportH - BUTTON_HEIGHT - BUTTON_OFFSET));
-    const left = Math.max(BUTTON_OFFSET, Math.min(rect.right - buttonWidth - BUTTON_OFFSET, viewportW - buttonWidth - BUTTON_OFFSET));
+    const desiredTop = rect.bottom - BUTTON_SIZE - BUTTON_OFFSET;
+    const desiredLeft = rect.left + BUTTON_OFFSET;
+    const top = Math.max(BUTTON_OFFSET, Math.min(desiredTop, viewportH - BUTTON_SIZE - BUTTON_OFFSET));
+    const left = Math.max(BUTTON_OFFSET, Math.min(desiredLeft, viewportW - BUTTON_SIZE - BUTTON_OFFSET));
     buttonEl.style.top = `${top}px`;
     buttonEl.style.left = `${left}px`;
   }
@@ -328,7 +335,6 @@
     if (buttonEl) {
       buttonEl.style.display = "none";
       buttonEl.dataset.state = "idle";
-      buttonStateEl.textContent = "";
     }
     currentCandidate = null;
   }
@@ -414,8 +420,9 @@
       return;
     }
     buttonEl.dataset.state = state;
-    buttonStateEl.textContent = message || "";
-    buttonEl.title = message || labels.capture;
+    const tooltip = message || labels.capture;
+    buttonEl.title = tooltip;
+    buttonEl.setAttribute("aria-label", tooltip);
   }
 
   function roundedRect(rect) {
@@ -434,39 +441,51 @@
         position: fixed;
         display: none;
         align-items: center;
-        gap: 6px;
-        height: ${BUTTON_HEIGHT}px;
-        padding: 0 12px 0 10px;
+        justify-content: center;
+        width: ${BUTTON_SIZE}px;
+        height: ${BUTTON_SIZE}px;
+        padding: 0;
         margin: 0;
-        border: 1px solid rgba(255, 255, 255, 0.85);
-        border-radius: ${BUTTON_HEIGHT / 2}px;
-        background: linear-gradient(135deg, #126466, #0e4d52);
-        color: #ffffff;
-        font: 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", sans-serif;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        white-space: nowrap;
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        background: linear-gradient(135deg, #faf6e7 0%, #ece2c4 100%);
+        color: transparent;
         cursor: pointer;
         pointer-events: auto;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(0, 0, 0, 0.16);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(0, 0, 0, 0.12);
         opacity: 0.96;
-        transition: opacity 120ms ease;
+        transition: transform 120ms ease, opacity 120ms ease, box-shadow 120ms ease;
       }
-      .snaplex-cap:hover { opacity: 1; }
-      .snaplex-cap[data-state="sending"] { background: #4a6f72; cursor: progress; }
-      .snaplex-cap[data-state="sent"] { background: #1f8f4d; }
-      .snaplex-cap[data-state="fallback"] { background: #b7791f; }
-      .snaplex-cap[data-state="failed"] { background: #b4232f; }
+      .snaplex-cap:hover {
+        opacity: 1;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(0, 0, 0, 0.18);
+      }
+      .snaplex-cap[data-state="sending"] {
+        cursor: progress;
+        background: linear-gradient(135deg, #cfd9d8 0%, #a9b6b6 100%);
+      }
+      .snaplex-cap[data-state="sent"] {
+        background: linear-gradient(135deg, #d6f1de 0%, #79c995 100%);
+        border-color: #1f8f4d;
+      }
+      .snaplex-cap[data-state="fallback"] {
+        background: linear-gradient(135deg, #fcecc6 0%, #e6b35c 100%);
+        border-color: #b7791f;
+      }
+      .snaplex-cap[data-state="failed"] {
+        background: linear-gradient(135deg, #f8d7da 0%, #d97380 100%);
+        border-color: #b4232f;
+      }
       .ico {
-        width: 14px;
-        height: 14px;
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='%23ffffff' d='M2 2.5A1.5 1.5 0 0 1 3.5 1h9A1.5 1.5 0 0 1 14 2.5V11h-3.4l-1.6 3.2L7.4 11H2V2.5zM3.5 2.5V9.5h4.6l.9 1.8.9-1.8h2.6V2.5h-9z'/><circle cx='5.5' cy='5.5' r='1' fill='%23ffffff'/></svg>");
+        display: block;
+        width: 22px;
+        height: 22px;
+        background-image: url("${SNAKE_MARK_URL}");
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
-        flex: none;
       }
-      .state:empty { display: none; }
     `;
   }
 })();
