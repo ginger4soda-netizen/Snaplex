@@ -45,5 +45,7 @@
   "status.ready": "已连接",
   "toast.duplicate": "图库中已存在",
   "toast.duplicateSource": "图库中已存在，已追加新来源",
-  "toast.saved": "已保存到 Snaplex"
+  "toast.saved": "已保存到 Snaplex",
+  "toast.videoFrameSaved": "已发送视频帧",
+  "toast.videoScreenshotSaved": "已截取视频区域"
 }
