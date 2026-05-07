@@ -138,6 +138,73 @@ export async function captureRegionScreenshot({ tab, rect, dpr, sendNativeReques
   }
 }
 
+export async function captureVideoScreenshot({ tab, rect, dpr, srcUrl, pageUrl, pageTitle, sourceRoute, currentTime, videoWidth, videoHeight, sendNativeRequest }) {
+  if (typeof tab?.windowId !== "number") {
+    return { kind: "error", code: "screenshot_failed", message: "No active browser window" };
+  }
+
+  const normalizedRect = normalizeRect(rect);
+  if (!normalizedRect || normalizedRect.w < 8 || normalizedRect.h < 8) {
+    return { kind: "error", code: "video_frame_unavailable", message: "Video region is too small" };
+  }
+
+  const scale = typeof dpr === "number" && dpr > 0 ? dpr : 1;
+
+  try {
+    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
+    const cropped = await cropDataUrl(dataUrl, normalizedRect, scale);
+    if (cropped.bytes.byteLength > MAX_CAPTURE_BYTES) {
+      return { kind: "error", code: "payload_too_large", message: "Video screenshot is larger than 50 MB" };
+    }
+
+    const payloadRef = await payloadRefForBytes(cropped.bytes, "image/png", sendNativeRequest);
+    return await sendNativeRequest(
+      {
+        kind: "capture",
+        envelope: {
+          type: "screenshot_region",
+          payload_ref: payloadRef,
+          metadata: {
+            source_url: srcUrl || null,
+            page_url: pageUrl || tab.url || "",
+            page_title: pageTitle || tab.title || "",
+            filename_hint: filenameHintForVideoScreenshot(pageUrl || tab.url, currentTime),
+            captured_at: new Date().toISOString(),
+            capture_kind: "video_screenshot",
+            type_specific: {
+              rect: normalizedRect,
+              dpr: scale,
+              source_route: sourceRoute || "fallback",
+              media_current_time_seconds: Number.isFinite(currentTime) ? currentTime : null,
+              video_width: videoWidth || null,
+              video_height: videoHeight || null
+            }
+          }
+        }
+      },
+      ["capture_result"],
+      60000
+    );
+  } catch (error) {
+    return {
+      kind: "error",
+      code: error.code || "screenshot_failed",
+      message: error.message || "Could not capture video screenshot"
+    };
+  }
+}
+
+function filenameHintForVideoScreenshot(pageUrl, currentTime) {
+  let domain = "video";
+  try {
+    domain = new URL(pageUrl).hostname.replace(/^www\./, "") || domain;
+  } catch {
+    // Keep fallback.
+  }
+  const seconds = Number.isFinite(currentTime) ? Math.floor(currentTime) : 0;
+  return `${domain}-video-screenshot-${seconds}s.png`;
+}
+
 async function getDevicePixelRatio(tabId) {
   if (!tabId) {
     return null;

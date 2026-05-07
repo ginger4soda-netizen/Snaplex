@@ -45,5 +45,7 @@
   "status.ready": "Connected",
   "toast.duplicate": "Already in your library",
   "toast.duplicateSource": "Already in your library - added new source",
-  "toast.saved": "Saved to Snaplex"
+  "toast.saved": "Saved to Snaplex",
+  "toast.videoFrameSaved": "Video frame captured",
+  "toast.videoScreenshotSaved": "Video region captured"
 }
