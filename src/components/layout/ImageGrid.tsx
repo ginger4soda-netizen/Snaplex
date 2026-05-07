@@ -130,6 +130,10 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     overscan: 3,
   });
 
+  useEffect(() => {
+    rowVirtualizer.measure();
+  }, [rowVirtualizer, rowHeight, cellSize, columnCount, rowCount]);
+
   const visibleImageIds = useMemo(() => new Set(images.map(img => img.id)), [images]);
   useEffect(() => {
     visibleImageIdsRef.current = visibleImageIds;
