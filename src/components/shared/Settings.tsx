@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { save as saveDialog } from '@tauri-apps/plugin-dialog';
-import { useTauriIPC } from '../../hooks/useTauriIPC';
 import { UserSettings } from '../../types';
 import { getTranslation } from '../../translations';
 import {
@@ -41,14 +39,11 @@ const STORED_MODULE_KEYS = ["Subject", "Environment", "Composition", "Lighting",
 
 const Settings: React.FC<Props> = ({ settings, onSave }) => {
     const t = getTranslation(settings.systemLanguage);
-    const { exportCaptureDiagnostics } = useTauriIPC();
 
     // --- Provider & API State ---
     const [provider, setProvider] = useState<ProviderType>('gemini');
     const [apiKey, setApiKey] = useState('');
     const [model, setModel] = useState('gemini-2.5-flash');
-    const [diagnosticsStatus, setDiagnosticsStatus] = useState('');
-    const [isExportingDiagnostics, setIsExportingDiagnostics] = useState(false);
 
     useEffect(() => {
         const loadedProvider = getCurrentProvider();
@@ -78,29 +73,6 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
     const handleModelChange = (val: string) => {
         setModel(val);
         localStorage.setItem(STORAGE_KEYS.MODEL, val);
-    };
-
-    const handleExportDiagnostics = async () => {
-        if (isExportingDiagnostics) return;
-        setIsExportingDiagnostics(true);
-        setDiagnosticsStatus('Preparing diagnostics...');
-        try {
-            const path = await saveDialog({
-                defaultPath: `snaplex-capture-diagnostics-${Date.now()}.zip`,
-                filters: [{ name: 'Zip archive', extensions: ['zip'] }]
-            });
-            if (!path) {
-                setDiagnosticsStatus('');
-                return;
-            }
-
-            await exportCaptureDiagnostics(path);
-            setDiagnosticsStatus(`Diagnostics exported to ${path}.`);
-        } catch (error) {
-            setDiagnosticsStatus(error instanceof Error ? error.message : String(error));
-        } finally {
-            setIsExportingDiagnostics(false);
-        }
     };
 
     // --- Translations Map ---
@@ -151,8 +123,8 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
 
 
     return (
-        <div className="min-h-screen md:pt-40 pb-10 animate-[fadeIn_0.3s_ease-out]">
-            <div className="px-6 md:px-8 pt-24 md:pt-0 max-w-4xl mx-auto">
+        <div className="min-h-screen md:pt-12 pb-10 animate-[fadeIn_0.3s_ease-out]">
+            <div className="px-6 md:px-8 pt-12 md:pt-0 max-w-4xl mx-auto">
                 <div className="space-y-12">
 
                     {/* 1. API Configuration Section */}
@@ -251,32 +223,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
 
 
 
-                    {/* 2. Capture Diagnostics */}
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-2">
-                            <h3 className="text-stone-800 dark:text-stone-100 font-bold text-lg">Capture Diagnostics</h3>
-                            <div className="h-px bg-stone-200 dark:bg-stone-700 flex-1 ml-4" />
-                        </div>
-                        <div className="bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                            <div>
-                                <p className="text-sm font-bold text-stone-700 dark:text-stone-200">Export recent browser capture logs</p>
-                                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">Creates a local zip with the recent capture ring buffer and bridge log.</p>
-                            </div>
-                            <button
-                                type="button"
-                                disabled={isExportingDiagnostics}
-                                onClick={handleExportDiagnostics}
-                                className="px-4 py-2 rounded-lg text-sm font-bold bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 border border-stone-800 dark:border-stone-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                            >
-                                {isExportingDiagnostics ? 'Exporting...' : 'Export diagnostics'}
-                            </button>
-                        </div>
-                        {diagnosticsStatus && (
-                            <p className="text-xs font-bold text-stone-500 dark:text-stone-400">{diagnosticsStatus}</p>
-                        )}
-                    </div>
-
-                    {/* 3. Copy Config */}
+                    {/* 2. Copy Config */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-2">
                             <h3 className="text-stone-800 dark:text-stone-100 font-bold text-lg">{t.lblCopyConfig}</h3>
@@ -298,7 +245,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                         </div>
                     </div>
 
-                    {/* 4. Language Settings */}
+                    {/* 3. Language Settings */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-2">
                             <h3 className="text-stone-800 dark:text-stone-100 font-bold text-lg">{t.lblLangSettings}</h3>
@@ -313,7 +260,7 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                         </div>
                     </div>
 
-                    {/* 5. Style Preferences */}
+                    {/* 4. Style Preferences */}
                     <div>
                         <div className="flex items-center gap-2 mb-6">
                             <h3 className="text-stone-800 dark:text-stone-100 font-bold text-lg">{t.lblStylePref}</h3>

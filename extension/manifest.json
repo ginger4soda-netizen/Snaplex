@@ -28,10 +28,6 @@
   },
   "commands": {
     "start-region-screenshot": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
-      },
       "description": "Start region screenshot"
     }
   }
