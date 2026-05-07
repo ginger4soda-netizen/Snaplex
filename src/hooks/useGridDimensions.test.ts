@@ -63,4 +63,34 @@ describe('useGridDimensions', () => {
     // 5 cols: (1000 - 48 - 96)/5 = 171.2
     expect(result.current.cellSize).toBeCloseTo(171.2, 1);
   });
+
+  it('remeasures after width transitions when ResizeObserver misses the final width', async () => {
+    let width = 800;
+    const element = {
+      clientWidth: 800,
+      getBoundingClientRect: () => ({ width }),
+    } as HTMLDivElement;
+
+    const { result } = renderHook(() => {
+      const ref = useRef<HTMLDivElement>(element);
+      return useGridDimensions(ref, 4);
+    });
+
+    act(() => {
+      __ResizeObserverMock.instances[0]._trigger(800, 800);
+    });
+    expect(result.current.cellSize).toBe(170);
+
+    width = 1000;
+    await act(async () => {
+      const event = new Event('transitionend', { bubbles: true }) as TransitionEvent;
+      Object.defineProperty(event, 'propertyName', { value: 'width' });
+      document.dispatchEvent(event);
+      await new Promise<void>(resolve => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+    });
+
+    expect(result.current.cellSize).toBe(220);
+  });
 });

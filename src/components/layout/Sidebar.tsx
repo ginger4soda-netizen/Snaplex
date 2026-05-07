@@ -177,10 +177,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, currentF
         {/* Logo — click to expand */}
         <button
           onClick={onToggleCollapse}
-          className="w-10 h-10 mb-3 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-colors"
+          className="w-10 h-10 mb-3 rounded-lg flex items-center justify-center bg-cream dark:bg-stone-800 shadow-sm ring-1 ring-mascot/15 dark:ring-mascot/30 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
           title={t['sidebar.expand']}
         >
-          S
+          <Logo variant="mark" size={34} alt="Snaplex" />
         </button>
 
         {/* All Images */}
