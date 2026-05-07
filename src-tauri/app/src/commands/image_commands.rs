@@ -1,13 +1,17 @@
+use crate::db::analysis;
 use crate::db::cross_modal_embedder::{
     resolve_clip_model_path, ClipOnnxEmbedder, CrossModalEmbedder,
 };
+use crate::db::image_sources::ImageSourceInput;
 use crate::db::image_sources::{self, ImageSource};
-use crate::db::images::{self, ColorInfo, ImageDetail, ImageItem, ImportResult};
+use crate::db::images::{self, AnalysisResult, ColorInfo, ImageDetail, ImageItem, ImportResult};
 use crate::db::indexer;
 use crate::db::vector_store::{self, VectorKind};
 use crate::db::Database;
 use crate::services::ingest::{self, IngestOutcome};
+use base64::Engine;
 use rusqlite::OptionalExtension;
+use std::io::Cursor;
 use std::sync::Mutex;
 use tauri::State;
 
@@ -134,6 +138,115 @@ pub fn import_images(
     })
 }
 
+/// Imports one legacy Snaplex export item parsed from an Excel-compatible HTML
+/// .xls file. The frontend parser supplies the embedded image data URL when
+/// available; text-only degraded rows get a generated placeholder image so the
+/// current image-centric library schema can still store and display analysis.
+#[tauri::command]
+pub fn import_legacy_item(
+    base64_image: String,
+    analysis: AnalysisResult,
+    memo: String,
+    is_favorite: bool,
+    timestamp: i64,
+    db_state: State<'_, Mutex<Option<Database>>>,
+    current: State<'_, crate::commands::library_commands::CurrentLibrary>,
+    clip_indexing_state: State<'_, Mutex<bool>>,
+    app: tauri::AppHandle,
+) -> Result<String, String> {
+    let lib_info = current.info.lock().unwrap();
+    let lib_path = lib_info.as_ref().ok_or("No library open")?.path.clone();
+    drop(lib_info);
+
+    let had_embedded_image = base64_image.trim().starts_with("data:");
+    let (bytes, content_type) = if had_embedded_image {
+        decode_data_url(&base64_image)?
+    } else {
+        (placeholder_legacy_png(timestamp)?, "image/png".to_string())
+    };
+
+    let captured_at = chrono::DateTime::<chrono::Utc>::from_timestamp_millis(timestamp)
+        .unwrap_or_else(chrono::Utc::now)
+        .to_rfc3339();
+    let source = ImageSourceInput {
+        capture_type: "legacy_import".to_string(),
+        source_url: None,
+        page_url: None,
+        page_title: Some("Legacy Snaplex XLS import".to_string()),
+        source_domain: None,
+        captured_at,
+        client_id: "legacy-xls-import".to_string(),
+        metadata_json: Some(
+            serde_json::json!({
+                "legacyImport": true,
+                "hadEmbeddedImage": had_embedded_image
+            })
+            .to_string(),
+        ),
+    };
+
+    let request = ingest::IngestRequest {
+        bytes,
+        content_type,
+        filename_hint: Some("legacy-import.png".to_string()),
+        library_path: std::path::PathBuf::from(&lib_path),
+        folder_id: None,
+        source,
+    };
+
+    let outcome = with_db(&db_state, |conn| ingest::ingest(conn, request))?;
+    let (image_id, file_path) = match outcome {
+        IngestOutcome::Saved {
+            image_id,
+            file_path,
+        } => (image_id, Some(file_path)),
+        IngestOutcome::Duplicate { image_id, .. } => (image_id, None),
+        IngestOutcome::Rejected { reason } => {
+            return Err(format!("Legacy item rejected: {}", reason.code()));
+        }
+    };
+
+    with_db(&db_state, |conn| {
+        if has_analysis_text(&analysis) {
+            analysis::save_analysis(
+                conn,
+                &uuid::Uuid::new_v4().to_string(),
+                &image_id,
+                &analysis,
+                "legacy",
+                "xls-import",
+            )?;
+        }
+        if !memo.trim().is_empty() {
+            images::update_memo(conn, &image_id, memo.trim())?;
+        }
+        if is_favorite {
+            images::set_favorite(conn, &image_id, true)?;
+        }
+        Ok(())
+    })?;
+
+    if *clip_indexing_state.lock().unwrap() {
+        if let Some(file_path) = file_path {
+            let db_path = std::path::Path::new(&lib_path).join("snaplex.db");
+            let app_for_thread = app.clone();
+            let image_id_for_index = image_id.clone();
+            std::thread::spawn(move || {
+                index_imported_images_background(
+                    db_path,
+                    vec![indexer::ImageIndexCandidate {
+                        image_id: image_id_for_index,
+                        file_path,
+                    }],
+                    app_for_thread,
+                );
+            });
+        }
+    }
+
+    Ok(image_id)
+}
+
 fn index_imported_images_background(
     db_path: std::path::PathBuf,
     candidates: Vec<indexer::ImageIndexCandidate>,
@@ -198,6 +311,62 @@ fn index_imported_images_background(
             }
         }
     }
+}
+
+fn decode_data_url(data_url: &str) -> Result<(Vec<u8>, String), String> {
+    let (header, payload) = data_url
+        .split_once(',')
+        .ok_or_else(|| "Invalid legacy image data URL".to_string())?;
+    if !header.to_ascii_lowercase().contains(";base64") {
+        return Err("Legacy image data URL is not base64 encoded".to_string());
+    }
+    let content_type = header
+        .strip_prefix("data:")
+        .and_then(|value| value.split(';').next())
+        .filter(|value| !value.is_empty())
+        .unwrap_or("image/png")
+        .to_string();
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(payload)
+        .map_err(|error| format!("Invalid legacy image base64: {error}"))?;
+    Ok((bytes, content_type))
+}
+
+fn placeholder_legacy_png(timestamp: i64) -> Result<Vec<u8>, String> {
+    let seed = timestamp as u32;
+    let color = image::Rgba([
+        180u8.saturating_add((seed & 0x1f) as u8),
+        190u8.saturating_add(((seed >> 5) & 0x1f) as u8),
+        200u8.saturating_add(((seed >> 10) & 0x1f) as u8),
+        255,
+    ]);
+    let image = image::RgbaImage::from_pixel(32, 32, color);
+    let mut cursor = Cursor::new(Vec::new());
+    image
+        .write_to(&mut cursor, image::ImageFormat::Png)
+        .map_err(|error| format!("Failed to create legacy placeholder: {error}"))?;
+    Ok(cursor.into_inner())
+}
+
+fn has_analysis_text(analysis: &AnalysisResult) -> bool {
+    let prompts = &analysis.structured_prompts;
+    [
+        analysis.description.as_str(),
+        prompts.subject.original.as_str(),
+        prompts.subject.translated.as_str(),
+        prompts.environment.original.as_str(),
+        prompts.environment.translated.as_str(),
+        prompts.composition.original.as_str(),
+        prompts.composition.translated.as_str(),
+        prompts.lighting.original.as_str(),
+        prompts.lighting.translated.as_str(),
+        prompts.mood.original.as_str(),
+        prompts.mood.translated.as_str(),
+        prompts.style.original.as_str(),
+        prompts.style.translated.as_str(),
+    ]
+    .iter()
+    .any(|value| !value.trim().is_empty())
 }
 
 /// §5.3 — delete_images

@@ -403,6 +403,10 @@ const ImageGrid: React.FC<ImageGridProps> = ({
 
   const handleBatchDelete = useCallback(async () => {
     if (selectedCount === 0) return;
+    const confirmed = window.confirm(
+      `Delete ${selectedCount} image${selectedCount === 1 ? '' : 's'}?\n\nThis will remove the library records and delete the stored image and thumbnail files from this Snaplex library.`
+    );
+    if (!confirmed) return;
     try {
       const deletedIds = Array.from(effectiveSelectedIds);
       await deleteImages(deletedIds);
@@ -414,7 +418,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     } catch (err) {
       showToast(`Failed to delete: ${err}`, 'error');
     }
-  }, [selectedCount, effectiveSelectedIds, deleteImages, selectedImageId, onImageSelect]);
+  }, [selectedCount, effectiveSelectedIds, deleteImages, selectedImageId, onImageSelect, syncMultiSelected]);
 
   const handleSelectAll = useCallback(() => {
     syncMultiSelected(new Set(images.map(img => img.id)), 'select-all');
@@ -457,6 +461,11 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   }, [folderId, images, getTargetImageIds, toggleFavorite, setFavorites, loadImages, onImagesChanged]);
 
   const handleDeleteImage = useCallback(async (id: string) => {
+    const image = images.find(img => img.id === id);
+    const confirmed = window.confirm(
+      `Delete "${image?.filename || 'this image'}"?\n\nThis will remove the library record and delete the stored image and thumbnail files from this Snaplex library.`
+    );
+    if (!confirmed) return;
     try {
       await deleteImages([id]);
       setImages(prev => prev.filter(img => img.id !== id));
@@ -465,7 +474,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     } catch (err) {
       showToast(`Failed to delete image: ${err}`, 'error');
     }
-  }, [deleteImages, selectedImageId, onImageSelect]);
+  }, [deleteImages, images, selectedImageId, onImageSelect]);
 
   const handleOpenInFinder = useCallback(async (id: string) => {
     try {
@@ -849,10 +858,15 @@ const ImageGrid: React.FC<ImageGridProps> = ({
       setLoading(true);
       try {
         const { result } = await importLegacyFile(file);
-        showToast(`Imported ${result.imported} items (${result.failed} failed)`, result.failed > 0 ? 'error' : 'success');
+        showToast(
+          t['import.xls.result']
+            .replace('{imported}', String(result.imported))
+            .replace('{failed}', String(result.failed)),
+          result.failed > 0 ? 'error' : 'success'
+        );
         await loadImages();
       } catch (err) {
-        showToast(`XLS import failed: ${err}`, 'error');
+        showToast(`${t['import.xls.failed']}: ${err}`, 'error');
       } finally {
         setLoading(false);
       }

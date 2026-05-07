@@ -1,6 +1,8 @@
 use rusqlite::Connection;
 use rusqlite::OptionalExtension;
 use serde::{Deserialize, Serialize};
+use std::io;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -326,12 +328,54 @@ pub fn find_by_sha256(
 
 pub fn delete_images(conn: &Connection, ids: &[String]) -> Result<(), rusqlite::Error> {
     for id in ids {
+        let files = image_files_for_delete(conn, id)?;
+        for path in files {
+            delete_library_file(&path).map_err(|error| {
+                rusqlite::Error::ToSqlConversionFailure(Box::new(io::Error::new(
+                    error.kind(),
+                    format!("Failed to delete {}: {}", path.display(), error),
+                )))
+            })?;
+        }
         // search_index is an FTS5 virtual table — it can't participate in FK cascade,
         // so its row must be cleared before/with the image deletion.
         super::search::remove_from_search_index(conn, id)?;
         conn.execute("DELETE FROM images WHERE id = ?1", rusqlite::params![id])?;
     }
     Ok(())
+}
+
+fn image_files_for_delete(conn: &Connection, id: &str) -> Result<Vec<PathBuf>, rusqlite::Error> {
+    let row = conn
+        .query_row(
+            "SELECT file_path, thumb_path FROM images WHERE id = ?1",
+            rusqlite::params![id],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
+        )
+        .optional()?;
+
+    let Some((file_path, thumb_path)) = row else {
+        return Ok(Vec::new());
+    };
+
+    let mut paths = Vec::new();
+    paths.push(PathBuf::from(file_path));
+    if let Some(thumb_path) = thumb_path {
+        if !thumb_path.trim().is_empty() {
+            paths.push(PathBuf::from(thumb_path));
+        }
+    }
+    paths.sort();
+    paths.dedup();
+    Ok(paths)
+}
+
+fn delete_library_file(path: &Path) -> io::Result<()> {
+    match std::fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
 }
 
 pub fn move_images(

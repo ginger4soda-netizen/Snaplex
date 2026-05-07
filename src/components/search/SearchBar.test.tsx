@@ -68,6 +68,22 @@ describe('SearchBar', () => {
     vi.useRealTimers();
   });
 
+  it('scopes visual search to the current folder', async () => {
+    vi.useFakeTimers();
+    renderBar({ folderId: 'folder-a' });
+    const input = screen.getByPlaceholderText(/search/i);
+
+    fireEvent.change(input, { target: { value: 'red poster' } });
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+      await Promise.resolve();
+    });
+
+    expect(searchImages).toHaveBeenCalledWith('red poster', 'folder-a');
+    expect(visualSearch).toHaveBeenCalledWith('red poster', 50, 'folder-a');
+    vi.useRealTimers();
+  });
+
   it('discards results from a superseded in-flight search', async () => {
     // Two deferred promises, one per query, that we resolve in reverse order.
     let resolveStale!: (v: any[]) => void;

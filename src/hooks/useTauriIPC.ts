@@ -58,7 +58,8 @@ const ipc = {
 
   // Search
   searchImages: (query: string, folderId?: string) => invoke<SearchResult[]>('search_images', { query, folderId }),
-  visualSearch: (query: string, limit: number = 50) => invoke<SearchResult[]>('visual_search', { query, limit }),
+  visualSearch: (query: string, limit: number = 50, folderId?: string) =>
+    invoke<SearchResult[]>('visual_search', { query, limit, folderId }),
   getIndexHealth: () => invoke<IndexHealth>('get_index_health'),
   clipModelStatus: () => invoke<ClipModelStatus>('clip_model_status'),
   startBackfill: () => invoke<BackfillRun>('start_backfill'),

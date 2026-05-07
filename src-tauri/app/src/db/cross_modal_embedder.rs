@@ -18,6 +18,8 @@ pub enum CrossModalEmbedderError {
     EmptyTextInput,
     #[error("cross-modal image path does not exist: {0}")]
     ImageNotFound(String),
+    #[error("cross-modal image file error: {0}")]
+    ImageIo(std::io::Error),
     #[error("cross-modal image embedding failed: {0}")]
     Image(#[from] image::ImageError),
     #[error("cross-modal vector must not be empty")]
@@ -155,7 +157,7 @@ fn preprocess_clip_image(path: &Path) -> Result<Vec<f32>> {
         ));
     }
 
-    let image = image::open(path)?.to_rgb8();
+    let image = load_image_rgb8(path)?;
     let width = image.width();
     let height = image.height();
     if width == 0 || height == 0 {
@@ -190,6 +192,17 @@ fn preprocess_clip_image(path: &Path) -> Result<Vec<f32>> {
     }
 
     Ok(tensor)
+}
+
+fn load_image_rgb8(path: &Path) -> Result<image::RgbImage> {
+    if !path.exists() {
+        return Err(CrossModalEmbedderError::ImageNotFound(
+            path.display().to_string(),
+        ));
+    }
+
+    let bytes = std::fs::read(path).map_err(CrossModalEmbedderError::ImageIo)?;
+    Ok(image::load_from_memory(&bytes)?.to_rgb8())
 }
 
 fn normalize_vector(vector: &[f32]) -> Vec<f32> {
@@ -232,13 +245,7 @@ impl CrossModalEmbedder for LocalVisualEmbedder {
     }
 
     fn encode_image(&self, path: &Path) -> Result<Vec<f32>> {
-        if !path.exists() {
-            return Err(CrossModalEmbedderError::ImageNotFound(
-                path.display().to_string(),
-            ));
-        }
-
-        let image = image::open(path)?.to_rgb8();
+        let image = load_image_rgb8(path)?;
         let pixel_count = image.width() as f32 * image.height() as f32;
         if pixel_count == 0.0 {
             return Err(CrossModalEmbedderError::EmptyVector);
@@ -478,9 +485,10 @@ fn bytes_to_unicode() -> HashMap<u8, char> {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Cursor;
     use std::path::Path;
 
-    use image::{ImageBuffer, Rgb};
+    use image::{DynamicImage, ImageBuffer, ImageFormat, Rgb};
 
     use super::{ClipOnnxEmbedder, CrossModalEmbedder, LocalVisualEmbedder};
 
@@ -519,6 +527,26 @@ mod tests {
             .unwrap_err();
 
         assert!(err.to_string().contains("does not exist"));
+    }
+
+    #[test]
+    fn local_visual_embedder_decodes_by_content_not_extension() {
+        let path = std::env::temp_dir().join(format!(
+            "snaplex-misnamed-jpeg-{}.png",
+            uuid::Uuid::new_v4()
+        ));
+        let image = DynamicImage::ImageRgb8(ImageBuffer::from_pixel(4, 4, Rgb([255, 0, 0])));
+        let mut cursor = Cursor::new(Vec::new());
+        image.write_to(&mut cursor, ImageFormat::Jpeg).unwrap();
+        std::fs::write(&path, cursor.into_inner()).unwrap();
+
+        let embedder = LocalVisualEmbedder::default();
+        let vector = embedder.encode_image(&path).unwrap();
+
+        let _ = std::fs::remove_file(&path);
+
+        assert_eq!(vector.len(), 6);
+        assert!(vector.iter().any(|value| *value > 0.0));
     }
 
     #[test]

@@ -201,7 +201,7 @@ const commands: Record<string, (...args: any[]) => any> = {
     return [] as SearchResult[];
   },
 
-  visual_search: ({ query, limit }: { query: string; limit?: number }) => {
+  visual_search: ({ query, limit, folderId }: { query: string; limit?: number; folderId?: string }) => {
     requireLibrary();
     return [] as SearchResult[];
   },

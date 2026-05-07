@@ -7,6 +7,7 @@
 #![cfg(test)]
 
 use rusqlite::Connection;
+use std::path::Path;
 
 use super::analysis;
 use super::images::{self, AnalysisResult, PromptSegment, StructuredPrompts};
@@ -23,6 +24,27 @@ fn insert_image(conn: &Connection, id: &str, filename: &str) {
     conn.execute(
         "INSERT INTO images (id, filename, file_path) VALUES (?1, ?2, ?3)",
         rusqlite::params![id, filename, format!("/tmp/{}", filename)],
+    )
+    .unwrap();
+}
+
+fn insert_image_with_paths(
+    conn: &Connection,
+    id: &str,
+    file_path: &Path,
+    thumb_path: Option<&Path>,
+) {
+    conn.execute(
+        "INSERT INTO images (id, filename, file_path, thumb_path) VALUES (?1, ?2, ?3, ?4)",
+        rusqlite::params![
+            id,
+            file_path
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or("image.png"),
+            file_path.to_string_lossy(),
+            thumb_path.map(|path| path.to_string_lossy().to_string()),
+        ],
     )
     .unwrap();
 }
@@ -91,6 +113,52 @@ fn delete_images_removes_associated_search_index_rows() {
         0,
         "deleting an image must cascade to its search_index entry — FTS5 virtual tables don't support FK cascade so this requires explicit cleanup",
     );
+}
+
+#[test]
+fn delete_images_removes_source_and_thumbnail_files() {
+    let conn = fresh_db();
+    let dir = std::env::temp_dir().join(format!("snaplex-delete-test-{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let image_path = dir.join("image.png");
+    let thumb_path = dir.join("thumb.webp");
+    std::fs::write(&image_path, b"image").unwrap();
+    std::fs::write(&thumb_path, b"thumb").unwrap();
+    insert_image_with_paths(&conn, "img-file", &image_path, Some(&thumb_path));
+
+    images::delete_images(&conn, &["img-file".to_string()]).unwrap();
+
+    assert!(!image_path.exists(), "source image file should be removed");
+    assert!(!thumb_path.exists(), "thumbnail file should be removed");
+    let remaining: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM images WHERE id = 'img-file'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(remaining, 0);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn delete_images_treats_missing_files_as_already_deleted() {
+    let conn = fresh_db();
+    let dir = std::env::temp_dir().join(format!("snaplex-delete-missing-{}", uuid::Uuid::new_v4()));
+    let image_path = dir.join("missing.png");
+    let thumb_path = dir.join("missing.webp");
+    insert_image_with_paths(&conn, "img-missing", &image_path, Some(&thumb_path));
+
+    images::delete_images(&conn, &["img-missing".to_string()]).unwrap();
+
+    let remaining: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM images WHERE id = 'img-missing'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(remaining, 0);
 }
 
 #[test]

@@ -64,6 +64,8 @@ export const translations = {
     "grid.empty.noSearchHint": "Try different keywords or filters",
     "grid.dropToImport": "Drop images here to import",
     "grid.loading": "Loading...",
+    "import.xls.result": "Imported {imported} items ({failed} failed)",
+    "import.xls.failed": "XLS import failed",
 
     "moveToFolder.title.one": "Move image to Folder",
     "moveToFolder.title.many": "Move {count} images to Folder",
@@ -386,6 +388,8 @@ export const translations = {
     "grid.empty.noSearchHint": "试试其他关键词或筛选条件",
     "grid.dropToImport": "拖放图片到此处即可导入",
     "grid.loading": "加载中...",
+    "import.xls.result": "已导入 {imported} 项（{failed} 项失败）",
+    "import.xls.failed": "XLS 导入失败",
 
     "moveToFolder.title.one": "移动图片到文件夹",
     "moveToFolder.title.many": "移动 {count} 张图片到文件夹",

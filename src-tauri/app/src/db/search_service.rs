@@ -98,6 +98,7 @@ pub fn search_images(
 pub fn visual_search(
     conn: &Connection,
     visual_query: &EncodedVisualQuery,
+    folder_id: Option<&str>,
     limit: usize,
 ) -> Result<Vec<SearchResult>> {
     if limit == 0 {
@@ -109,21 +110,37 @@ pub fn visual_search(
         VectorKind::Visual,
         &visual_query.vector,
         &visual_query.model_version,
-        limit,
+        if folder_id.is_some() {
+            usize::MAX
+        } else {
+            limit
+        },
     )
     .map_err(|error| match error {
         VectorStoreError::Sql(sql) => SearchServiceError::Sql(sql),
         other => SearchServiceError::Sql(rusqlite::Error::ToSqlConversionFailure(Box::new(other))),
     })?;
 
-    Ok(nearest
-        .into_iter()
-        .map(|result| SearchResult {
+    let mut results = Vec::with_capacity(limit);
+    for result in nearest {
+        if let Some(folder_id) = folder_id {
+            if !image_in_folder(conn, &result.image_id, folder_id)? {
+                continue;
+            }
+        }
+
+        results.push(SearchResult {
             image_id: result.image_id,
             score: result.score,
             match_type: "clip".to_string(),
-        })
-        .collect())
+        });
+
+        if results.len() == limit {
+            break;
+        }
+    }
+
+    Ok(results)
 }
 
 fn search_semantic(
@@ -327,7 +344,7 @@ mod tests {
         vector_store::insert(&conn, "other", VectorKind::Visual, &[0.0, 1.0], "clip-v1").unwrap();
         let query = EncodedVisualQuery::new(vec![1.0, 0.0], "clip-v1");
 
-        let results = visual_search(&conn, &query, 2).unwrap();
+        let results = visual_search(&conn, &query, None, 2).unwrap();
 
         assert_eq!(
             results
@@ -337,5 +354,39 @@ mod tests {
             vec![("best", "clip"), ("other", "clip")]
         );
         assert!(results[0].score >= results[1].score);
+    }
+
+    #[test]
+    fn visual_search_respects_folder_filter() {
+        let conn = fresh_db();
+        insert_image(&conn, "in-folder", Some("folder-a"));
+        insert_image(&conn, "out-folder", Some("folder-b"));
+        vector_store::insert(
+            &conn,
+            "in-folder",
+            VectorKind::Visual,
+            &[1.0, 0.0],
+            "clip-v1",
+        )
+        .unwrap();
+        vector_store::insert(
+            &conn,
+            "out-folder",
+            VectorKind::Visual,
+            &[0.99, 0.01],
+            "clip-v1",
+        )
+        .unwrap();
+        let query = EncodedVisualQuery::new(vec![1.0, 0.0], "clip-v1");
+
+        let results = visual_search(&conn, &query, Some("folder-a"), 10).unwrap();
+
+        assert_eq!(
+            results
+                .iter()
+                .map(|result| result.image_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["in-folder"]
+        );
     }
 }
