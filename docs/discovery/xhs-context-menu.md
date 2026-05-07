@@ -109,3 +109,14 @@ Rationale:
 - Should the XHS hover action be enabled only on explicit user opt-in, or always for XHS pages after extension install?
 - Should feed cards and detail pages be treated equally, or should implementation prioritize detail pages first?
 
+## Decision (2026-05-07)
+
+Confirmed by user:
+
+- **Route**: Option C (hybrid hover button → region screenshot fallback)
+- **Activation**: enabled by default on XHS domains after install (no opt-in friction)
+- **Scope phase 1**: detail pages only; feed cards deferred
+- **Screenshot fallback acceptable** when original image URL cannot be extracted
+
+Implementation tracked in `docs/wave-6-hitl-implementation-plan.md` (T12).
+
