@@ -269,8 +269,8 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
         : 0;
 
     return (
-        <div className="min-h-screen md:pt-40 pb-10 animate-[fadeIn_0.3s_ease-out]">
-            <div className="px-6 md:px-8 pt-24 md:pt-0 max-w-4xl mx-auto">
+        <div className="min-h-screen pt-6 md:pt-8 pb-10 animate-[fadeIn_0.3s_ease-out]">
+            <div className="px-6 md:px-8 max-w-4xl mx-auto">
                 <div className="space-y-12">
 
                     {/* 1. API Configuration Section */}
