@@ -20,6 +20,7 @@ export default {
                 coral: '#EF476F',
                 softblue: '#118AB2',
                 mint: '#06D6A0',
+                mascot: '#4a6f50',
             },
             boxShadow: {
                 'pop': '4px 4px 0px 0px rgba(0,0,0,0.08)',

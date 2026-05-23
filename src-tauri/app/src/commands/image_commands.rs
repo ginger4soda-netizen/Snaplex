@@ -1,0 +1,669 @@
+use crate::db::analysis;
+use crate::db::cross_modal_embedder::{
+    resolve_clip_model_path, ClipOnnxEmbedder, CrossModalEmbedder,
+};
+use crate::db::image_sources::ImageSourceInput;
+use crate::db::image_sources::{self, ImageSource};
+use crate::db::images::{self, AnalysisResult, ColorInfo, ImageDetail, ImageItem, ImportResult};
+use crate::db::indexer;
+use crate::db::vector_store::{self, VectorKind};
+use crate::db::Database;
+use crate::services::ingest::{self, IngestOutcome};
+use base64::Engine;
+use rusqlite::OptionalExtension;
+use std::io::Cursor;
+use std::sync::Mutex;
+use tauri::State;
+
+fn with_db<F, R>(db_state: &State<'_, Mutex<Option<Database>>>, f: F) -> Result<R, String>
+where
+    F: FnOnce(&rusqlite::Connection) -> Result<R, rusqlite::Error>,
+{
+    let guard = db_state.lock().unwrap();
+    let db = guard.as_ref().ok_or("No library open")?;
+    let conn = db.conn.lock().unwrap();
+    f(&conn).map_err(|e| format!("Database error: {}", e))
+}
+
+/// §5.3 — get_images
+#[tauri::command]
+pub fn get_images(
+    folder_id: Option<String>,
+    offset: i64,
+    limit: i64,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<Vec<ImageItem>, String> {
+    with_db(&db_state, |conn| {
+        images::get_images(conn, folder_id.as_deref(), offset, limit)
+    })
+}
+
+/// §5.3 — get_images_by_ids (batch fetch for search results)
+#[tauri::command]
+pub fn get_images_by_ids(
+    ids: Vec<String>,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<Vec<ImageItem>, String> {
+    with_db(&db_state, |conn| images::get_images_by_ids(conn, &ids))
+}
+
+/// §5.3 — count_images (for pagination total)
+#[tauri::command]
+pub fn count_images(
+    folder_id: Option<String>,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<i64, String> {
+    with_db(&db_state, |conn| {
+        images::count_images(conn, folder_id.as_deref())
+    })
+}
+
+/// §5.3 — import_images
+/// Imports files through the shared ingest path so local imports and browser captures
+/// use the same content-hash deduplication behavior.
+#[tauri::command]
+pub fn import_images(
+    file_paths: Vec<String>,
+    folder_id: Option<String>,
+    db_state: State<'_, Mutex<Option<Database>>>,
+    current: State<'_, crate::commands::library_commands::CurrentLibrary>,
+    clip_indexing_state: State<'_, Mutex<bool>>,
+    app: tauri::AppHandle,
+) -> Result<ImportResult, String> {
+    let lib_info = current.info.lock().unwrap();
+    let lib_path = lib_info.as_ref().ok_or("No library open")?.path.clone();
+    drop(lib_info);
+
+    let mut imported = 0;
+    let mut failed = 0;
+    let mut errors = Vec::new();
+    let clip_indexing_enabled = *clip_indexing_state.lock().unwrap();
+    let mut visual_index_candidates = Vec::new();
+
+    for src_path in &file_paths {
+        let src = std::path::Path::new(src_path);
+
+        let request = match ingest::request_from_file(
+            src,
+            std::path::PathBuf::from(&lib_path),
+            folder_id.clone(),
+        ) {
+            Ok(request) => request,
+            Err(error) => {
+                failed += 1;
+                errors.push(format!("Import failed {}: {}", src_path, error));
+                continue;
+            }
+        };
+
+        let result = with_db(&db_state, |conn| ingest::ingest(conn, request));
+
+        match result {
+            Ok(IngestOutcome::Saved {
+                image_id,
+                file_path,
+            }) => {
+                imported += 1;
+                if clip_indexing_enabled {
+                    visual_index_candidates.push(indexer::ImageIndexCandidate {
+                        image_id,
+                        file_path,
+                    });
+                }
+            }
+            Ok(IngestOutcome::Duplicate { .. }) => {}
+            Ok(IngestOutcome::Rejected { reason }) => {
+                failed += 1;
+                errors.push(format!("Import rejected {}: {}", src_path, reason.code()));
+            }
+            Err(e) => {
+                failed += 1;
+                errors.push(format!("DB insert failed {}: {}", src_path, e));
+            }
+        }
+    }
+
+    if clip_indexing_enabled && !visual_index_candidates.is_empty() {
+        let db_path = std::path::Path::new(&lib_path).join("snaplex.db");
+        let app_for_thread = app.clone();
+        std::thread::spawn(move || {
+            index_imported_images_background(db_path, visual_index_candidates, app_for_thread);
+        });
+    }
+
+    Ok(ImportResult {
+        imported,
+        failed,
+        errors,
+    })
+}
+
+/// Imports one legacy Snaplex export item parsed from an Excel-compatible HTML
+/// .xls file. The frontend parser supplies the embedded image data URL when
+/// available; text-only degraded rows get a generated placeholder image so the
+/// current image-centric library schema can still store and display analysis.
+#[tauri::command]
+pub fn import_legacy_item(
+    base64_image: String,
+    analysis: AnalysisResult,
+    memo: String,
+    is_favorite: bool,
+    timestamp: i64,
+    db_state: State<'_, Mutex<Option<Database>>>,
+    current: State<'_, crate::commands::library_commands::CurrentLibrary>,
+    clip_indexing_state: State<'_, Mutex<bool>>,
+    app: tauri::AppHandle,
+) -> Result<String, String> {
+    let lib_info = current.info.lock().unwrap();
+    let lib_path = lib_info.as_ref().ok_or("No library open")?.path.clone();
+    drop(lib_info);
+
+    let had_embedded_image = base64_image.trim().starts_with("data:");
+    let (bytes, content_type) = if had_embedded_image {
+        decode_data_url(&base64_image)?
+    } else {
+        (placeholder_legacy_png(timestamp)?, "image/png".to_string())
+    };
+
+    let captured_at = chrono::DateTime::<chrono::Utc>::from_timestamp_millis(timestamp)
+        .unwrap_or_else(chrono::Utc::now)
+        .to_rfc3339();
+    let source = ImageSourceInput {
+        capture_type: "legacy_import".to_string(),
+        source_url: None,
+        page_url: None,
+        page_title: Some("Legacy Snaplex XLS import".to_string()),
+        source_domain: None,
+        captured_at,
+        client_id: "legacy-xls-import".to_string(),
+        metadata_json: Some(
+            serde_json::json!({
+                "legacyImport": true,
+                "hadEmbeddedImage": had_embedded_image
+            })
+            .to_string(),
+        ),
+    };
+
+    let request = ingest::IngestRequest {
+        bytes,
+        content_type,
+        filename_hint: Some("legacy-import.png".to_string()),
+        library_path: std::path::PathBuf::from(&lib_path),
+        folder_id: None,
+        source,
+    };
+
+    let outcome = with_db(&db_state, |conn| ingest::ingest(conn, request))?;
+    let (image_id, file_path) = match outcome {
+        IngestOutcome::Saved {
+            image_id,
+            file_path,
+        } => (image_id, Some(file_path)),
+        IngestOutcome::Duplicate { image_id, .. } => (image_id, None),
+        IngestOutcome::Rejected { reason } => {
+            return Err(format!("Legacy item rejected: {}", reason.code()));
+        }
+    };
+
+    with_db(&db_state, |conn| {
+        if has_analysis_text(&analysis) {
+            analysis::save_analysis(
+                conn,
+                &uuid::Uuid::new_v4().to_string(),
+                &image_id,
+                &analysis,
+                "legacy",
+                "xls-import",
+            )?;
+        }
+        if !memo.trim().is_empty() {
+            images::update_memo(conn, &image_id, memo.trim())?;
+        }
+        if is_favorite {
+            images::set_favorite(conn, &image_id, true)?;
+        }
+        Ok(())
+    })?;
+
+    if *clip_indexing_state.lock().unwrap() {
+        if let Some(file_path) = file_path {
+            let db_path = std::path::Path::new(&lib_path).join("snaplex.db");
+            let app_for_thread = app.clone();
+            let image_id_for_index = image_id.clone();
+            std::thread::spawn(move || {
+                index_imported_images_background(
+                    db_path,
+                    vec![indexer::ImageIndexCandidate {
+                        image_id: image_id_for_index,
+                        file_path,
+                    }],
+                    app_for_thread,
+                );
+            });
+        }
+    }
+
+    Ok(image_id)
+}
+
+fn index_imported_images_background(
+    db_path: std::path::PathBuf,
+    candidates: Vec<indexer::ImageIndexCandidate>,
+    app: tauri::AppHandle,
+) {
+    let db = match Database::new(&db_path) {
+        Ok(db) => db,
+        Err(error) => {
+            log::warn!("visual import indexing disabled: {error}");
+            return;
+        }
+    };
+    let clip_model_path = resolve_clip_model_path(&app);
+    let embedder = match ClipOnnxEmbedder::from_model_file(&clip_model_path) {
+        Ok(embedder) => embedder,
+        Err(error) => {
+            let conn = db.conn.lock().unwrap();
+            let message = format!("CLIP model unavailable: {error}");
+            for candidate in candidates {
+                let _ =
+                    indexer::record_visual_embedding_failure(&conn, &candidate.image_id, &message);
+            }
+            return;
+        }
+    };
+
+    for candidate in candidates {
+        let image_path = std::path::Path::new(&candidate.file_path);
+        let should_index = {
+            let conn = db.conn.lock().unwrap();
+            vector_store::has_vector(
+                &conn,
+                &candidate.image_id,
+                VectorKind::Visual,
+                embedder.model_version(),
+            )
+            .map(|has_vector| !has_vector)
+            .unwrap_or(true)
+        };
+
+        if !should_index {
+            continue;
+        }
+
+        match embedder.encode_image(image_path) {
+            Ok(vector) => {
+                let conn = db.conn.lock().unwrap();
+                let _ = indexer::store_visual_embedding(
+                    &conn,
+                    &candidate.image_id,
+                    &vector,
+                    embedder.model_version(),
+                );
+            }
+            Err(error) => {
+                let conn = db.conn.lock().unwrap();
+                let _ = indexer::record_visual_embedding_failure(
+                    &conn,
+                    &candidate.image_id,
+                    &error.to_string(),
+                );
+            }
+        }
+    }
+}
+
+fn decode_data_url(data_url: &str) -> Result<(Vec<u8>, String), String> {
+    let (header, payload) = data_url
+        .split_once(',')
+        .ok_or_else(|| "Invalid legacy image data URL".to_string())?;
+    if !header.to_ascii_lowercase().contains(";base64") {
+        return Err("Legacy image data URL is not base64 encoded".to_string());
+    }
+    let content_type = header
+        .strip_prefix("data:")
+        .and_then(|value| value.split(';').next())
+        .filter(|value| !value.is_empty())
+        .unwrap_or("image/png")
+        .to_string();
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(payload)
+        .map_err(|error| format!("Invalid legacy image base64: {error}"))?;
+    Ok((bytes, content_type))
+}
+
+fn placeholder_legacy_png(timestamp: i64) -> Result<Vec<u8>, String> {
+    let seed = timestamp as u32;
+    let color = image::Rgba([
+        180u8.saturating_add((seed & 0x1f) as u8),
+        190u8.saturating_add(((seed >> 5) & 0x1f) as u8),
+        200u8.saturating_add(((seed >> 10) & 0x1f) as u8),
+        255,
+    ]);
+    let image = image::RgbaImage::from_pixel(32, 32, color);
+    let mut cursor = Cursor::new(Vec::new());
+    image
+        .write_to(&mut cursor, image::ImageFormat::Png)
+        .map_err(|error| format!("Failed to create legacy placeholder: {error}"))?;
+    Ok(cursor.into_inner())
+}
+
+fn has_analysis_text(analysis: &AnalysisResult) -> bool {
+    let prompts = &analysis.structured_prompts;
+    [
+        analysis.description.as_str(),
+        prompts.subject.original.as_str(),
+        prompts.subject.translated.as_str(),
+        prompts.environment.original.as_str(),
+        prompts.environment.translated.as_str(),
+        prompts.composition.original.as_str(),
+        prompts.composition.translated.as_str(),
+        prompts.lighting.original.as_str(),
+        prompts.lighting.translated.as_str(),
+        prompts.mood.original.as_str(),
+        prompts.mood.translated.as_str(),
+        prompts.style.original.as_str(),
+        prompts.style.translated.as_str(),
+    ]
+    .iter()
+    .any(|value| !value.trim().is_empty())
+}
+
+/// §5.3 — delete_images
+#[tauri::command]
+pub fn delete_images(
+    ids: Vec<String>,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<(), String> {
+    with_db(&db_state, |conn| images::delete_images(conn, &ids))
+}
+
+/// §5.3 — move_images
+#[tauri::command]
+pub fn move_images(
+    ids: Vec<String>,
+    target_folder_id: String,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<(), String> {
+    eprintln!(
+        "[snaplex-debug] backend-move target={} ids={}",
+        target_folder_id,
+        ids.len()
+    );
+    with_db(&db_state, |conn| {
+        images::move_images(conn, &ids, &target_folder_id)
+    })
+}
+
+#[tauri::command]
+pub fn remove_images_from_folders(
+    ids: Vec<String>,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<(), String> {
+    eprintln!("[snaplex-debug] backend-remove-folders ids={}", ids.len());
+    with_db(&db_state, |conn| {
+        images::remove_images_from_folders(conn, &ids)
+    })
+}
+
+/// §5.3 — link_image_to_folder
+#[tauri::command]
+pub fn link_image_to_folder(
+    image_id: String,
+    folder_id: String,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<(), String> {
+    with_db(&db_state, |conn| {
+        images::link_image_to_folder(conn, &image_id, &folder_id)
+    })
+}
+
+/// §5.3 — get_image_detail
+#[tauri::command]
+pub fn get_image_detail(
+    id: String,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<ImageDetail, String> {
+    with_db(&db_state, |conn| images::get_image_detail(conn, &id))
+}
+
+#[tauri::command]
+pub fn get_image_sources(
+    image_id: String,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<Vec<ImageSource>, String> {
+    with_db(&db_state, |conn| {
+        image_sources::list_sources_for_image(conn, &image_id)
+    })
+}
+
+/// §5.3 — update_image_memo
+#[tauri::command]
+pub fn update_image_memo(
+    id: String,
+    memo: String,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<(), String> {
+    with_db(&db_state, |conn| images::update_memo(conn, &id, &memo))
+}
+
+/// §5.3 — toggle_favorite
+#[tauri::command]
+pub fn toggle_favorite(
+    id: String,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<bool, String> {
+    with_db(&db_state, |conn| images::toggle_favorite(conn, &id))
+}
+
+#[tauri::command]
+pub fn set_favorites(
+    ids: Vec<String>,
+    is_favorite: bool,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<(), String> {
+    with_db(&db_state, |conn| {
+        for id in &ids {
+            images::set_favorite(conn, id, is_favorite)?;
+        }
+        Ok(())
+    })
+}
+
+/// §5.3 — open_image_in_finder
+#[tauri::command]
+pub fn open_image_in_finder(
+    id: String,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<(), String> {
+    let file_path = with_db(&db_state, |conn| {
+        conn.query_row(
+            "SELECT file_path FROM images WHERE id = ?1",
+            rusqlite::params![&id],
+            |row| row.get::<_, String>(0),
+        )
+    })?;
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg("-R")
+            .arg(&file_path)
+            .spawn()
+            .map_err(|e| format!("Failed to open Finder: {}", e))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .arg("/select,")
+            .arg(&file_path)
+            .spawn()
+            .map_err(|e| format!("Failed to open Explorer: {}", e))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(
+                std::path::Path::new(&file_path)
+                    .parent()
+                    .unwrap_or(std::path::Path::new("/")),
+            )
+            .spawn()
+            .map_err(|e| format!("Failed to open file manager: {}", e))?;
+    }
+
+    Ok(())
+}
+
+/// §5.3 — export_images
+#[tauri::command]
+pub fn export_images(
+    ids: Vec<String>,
+    format: String,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<String, String> {
+    let _ = &format;
+    let timestamp = chrono::Utc::now().format("%Y%m%d-%H%M%S");
+    let export_dir = dirs::download_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("/tmp"))
+        .join(format!("snaplex-export-{}", timestamp));
+    std::fs::create_dir_all(&export_dir)
+        .map_err(|e| format!("Failed to create export dir: {}", e))?;
+
+    for id in &ids {
+        let file_path = with_db(&db_state, |conn| {
+            conn.query_row(
+                "SELECT file_path FROM images WHERE id = ?1",
+                rusqlite::params![id],
+                |row| row.get::<_, String>(0),
+            )
+        })?;
+
+        let src = std::path::Path::new(&file_path);
+        let filename = src.file_name().and_then(|f| f.to_str()).unwrap_or("image");
+        let dest = export_dir.join(filename);
+
+        std::fs::copy(src, &dest).map_err(|e| format!("Failed to copy {}: {}", filename, e))?;
+    }
+
+    Ok(export_dir.to_string_lossy().to_string())
+}
+
+/// Read image file as base64 for AI analysis
+/// Frontend fetch() on asset:// URLs can fail depending on protocol config.
+/// This command reads the file directly via the filesystem and returns base64.
+#[tauri::command]
+pub fn read_image_base64(
+    id: String,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<String, String> {
+    let file_path = with_db(&db_state, |conn| {
+        conn.query_row(
+            "SELECT file_path FROM images WHERE id = ?1",
+            rusqlite::params![&id],
+            |row| row.get::<_, String>(0),
+        )
+    })?;
+
+    let bytes =
+        std::fs::read(&file_path).map_err(|e| format!("Failed to read image file: {}", e))?;
+
+    // Detect MIME type from extension
+    let ext = std::path::Path::new(&file_path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("png")
+        .to_lowercase();
+    let mime = match ext.as_str() {
+        "jpg" | "jpeg" => "image/jpeg",
+        "png" => "image/png",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "bmp" => "image/bmp",
+        _ => "image/png",
+    };
+
+    use base64::Engine;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    Ok(format!("data:{};base64,{}", mime, b64))
+}
+
+/// §5.6 — extract_color_palette (mock for Phase 0)
+#[tauri::command]
+pub fn extract_color_palette(
+    image_id: String,
+    color_count: Option<i32>,
+) -> Result<Vec<ColorInfo>, String> {
+    let count = color_count.unwrap_or(8);
+    // Mock palette for Phase 0
+    let mock_colors: Vec<ColorInfo> = (0..count)
+        .map(|i| {
+            let hue = (i as f64 / count as f64 * 360.0) as u8;
+            ColorInfo {
+                hex: format!(
+                    "#{:02x}{:02x}{:02x}",
+                    100 + i * 15,
+                    80 + i * 10,
+                    60 + i * 20
+                ),
+                rgb: (
+                    100 + (i * 15) as u8,
+                    80 + (i * 10) as u8,
+                    60 + (i * 20) as u8,
+                ),
+                hsl: (hue as f64, 50.0, 50.0),
+                percentage: 100.0 / count as f64,
+                name: format!("Color {}", i + 1),
+            }
+        })
+        .collect();
+    let _ = image_id;
+    Ok(mock_colors)
+}
+
+/// §5.6 — get_color_palette
+#[tauri::command]
+pub fn get_color_palette(
+    image_id: String,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<Option<Vec<ColorInfo>>, String> {
+    with_db(&db_state, |conn| {
+        let result: Option<String> = conn
+            .query_row(
+                "SELECT colors FROM color_palettes WHERE image_id = ?1",
+                rusqlite::params![&image_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+
+        match result {
+            Some(json_str) => {
+                let colors: Vec<ColorInfo> = serde_json::from_str(&json_str).unwrap_or_default();
+                Ok(Some(colors))
+            }
+            None => Ok(None),
+        }
+    })
+}
+
+/// §5.6 — save_color_palette
+#[tauri::command]
+pub fn save_color_palette(
+    image_id: String,
+    colors: Vec<ColorInfo>,
+    db_state: State<'_, Mutex<Option<Database>>>,
+) -> Result<(), String> {
+    let json_str =
+        serde_json::to_string(&colors).map_err(|e| format!("JSON serialize error: {}", e))?;
+    let id = uuid::Uuid::new_v4().to_string();
+    let count = colors.len() as i32;
+    with_db(&db_state, |conn| {
+        conn.execute(
+            "INSERT OR REPLACE INTO color_palettes (id, image_id, colors, color_count) VALUES (?1, ?2, ?3, ?4)",
+            rusqlite::params![&id, &image_id, &json_str, count],
+        )?;
+        Ok(())
+    })
+}

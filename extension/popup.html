@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Snaplex</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        width: 320px;
+        margin: 0;
+        color: #172026;
+        font: 13px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f7f8f8;
+      }
+
+      main {
+        display: grid;
+        gap: 14px;
+        padding: 14px;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+        gap: 8px;
+      }
+
+      .brand img {
+        flex: 0 0 auto;
+        display: block;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        max-width: 176px;
+        padding: 0 9px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+
+      .status[data-tone="ready"] {
+        color: #0f5132;
+        background: #dff3e8;
+        border-color: #b9e2cb;
+      }
+
+      .status[data-tone="connecting"] {
+        color: #34513a;
+        background: #e9efe7;
+        border-color: #c6d7bf;
+      }
+
+      .status[data-tone="error"] {
+        color: #842029;
+        background: #f8d7da;
+        border-color: #edb7bd;
+      }
+
+      .library {
+        display: grid;
+        gap: 4px;
+        padding: 12px;
+        border: 1px solid #d9dfdf;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      .library-label {
+        color: #5c686b;
+        font-size: 11px;
+        font-weight: 650;
+        text-transform: uppercase;
+      }
+
+      .library-name {
+        min-height: 20px;
+        color: #172026;
+        font-size: 14px;
+        font-weight: 650;
+        overflow-wrap: anywhere;
+      }
+
+      .actions {
+        display: grid;
+        gap: 8px;
+      }
+
+      button {
+        width: 100%;
+        min-height: 36px;
+        border: 1px solid #b9c4c5;
+        border-radius: 8px;
+        color: #172026;
+        background: #ffffff;
+        font: inherit;
+        font-weight: 650;
+        cursor: pointer;
+      }
+
+      button.primary {
+        color: #ffffff;
+        border-color: #126466;
+        background: #126466;
+      }
+
+      button:disabled {
+        color: #879294;
+        background: #edf0f0;
+        cursor: default;
+      }
+
+      .hint,
+      .privacy {
+        margin: 0;
+        color: #5c686b;
+        font-size: 12px;
+      }
+
+      .privacy {
+        padding-top: 2px;
+        border-top: 1px solid #e2e6e6;
+      }
+
+      .shortcut {
+        display: grid;
+        gap: 6px;
+        padding: 10px 12px;
+        border: 1px solid #d9dfdf;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      .shortcut-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .shortcut-label {
+        color: #5c686b;
+        font-size: 11px;
+        font-weight: 650;
+        text-transform: uppercase;
+      }
+
+      .shortcut-value {
+        color: #172026;
+        font-size: 12px;
+        font-weight: 650;
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      .shortcut-value[data-state="unset"] {
+        color: #879294;
+        font-family: inherit;
+        font-style: italic;
+      }
+
+      .shortcut-link {
+        all: unset;
+        cursor: pointer;
+        color: #126466;
+        font-size: 12px;
+        font-weight: 650;
+        text-align: left;
+      }
+
+      .shortcut-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="brand">
+          <img src="icons/popup-logo.png" alt="" width="24" height="24" />
+          <h1>Snaplex</h1>
+        </div>
+        <div id="status" class="status" data-tone="connecting">Connecting...</div>
+      </header>
+
+      <section class="library" aria-live="polite">
+        <div id="libraryLabel" class="library-label">Current library</div>
+        <div id="libraryName" class="library-name">Checking...</div>
+      </section>
+
+      <section class="actions">
+        <button id="reconnect" type="button" hidden>Reconnect</button>
+        <button id="captureVisible" class="primary" type="button">Capture visible area</button>
+        <button id="selectArea" type="button">Select area</button>
+      </section>
+
+      <section class="shortcut" aria-live="polite">
+        <div class="shortcut-row">
+          <span id="shortcutLabel" class="shortcut-label">Region screenshot shortcut</span>
+          <span id="shortcutValue" class="shortcut-value" data-state="unset">Not set</span>
+        </div>
+        <button id="customizeShortcut" type="button" class="shortcut-link">Customize shortcut</button>
+      </section>
+
+      <p id="hint" class="hint">
+        Right-click any image or video on a page to save it directly.
+      </p>
+      <p id="privacy" class="privacy">
+        Captured content is stored only on your computer. Snaplex never sends it to a server.
+      </p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

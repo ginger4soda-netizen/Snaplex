@@ -1,0 +1,11 @@
+{
+  "name": "@snaplex/browser-extension",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/build.mjs --watch"
+  }
+}
+

@@ -1,4 +1,6 @@
 <div align="center">
+<img width="128" alt="Snaplex Logo" src="branding/exports/full/256.png" />
+
 <img width="1200" alt="Snaplex Home" src="public/screenshots/home.png" />
 
 # Snaplex - AI Image Analysis & Prompt Reverse Studio
@@ -55,6 +57,25 @@ Snaplex is a client-side application running on Vite.
     ```bash
     npm install
     ```
+
+### Visual Search Model (CLIP)
+
+Cross-modal (text-to-image) search uses an **int8-quantized CLIP ViT-B/32 ONNX** model that is **not** included in this repository because of its size (~146MB). The desktop app expects the file at:
+
+```
+src-tauri/models/clip/clip-vit-b-32-int8.onnx
+src-tauri/models/clip/{config.json,preprocessor_config.json,tokenizer_config.json,vocab.json,merges.txt}
+```
+
+You need to obtain the model files yourself (e.g. from a HuggingFace ONNX export of `openai/clip-vit-base-patch32`) and place them in `src-tauri/models/clip/`. The expected SHA-256 of the `.onnx` file is recorded in `src-tauri/src/db/cross_modal_embedder.rs` (`ClipOnnxEmbedder::MODEL_VERSION`).
+
+If the model is missing:
+
+- The frontend can call the `clip_model_status` IPC to detect this and surface a warning to the user.
+- `visual_search` returns an empty result set and logs a warning instead of crashing.
+- Backfill / import-time visual indexing records a `CLIP model unavailable` failure for each candidate image so the index can be backfilled later once the model is in place.
+
+Plain text search and all non-visual-search features keep working without the model.
 
 ### Configuration
 
