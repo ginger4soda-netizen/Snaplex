@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserSettings } from '../../types';
 import { getTranslation } from '../../translations';
+import { handleExternalLinkClick } from '../../utils/openExternal';
 import {
     ProviderType,
     PROVIDER_MODELS,
@@ -208,7 +209,13 @@ const Settings: React.FC<Props> = ({ settings, onSave }) => {
                                 />
 
                                 <div className="mt-2 text-right">
-                                    <a href={PROVIDER_KEY_LINKS[provider].url} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-softblue hover:underline">
+                                    <a
+                                        href={PROVIDER_KEY_LINKS[provider].url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        onClick={(event) => handleExternalLinkClick(event, PROVIDER_KEY_LINKS[provider].url)}
+                                        className="text-[10px] font-bold text-softblue hover:underline"
+                                    >
                                         {PROVIDER_KEY_LINKS[provider].label}
                                     </a>
                                 </div>
