@@ -27,6 +27,7 @@ pub fn run() {
             info: Mutex::new(None),
         })
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Logo from './shared/Logo';
 import packageJson from '../../package.json';
 import { getTranslation } from '@/translations';
+import { handleExternalLinkClick } from '@/utils/openExternal';
 
 interface AboutProps {
   systemLanguage?: string;
@@ -39,6 +40,7 @@ const About: React.FC<AboutProps> = ({ systemLanguage }) => {
       href={href}
       target="_blank"
       rel="noreferrer"
+      onClick={(event) => handleExternalLinkClick(event, href)}
       className="inline-flex items-center gap-1 break-all text-softblue hover:underline"
     >
       {children}

@@ -15,6 +15,7 @@ import { analyzeManager } from '@/utils/analyzeManager';
 import { get } from 'idb-keyval';
 import { getTranslation } from '@/translations';
 import { dedupSources } from '@/utils/dedupSources';
+import { handleExternalLinkClick } from '@/utils/openExternal';
 
 // Labels here feed the structured-prompt copy template (`[label]` blocks are
 // kept English so generated prompts stay portable across providers). The
@@ -306,14 +307,26 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLangu
                             </span>
                           </div>
                           {primaryUrl ? (
-                            <a href={primaryUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-500 hover:underline truncate block">
+                            <a
+                              href={primaryUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(event) => handleExternalLinkClick(event, primaryUrl)}
+                              className="text-xs font-bold text-blue-500 hover:underline truncate block"
+                            >
                               {title}
                             </a>
                           ) : (
                             <p className="text-xs font-bold text-stone-500 truncate">{title}</p>
                           )}
                           {sourceUrl && (
-                            <a href={sourceUrl} target="_blank" rel="noreferrer" className="mt-1 text-[11px] text-stone-500 dark:text-stone-400 hover:underline truncate block">
+                            <a
+                              href={sourceUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(event) => handleExternalLinkClick(event, sourceUrl)}
+                              className="mt-1 text-[11px] text-stone-500 dark:text-stone-400 hover:underline truncate block"
+                            >
                               {sourceUrl}
                             </a>
                           )}
@@ -322,7 +335,13 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLangu
                     })}
                   </div>
                 ) : detail.sourceUrl ? (
-                  <a href={detail.sourceUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline truncate block">
+                  <a
+                    href={detail.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(event) => handleExternalLinkClick(event, detail.sourceUrl)}
+                    className="text-xs text-blue-500 hover:underline truncate block"
+                  >
                     {detail.sourceUrl}
                   </a>
                 ) : null}
