@@ -1,0 +1,65 @@
+.snaplex-floating-ball {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 2147483647;
+  transition: transform 120ms ease, opacity 120ms ease;
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.snaplex-floating-ball img.snaplex-floating-ball-logo {
+  width: 28px;
+  height: 28px;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.snaplex-floating-ball.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.snaplex-floating-ball:hover {
+  transform: scale(1.08);
+}
+
+.snaplex-floating-ball.is-busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.snaplex-toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  padding: 10px 14px;
+  background: #172026;
+  color: #fff;
+  font: 13px/1.4 system-ui, sans-serif;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  z-index: 2147483647;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.snaplex-toast.is-visible {
+  opacity: 1;
+}
+
+.snaplex-toast[data-tone="error"] {
+  background: #842029;
+}

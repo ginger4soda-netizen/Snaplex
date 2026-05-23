@@ -18,15 +18,25 @@ const SUPPORTED_IMAGE_TYPES = new Set([
 ]);
 
 export async function captureImageFromContextMenu({ info, tab, sendNativeRequest, showFeedback, getTranslator }) {
+  return captureImageFromUrl({
+    srcUrl: info?.srcUrl,
+    tab,
+    sendNativeRequest,
+    showFeedback,
+    getTranslator
+  });
+}
+
+export async function captureImageFromUrl({ srcUrl, tab, sendNativeRequest, showFeedback, getTranslator, batch }) {
   const startedAtMs = performance.now();
   const t = await getTranslator();
 
   try {
-    if (!info.srcUrl) {
+    if (!srcUrl) {
       throw captureError("image_fetch_failed", "Missing image URL");
     }
 
-    const asset = await loadImageAsset(info.srcUrl, tab);
+    const asset = await loadImageAsset(srcUrl, tab);
     if (asset.bytes.byteLength > MAX_CAPTURE_BYTES) {
       throw captureError("payload_too_large", "Image is larger than 50 MB");
     }
@@ -39,13 +49,15 @@ export async function captureImageFromContextMenu({ info, tab, sendNativeRequest
           type: "image",
           payload_ref: payloadRef,
           metadata: {
-            source_url: info.srcUrl,
+            source_url: srcUrl,
             page_url: tab?.url || "",
             page_title: tab?.title || "",
-            filename_hint: filenameHintFromUrl(info.srcUrl),
+            filename_hint: filenameHintFromUrl(srcUrl),
             captured_at: new Date().toISOString(),
             type_specific: {
-              original_image_url: info.srcUrl
+              original_image_url: srcUrl,
+              entry: batch ? "batch" : "floating-ball",
+              ...(batch ? { batch_id: batch.id, batch_index: batch.index, batch_total: batch.total } : {})
             }
           }
         }
@@ -59,17 +71,19 @@ export async function captureImageFromContextMenu({ info, tab, sendNativeRequest
       captureType: "image",
       startedAtMs
     };
-    await showFeedback(tab, feedback);
+    if (!batch) await showFeedback(tab, feedback);
     return response;
   } catch (error) {
     const code = error.code || "image_fetch_failed";
     const fallbackMessage = error.message || t("error.imageFetchFailed");
-    await showFeedback(tab, {
-      tone: "failed",
-      message: errorMessageForCode(code, t, fallbackMessage),
-      captureType: "image",
-      startedAtMs
-    });
+    if (!batch) {
+      await showFeedback(tab, {
+        tone: "failed",
+        message: errorMessageForCode(code, t, fallbackMessage),
+        captureType: "image",
+        startedAtMs
+      });
+    }
     return {
       kind: "error",
       code,

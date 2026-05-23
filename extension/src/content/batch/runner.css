@@ -1,0 +1,42 @@
+.snaplex-batch-button {
+  position: fixed;
+  right: 16px;
+  bottom: 96px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #126466;
+  color: #fff;
+  font: 600 13px/1.3 system-ui, sans-serif;
+  border: none;
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  z-index: 2147483647;
+  cursor: pointer;
+}
+
+.snaplex-batch-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.snaplex-batch-progress {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  min-width: 220px;
+  padding: 12px 14px;
+  background: #172026;
+  color: #fff;
+  font: 13px/1.4 system-ui, sans-serif;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  z-index: 2147483647;
+}
+
+.snaplex-batch-progress small {
+  color: #a3b2b6;
+  display: block;
+  margin-top: 4px;
+}
