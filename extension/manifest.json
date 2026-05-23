@@ -26,9 +26,55 @@
     "48": "icons/48.png",
     "128": "icons/128.png"
   },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://xiaohongshu.com/*",
+        "https://*.xiaohongshu.com/*",
+        "https://xhslink.com/*",
+        "https://*.xhslink.com/*"
+      ],
+      "js": ["content/xiaohongshu/floating-ball.js"],
+      "css": ["content/floating-ball/core.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "exclude_matches": [
+        "https://xiaohongshu.com/*",
+        "https://*.xiaohongshu.com/*",
+        "https://xhslink.com/*",
+        "https://*.xhslink.com/*"
+      ],
+      "js": ["content/generic/floating-ball.js"],
+      "css": ["content/floating-ball/core.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://weibo.com/*",
+        "https://*.weibo.com/*",
+        "https://x.com/*",
+        "https://*.x.com/*",
+        "https://twitter.com/*",
+        "https://*.twitter.com/*",
+        "https://instagram.com/*",
+        "https://*.instagram.com/*"
+      ],
+      "js": ["content/batch/index.js"],
+      "css": ["content/batch/runner.css"],
+      "run_at": "document_idle"
+    }
+  ],
   "commands": {
     "start-region-screenshot": {
       "description": "Start region screenshot"
     }
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

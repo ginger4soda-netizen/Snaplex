@@ -1,5 +1,5 @@
 import { getStoredLocale, getTranslator } from "../i18n/i18n.js";
-import { captureImageFromContextMenu } from "./capture-image.js";
+import { captureImageFromContextMenu, captureImageFromUrl } from "./capture-image.js";
 import { captureRegionScreenshot, captureVisibleScreenshot } from "./capture-screenshot.js";
 import { captureVideoFrameFromContextMenu } from "./capture-video-frame.js";
 import { showFeedback } from "./feedback.js";
@@ -506,6 +506,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           getTranslator: getCurrentTranslator
         })
       );
+      return;
+    }
+
+    if (message?.type === "snaplex:capture-image-by-url") {
+      const srcUrl = message.srcUrl;
+      if (!srcUrl) {
+        sendResponse({ ok: false, code: "image_fetch_failed", message: "missing srcUrl" });
+        return;
+      }
+      const response = await captureImageFromUrl({
+        srcUrl,
+        tab: sender?.tab,
+        sendNativeRequest,
+        showFeedback,
+        getTranslator: getCurrentTranslator,
+        batch: message.batch
+      });
+      sendResponse({
+        ok: response?.kind === "capture_result",
+        response
+      });
       return;
     }
 

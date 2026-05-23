@@ -193,27 +193,138 @@
       .shortcut-link:hover {
         text-decoration: underline;
       }
+
+      .floating-ball-toggle {
+        display: grid;
+        gap: 6px;
+        padding: 10px 12px;
+        border: 1px solid #d9dfdf;
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .toggle-label {
+        color: #172026;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .toggle-hint {
+        margin: 0;
+        color: #5c686b;
+        font-size: 11px;
+      }
+
+      .toggle-row input {
+        width: 34px;
+        height: 18px;
+      }
+
+      .batch-transfer {
+        display: grid;
+        gap: 6px;
+        padding: 10px 12px;
+        border: 1px solid #d9dfdf;
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .batch-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .batch-label {
+        color: #172026;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .batch-button {
+        width: auto;
+        min-height: 28px;
+        padding: 4px 10px;
+        border: 1px solid #126466;
+        border-radius: 6px;
+        color: #126466;
+        background: #ffffff;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 650;
+        cursor: pointer;
+      }
+
+      .batch-button:disabled {
+        color: #879294;
+        border-color: #d9dfdf;
+        background: #edf0f0;
+        cursor: default;
+      }
+
+      .batch-hint {
+        margin: 0;
+        color: #5c686b;
+        font-size: 11px;
+      }
+
+      .batch-status {
+        margin: 0;
+        color: #842029;
+        font-size: 11px;
+        font-weight: 650;
+      }
+
+      .batch-status[data-tone="ok"] {
+        color: #0f5132;
+      }
     </style>
   </head>
   <body>
     <main>
       <header>
         <div class="brand">
-          <img src="icons/popup-logo.png" alt="" width="24" height="24" />
+          <img
+            src="icons/popup-logo.png"
+            srcset="icons/popup-logo.png 1x, icons/popup-logo@2x.png 2x, icons/popup-logo@3x.png 3x"
+            alt=""
+            width="24"
+            height="24"
+          />
           <h1>Snaplex</h1>
         </div>
         <div id="status" class="status" data-tone="connecting">Connecting...</div>
       </header>
 
-      <section class="library" aria-live="polite">
-        <div id="libraryLabel" class="library-label">Current library</div>
-        <div id="libraryName" class="library-name">Checking...</div>
-      </section>
-
       <section class="actions">
         <button id="reconnect" type="button" hidden>Reconnect</button>
         <button id="captureVisible" class="primary" type="button">Capture visible area</button>
         <button id="selectArea" type="button">Select area</button>
+      </section>
+
+      <section class="floating-ball-toggle">
+        <label class="toggle-row">
+          <span class="toggle-label" id="floatingBallLabel">Floating ball</span>
+          <input id="floatingBallToggle" type="checkbox" />
+        </label>
+        <p class="toggle-hint" id="floatingBallHint">Show a Snaplex bubble on images. Click the bubble to send to your library.</p>
+      </section>
+
+      <section class="batch-transfer">
+        <div class="batch-row">
+          <span class="batch-label" id="batchLabel">Batch transfer</span>
+          <button id="batchSendAll" type="button" class="batch-button">Send all on this page</button>
+        </div>
+        <p class="batch-hint" id="batchHint">Supported on Weibo, X (Twitter), and Instagram. Opens the in-page batch tool.</p>
+        <p id="batchStatus" class="batch-status" hidden></p>
       </section>
 
       <section class="shortcut" aria-live="polite">
