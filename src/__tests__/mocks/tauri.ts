@@ -33,6 +33,7 @@ interface MockImageItem extends ImageItem {
 }
 
 let state: MockState = createFreshState();
+const eventListeners = new Map<string, Set<(event: { payload: unknown }) => void>>();
 
 function createFreshState(): MockState {
   return {
@@ -57,6 +58,10 @@ export function getMockState() {
 /** Manually set library as open (for tests that skip the create step) */
 export function setMockLibraryOpen(info: LibraryInfo) {
   state.currentLibrary = info;
+}
+
+export function emitMockEvent(name: string, payload: unknown) {
+  eventListeners.get(name)?.forEach(listener => listener({ payload }));
 }
 
 // ---- Command implementations ----
@@ -308,7 +313,13 @@ export function setupTauriMocks() {
   }));
 
   vi.mock('@tauri-apps/api/event', () => ({
-    listen: vi.fn(async () => () => {}),
+    listen: vi.fn(async (name: string, listener: (event: { payload: unknown }) => void) => {
+      if (!eventListeners.has(name)) eventListeners.set(name, new Set());
+      eventListeners.get(name)!.add(listener);
+      return () => {
+        eventListeners.get(name)?.delete(listener);
+      };
+    }),
   }));
 
   vi.mock('@tauri-apps/api/webviewWindow', () => ({

@@ -4,6 +4,7 @@ import { ImageItem, FolderNode, DEFAULT_SETTINGS, UserSettings, DimensionKey } f
 import ImageCard from '../images/ImageCard';
 import SearchBar from '../search/SearchBar';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { showToast } from '@/hooks/useToast';
 import { exportAnalysisData } from '@/utils/exportAnalysis';
@@ -258,6 +259,35 @@ const ImageGrid: React.FC<ImageGridProps> = ({
       loadImages();
     }
   }, [folderId, searchResultIds, loadImages, refreshTrigger]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+
+    const setupCaptureSavedListener = async () => {
+      try {
+        const off = await listen<{ outcome: string; image_id: string; capture_type?: string }>(
+          'snaplex://capture-saved',
+          (event) => {
+            if (cancelled) return;
+            if (event.payload.outcome !== 'saved' && event.payload.outcome !== 'duplicate') return;
+            if (searchResultIds !== null) return;
+            loadImages();
+          },
+        );
+        if (cancelled) off();
+        else unlisten = off;
+      } catch (error) {
+        console.warn('Failed to subscribe snaplex://capture-saved:', error);
+      }
+    };
+
+    setupCaptureSavedListener();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [loadImages, searchResultIds]);
 
   const virtualItems = rowVirtualizer.getVirtualItems();
 

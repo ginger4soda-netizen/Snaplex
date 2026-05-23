@@ -11,7 +11,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 const MAX_CAPTURE_BYTES: usize = 50 * 1024 * 1024;
 static INSTANCE_ID: OnceLock<String> = OnceLock::new();
@@ -191,6 +191,7 @@ fn handle_capture(app: &AppHandle, message: Value) -> Value {
     match result {
         Ok(outcome) => {
             record_capture_outcome(app, &log_context, &outcome, duration_ms);
+            emit_capture_event(app, &log_context, &outcome);
             match outcome {
                 IngestOutcome::Saved { image_id, .. } => json!({
                     "kind": "capture_result",
@@ -215,6 +216,24 @@ fn handle_capture(app: &AppHandle, message: Value) -> Value {
             record_capture_error(app, &log_context, capture_error.code, duration_ms);
             error(capture_error.code, &capture_error.message)
         }
+    }
+}
+
+fn emit_capture_event(app: &AppHandle, context: &CaptureLogContext, outcome: &IngestOutcome) {
+    let (outcome_name, image_id) = match outcome {
+        IngestOutcome::Saved { image_id, .. } => ("saved", image_id.clone()),
+        IngestOutcome::Duplicate { image_id, .. } => ("duplicate", image_id.clone()),
+        IngestOutcome::Rejected { .. } => return,
+    };
+
+    let payload = json!({
+        "outcome": outcome_name,
+        "image_id": image_id,
+        "capture_type": context.capture_type,
+    });
+
+    if let Err(error) = app.emit("snaplex://capture-saved", payload) {
+        log::warn!("failed to emit snaplex://capture-saved: {error}");
     }
 }
 

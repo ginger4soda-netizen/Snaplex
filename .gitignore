@@ -149,3 +149,11 @@ dist
 # CLIP / ONNX model weights — downloaded at runtime, too large for git
 src-tauri/models/
 .vercel
+docs/superpowers/plans/2026-05-07-issues-25-33/27-xiaohongshu-floating-ball.md
+docs/superpowers/plans/2026-05-07-issues-25-33/28-gallery-realtime-refresh.md
+docs/superpowers/plans/2026-05-07-issues-25-33/29-chat-chip-drag.md
+docs/superpowers/plans/2026-05-07-issues-25-33/30-popup-logo.md
+docs/superpowers/plans/2026-05-07-issues-25-33/31-about-page.md
+docs/superpowers/plans/2026-05-07-issues-25-33/32-generic-floating-ball-toggle.md
+docs/superpowers/plans/2026-05-07-issues-25-33/33-batch-transfer-multisite.md
+docs/superpowers/plans/2026-05-07-issues-25-33/INDEX.md
