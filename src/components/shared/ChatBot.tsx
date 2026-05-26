@@ -41,9 +41,14 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
 
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
-    // Source-of-truth for the chip currently being dragged. Refs survive
-    // re-renders and don't lag behind state updates the way `draggedId` can.
-    const draggedIdRef = useRef<string | null>(null);
+    const pointerDragRef = useRef<{
+        sourceId: string;
+        pointerId: number;
+        startX: number;
+        startY: number;
+        active: boolean;
+    } | null>(null);
+    const suppressChipClickRef = useRef(false);
 
     const abortRef = useRef<AbortController | null>(null);
 
@@ -264,31 +269,7 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
 
     const handleExitDeleteMode = () => setDeleteMode(false);
 
-    const handleDragStart = (e: React.DragEvent, chipId: string) => {
-        // Stop propagation so a chip drag never bubbles up to outer dropzones
-        // (e.g. the image grid's file-import overlay).
-        e.stopPropagation();
-        e.dataTransfer.effectAllowed = 'move';
-        try { e.dataTransfer.setData('text/plain', chipId); } catch { /* WebKit edge cases */ }
-        draggedIdRef.current = chipId;
-        setDraggedId(chipId);
-    };
-
-    const handleDragOver = (e: React.DragEvent, chipId: string) => {
-        // preventDefault is REQUIRED for the drop target to accept the drop.
-        e.preventDefault();
-        e.stopPropagation();
-        e.dataTransfer.dropEffect = 'move';
-        if (chipId !== draggedIdRef.current) setDragOverId(chipId);
-    };
-
-    const handleDrop = (e: React.DragEvent, targetId: string) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const sourceId = draggedIdRef.current || e.dataTransfer.getData('text/plain');
-        draggedIdRef.current = null;
-        setDraggedId(null);
-        setDragOverId(null);
+    const moveChip = useCallback((sourceId: string, targetId: string) => {
         if (!sourceId || sourceId === targetId) return;
         const sourceIdx = allChips.findIndex(c => c.id === sourceId);
         const targetIdx = allChips.findIndex(c => c.id === targetId);
@@ -297,13 +278,70 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
         const [removed] = newChips.splice(sourceIdx, 1);
         newChips.splice(targetIdx, 0, removed);
         saveChips(newChips);
+    }, [allChips, saveChips]);
+
+    const getChipIdAtPoint = (clientX: number, clientY: number) => {
+        const elements = document.elementsFromPoint?.(clientX, clientY) || [];
+        const chipEl = elements
+            .map(el => el.closest?.('[data-snaplex-chip-id]'))
+            .find(Boolean) as HTMLElement | undefined;
+        return chipEl?.dataset.snaplexChipId || null;
     };
 
-    const handleDragEnd = (e: React.DragEvent) => {
-        e.stopPropagation();
-        draggedIdRef.current = null;
+    const clearPointerDrag = () => {
+        pointerDragRef.current = null;
         setDraggedId(null);
         setDragOverId(null);
+    };
+
+    const handleChipPointerDown = (e: React.PointerEvent, chipId: string) => {
+        if (loading || e.button !== 0) return;
+        e.stopPropagation();
+        pointerDragRef.current = {
+            sourceId: chipId,
+            pointerId: e.pointerId,
+            startX: e.clientX,
+            startY: e.clientY,
+            active: false
+        };
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+    };
+
+    const handleChipPointerMove = (e: React.PointerEvent) => {
+        const drag = pointerDragRef.current;
+        if (!drag || drag.pointerId !== e.pointerId) return;
+        e.stopPropagation();
+        const distance = Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY);
+        if (!drag.active && distance < MOVEMENT_THRESHOLD) return;
+        if (!drag.active) {
+            drag.active = true;
+            setDraggedId(drag.sourceId);
+        }
+        e.preventDefault();
+        const targetId = getChipIdAtPoint(e.clientX, e.clientY);
+        setDragOverId(targetId && targetId !== drag.sourceId ? targetId : null);
+    };
+
+    const handleChipPointerUp = (e: React.PointerEvent) => {
+        const drag = pointerDragRef.current;
+        if (!drag || drag.pointerId !== e.pointerId) return;
+        e.stopPropagation();
+        e.currentTarget.releasePointerCapture?.(e.pointerId);
+        const targetId = drag.active ? getChipIdAtPoint(e.clientX, e.clientY) : null;
+        const wasDrag = drag.active;
+        clearPointerDrag();
+        if (wasDrag) {
+            e.preventDefault();
+            suppressChipClickRef.current = true;
+            setTimeout(() => { suppressChipClickRef.current = false; }, 0);
+            if (targetId) moveChip(drag.sourceId, targetId);
+        }
+    };
+
+    const handleChipPointerCancel = (e: React.PointerEvent) => {
+        if (pointerDragRef.current?.pointerId !== e.pointerId) return;
+        e.stopPropagation();
+        clearPointerDrag();
     };
 
     return (
@@ -342,14 +380,18 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
                         <div
                             key={chip.id}
                             className="relative"
-                            draggable={!loading}
-                            onDragStart={(e) => handleDragStart(e, chip.id)}
-                            onDragOver={(e) => handleDragOver(e, chip.id)}
-                            onDrop={(e) => handleDrop(e, chip.id)}
-                            onDragEnd={handleDragEnd}
+                            data-snaplex-chip-id={chip.id}
+                            data-testid="chat-chip"
+                            onPointerDown={(e) => handleChipPointerDown(e, chip.id)}
+                            onPointerMove={handleChipPointerMove}
+                            onPointerUp={handleChipPointerUp}
+                            onPointerCancel={handleChipPointerCancel}
                         >
                             <button
-                                onClick={() => handleChipClick(chip.prompt)}
+                                onClick={() => {
+                                    if (suppressChipClickRef.current) return;
+                                    handleChipClick(chip.prompt);
+                                }}
                                 onMouseDown={handlePressStart}
                                 onMouseMove={handlePressMove}
                                 onMouseUp={handlePressEnd}
@@ -368,7 +410,13 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
                                 {chip.label}
                             </button>
                             {deleteMode && (
-                                <button onClick={(e) => { e.stopPropagation(); handleDeleteChip(chip.id); }} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md hover:bg-red-600 active:scale-90 z-10">−</button>
+                                <button
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteChip(chip.id); }}
+                                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md hover:bg-red-600 active:scale-90 z-10"
+                                >
+                                    −
+                                </button>
                             )}
                         </div>
                     ))}
