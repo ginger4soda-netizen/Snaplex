@@ -4,6 +4,10 @@ const uuid = () => {
 };
 
 export const mountBatchRunner = ({ collectImages, label }) => {
+  document.querySelectorAll('.snaplex-batch-button, .snaplex-batch-progress').forEach((node) => {
+    node.remove();
+  });
+
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'snaplex-batch-button';

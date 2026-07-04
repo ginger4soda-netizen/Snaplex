@@ -15,4 +15,9 @@ const sitePicker = () => {
 };
 
 const config = sitePicker();
-if (config) mountBatchRunner(config);
+if (config) {
+  if (window.__snaplexBatchUnmount) {
+    window.__snaplexBatchUnmount();
+  }
+  window.__snaplexBatchUnmount = mountBatchRunner(config);
+}

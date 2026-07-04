@@ -22,6 +22,10 @@ export const isCaptureCandidate = (img) => {
 };
 
 export const mountFloatingBall = ({ trigger }) => {
+  document.querySelectorAll('.snaplex-floating-ball, .snaplex-toast').forEach((node) => {
+    node.remove();
+  });
+
   const ball = document.createElement('div');
   ball.className = 'snaplex-floating-ball';
   ball.setAttribute('role', 'button');

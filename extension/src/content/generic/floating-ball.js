@@ -5,10 +5,15 @@ let unmount = null;
 
 const apply = (enabled) => {
   if (enabled && !unmount) {
+    if (window.__snaplexFloatingBallUnmount) {
+      window.__snaplexFloatingBallUnmount();
+    }
     unmount = mountFloatingBall({ trigger: 'click' });
+    window.__snaplexFloatingBallUnmount = unmount;
   } else if (!enabled && unmount) {
     unmount();
     unmount = null;
+    window.__snaplexFloatingBallUnmount = null;
   }
 };
 

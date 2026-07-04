@@ -8,7 +8,11 @@ const HOST_DESCRIPTION: &str = "Snaplex Native Messaging Host";
 
 // Placeholder until Chrome Web Store assigns the production extension ID.
 const PRODUCTION_EXTENSION_ID: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-const DEV_EXTENSION_IDS: &[&str] = &[];
+const DEV_EXTENSION_IDS: &[&str] = &[
+    // Local unpacked Snaplex extension IDs used during browser-extension smoke tests.
+    "bhaimaigbkoojgbnhoegefgplbmpmgjg",
+    "plilihkbpoonppdlpclokjpoebdjifeb",
+];
 
 #[derive(Debug, Serialize)]
 struct NativeMessagingManifest {
@@ -262,7 +266,11 @@ mod tests {
     fn allowed_origins_are_chrome_extension_urls() {
         assert_eq!(
             allowed_origins(),
-            vec!["chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/".to_string()]
+            vec![
+                "chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/".to_string(),
+                "chrome-extension://bhaimaigbkoojgbnhoegefgplbmpmgjg/".to_string(),
+                "chrome-extension://plilihkbpoonppdlpclokjpoebdjifeb/".to_string(),
+            ]
         );
     }
 }
