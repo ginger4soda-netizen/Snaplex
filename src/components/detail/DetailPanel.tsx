@@ -40,7 +40,7 @@ interface DetailPanelProps {
 }
 
 const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLanguage, onAnalysisChanged }) => {
-  const { getImageDetail, getImageSources, updateImageMemo, getColorPalette, saveColorPalette } = useTauriIPC();
+  const { getImageDetail, getImageSources, updateImageMemo, getColorPalette, saveColorPalette, getDimensionHistory } = useTauriIPC();
   const t = getTranslation(systemLanguage);
   const captureTypeLabels: Record<string, string> = {
     image: t['captureType.image'],
@@ -193,6 +193,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLangu
   const [promptCopied, setPromptCopied] = useState(false);
   const handleCopyAllPrompts = useCallback(async () => {
     if (!detail?.analysis) return;
+    const analysis = detail.analysis;
+    const imgId = detail.id;
     let systemLang = 'English';
     let copyIncludedModules = DEFAULT_SETTINGS.copyIncludedModules || [];
     try {
@@ -203,17 +205,32 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLangu
       systemLang = DEFAULT_SETTINGS.systemLanguage || 'English';
     }
     const allowedModules = copyIncludedModules.map((m: string) => m.toLowerCase());
+    // Copy what the dimension cards actually show. Edits/regenerations are
+    // persisted only in the per-dimension version store, so reading
+    // `structuredPrompts` directly copies the stale (often empty) original
+    // snapshot and silently yields nothing. Prefer the current persisted
+    // version, falling back to the analysis snapshot when no versions exist.
+    const histories = await Promise.all(
+      PROMPT_DIMS.map(({ key }) => getDimensionHistory(imgId, key).catch(() => []))
+    );
     const parts: string[] = [];
-    for (const { key, label } of PROMPT_DIMS) {
-      if (allowedModules.length > 0 && !allowedModules.includes(label.toLowerCase())) continue;
-      const seg = detail.analysis.structuredPrompts?.[key];
-      if (!seg) continue;
+    PROMPT_DIMS.forEach(({ key, label }, i) => {
+      if (allowedModules.length > 0 && !allowedModules.includes(label.toLowerCase())) return;
+      const versions = histories[i];
+      const current = versions.find(v => v.isCurrent) || versions[0];
+      const seg = current && (current.original || current.translated)
+        ? current
+        : analysis.structuredPrompts?.[key];
+      if (!seg) return;
       const { front } = getCorrectDisplayOrder(seg.original || '', seg.translated || '', systemLang);
       const text = (front || '').trim();
-      if (!text) continue;
+      if (!text) return;
       parts.push(`[${label}]\n${text}`);
+    });
+    if (parts.length === 0) {
+      showToast(t['detail.copyEmpty'], 'info');
+      return;
     }
-    if (parts.length === 0) return;
     const ok = await copyToClipboard(parts.join('\n\n'));
     if (ok) {
       setPromptCopied(true);
@@ -221,7 +238,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ imageId, onClose, systemLangu
     } else {
       showToast('Copy failed', 'error');
     }
-  }, [detail?.analysis]);
+  }, [detail?.analysis, detail?.id, getDimensionHistory, t]);
 
   if (!imageId) {
     return (
