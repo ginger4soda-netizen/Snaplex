@@ -288,7 +288,19 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
         return chipEl?.dataset.snaplexChipId || null;
     };
 
+    const clearLongPress = () => {
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+        }
+    };
+
     const clearPointerDrag = () => {
+        // Pointer capture on the wrapper can swallow the button's mouseup in
+        // WebKit, orphaning the long-press timer so a plain click flips into
+        // delete mode ~800ms later. Cancel it here, where pointerup/cancel
+        // always fire on the captured element.
+        clearLongPress();
         pointerDragRef.current = null;
         setDraggedId(null);
         setDragOverId(null);
@@ -315,6 +327,8 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
         if (!drag.active && distance < MOVEMENT_THRESHOLD) return;
         if (!drag.active) {
             drag.active = true;
+            // A real drag started — never let it also arm delete mode.
+            clearLongPress();
             setDraggedId(drag.sourceId);
         }
         e.preventDefault();
@@ -329,13 +343,22 @@ const ChatBot: React.FC<Props> = ({ messages, onUpdateMessages, imageContext, sy
         e.currentTarget.releasePointerCapture?.(e.pointerId);
         const targetId = drag.active ? getChipIdAtPoint(e.clientX, e.clientY) : null;
         const wasDrag = drag.active;
+        const sourceId = drag.sourceId;
         clearPointerDrag();
+        // The wrapper holds pointer capture, so the browser fires the resulting
+        // `click` on the wrapper, not the inner button — the button's onClick
+        // never runs. Drive both outcomes (reorder / tap-to-send) from here, and
+        // suppress the stray click so keyboard-only activation stays the sole
+        // consumer of onClick.
+        e.preventDefault();
+        suppressChipClickRef.current = true;
+        setTimeout(() => { suppressChipClickRef.current = false; }, 0);
         if (wasDrag) {
-            e.preventDefault();
-            suppressChipClickRef.current = true;
-            setTimeout(() => { suppressChipClickRef.current = false; }, 0);
-            if (targetId) moveChip(drag.sourceId, targetId);
+            if (targetId) moveChip(sourceId, targetId);
+            return;
         }
+        const chip = allChips.find(c => c.id === sourceId);
+        if (chip) handleChipClick(chip.prompt);
     };
 
     const handleChipPointerCancel = (e: React.PointerEvent) => {

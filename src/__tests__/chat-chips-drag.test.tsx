@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { get, set } from 'idb-keyval';
 import ChatBot from '@/components/shared/ChatBot';
+import { sendChatMessageStream } from '@/services/geminiService';
 
 vi.mock('idb-keyval', () => ({
   get: vi.fn(),
@@ -118,6 +119,46 @@ describe('ChatBot chip reordering', () => {
     });
 
     expect(set).toHaveBeenLastCalledWith('snaplex_all_chips', [savedChips[1], savedChips[2]]);
+  });
+
+  it('sends the chip prompt on a plain tap even though pointer capture eats the click', async () => {
+    vi.mocked(sendChatMessageStream).mockResolvedValue(undefined as never);
+    renderChatBot();
+
+    const firstButton = await screen.findByRole('button', { name: 'First' });
+    const firstChip = firstButton.closest('[data-snaplex-chip-id]') as HTMLElement;
+
+    // A tap: pointer down and up on the same spot, no movement. Pointer capture
+    // means the native click lands on the wrapper, not the button, so the send
+    // must originate from the pointerup handler.
+    fireEvent.pointerDown(firstChip, { pointerId: 1, clientX: 0, clientY: 0, button: 0 });
+    fireEvent.pointerUp(firstChip, { pointerId: 1, clientX: 0, clientY: 0, button: 0 });
+
+    await waitFor(() => {
+      expect(sendChatMessageStream).toHaveBeenCalled();
+    });
+    expect(vi.mocked(sendChatMessageStream).mock.calls[0][1]).toBe('first prompt');
+  });
+
+  it('does not enter delete mode on a quick click when pointer capture swallows mouseup', async () => {
+    renderChatBot();
+
+    const firstButton = await screen.findByRole('button', { name: 'First' });
+    const firstChip = firstButton.closest('[data-snaplex-chip-id]') as HTMLElement;
+
+    vi.useFakeTimers();
+    // Simulate the WebKit path: the wrapper captures the pointer, the button's
+    // mousedown arms the long-press timer, but the compat mouseup is retargeted
+    // to the wrapper so only pointerup fires on release.
+    fireEvent.pointerDown(firstChip, { pointerId: 1, clientX: 0, clientY: 0, button: 0 });
+    fireEvent.mouseDown(firstButton, { clientX: 0, clientY: 0 });
+    fireEvent.pointerUp(firstChip, { pointerId: 1, clientX: 0, clientY: 0, button: 0 });
+    act(() => {
+      vi.advanceTimersByTime(800);
+    });
+    vi.useRealTimers();
+
+    expect(screen.queryAllByRole('button', { name: '−' })).toHaveLength(0);
   });
 
   it('still reorders chips while delete mode is active', async () => {
